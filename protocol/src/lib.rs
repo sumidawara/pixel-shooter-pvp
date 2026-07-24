@@ -24,6 +24,8 @@ pub enum ClientMessage {
         aim_x: f32,
         aim_y: f32,
         shooting: bool,
+        reload_pressed: bool,
+        dash_pressed: bool,
     },
 }
 
@@ -64,6 +66,14 @@ pub struct PlayerSnapshot {
     pub score: u32,
     pub alive: bool,
     pub respawn_left: f32,
+    pub invulnerable_left: f32,
+    pub ammo: u32,
+    pub max_ammo: u32,
+    pub reloading: bool,
+    pub reload_left: f32,
+    pub dash_cooldown_left: f32,
+    pub dashing: bool,
+    pub dash_time_left: f32,
     pub last_input_sequence: u32,
 }
 
@@ -72,4 +82,5 @@ pub struct BulletSnapshot {
     pub id: u64,
     pub owner_id: u64,
     pub position: Vec2,
+    pub velocity: Vec2,
 }

@@ -12,7 +12,7 @@
 //! - Commands: Entityの作成・削除を予約する仕組み。
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -36,6 +36,14 @@ const FINISHED_SECONDS: f32 = 5.0;
 const MOVE_SPEED: f32 = 150.0;
 const BULLET_SPEED: f32 = 340.0;
 const SHOT_INTERVAL: f32 = 0.24;
+const RECOIL_DISTANCE: f32 = 5.0;
+const MAX_AMMO: u32 = 6;
+const RELOAD_SECONDS: f32 = 1.0;
+const HIT_INVULNERABLE_SECONDS: f32 = 0.18;
+const RESPAWN_INVULNERABLE_SECONDS: f32 = 1.0;
+const DASH_SPEED: f32 = 520.0;
+const DASH_DURATION: f32 = 0.13;
+const DASH_COOLDOWN: f32 = 1.1;
 const RESPAWN_SECONDS: f32 = 2.0;
 const MAX_HP: i32 = 5;
 const MAX_PLAYERS: usize = 2;
@@ -43,7 +51,13 @@ const MAX_PLAYERS: usize = 2;
 // 接続IDから、そのクライアントへメッセージを送るチャンネルを検索する表。
 // WebSocketは別スレッドで動くため、Arcで複数スレッドから共有し、
 // Mutexで同時アクセスからHashMapを保護する。
-type ClientSenders = Arc<Mutex<HashMap<u64, mpsc::UnboundedSender<Message>>>>;
+type ClientSenders = Arc<Mutex<HashMap<u64, mpsc::UnboundedSender<OutboundMessage>>>>;
+
+/// 通信試験用の遅延を伴う送信メッセージ。
+struct OutboundMessage {
+    message: Message,
+    delay: Duration,
+}
 
 /// 通信スレッドとBevyのゲーム世界をつなぐResource。
 ///
@@ -54,6 +68,12 @@ struct Network {
     events: Receiver<NetworkEvent>,
     /// Bevy側から接続中のクライアントへ送信するときに使う。
     clients: ClientSenders,
+    /// スナップショットへ人工的に加える片道遅延。
+    simulated_latency: Duration,
+    /// 0〜100で指定する人工的なパケット欠落率。
+    simulated_loss_percent: u32,
+    /// 欠落判定を再現可能にするための連番。
+    outbound_sequence: u64,
 }
 
 /// 通信スレッドで起きた出来事をBevyのメインスレッドへ渡すための値。
@@ -94,6 +114,14 @@ struct Player {
     alive: bool,
     respawn_left: f32,
     shot_cooldown: f32,
+    ammo: u32,
+    reload_left: f32,
+    reload_requested: bool,
+    invulnerable_left: f32,
+    dash_cooldown_left: f32,
+    dash_time_left: f32,
+    dash_direction: Vec2,
+    dash_requested: bool,
     last_input_sequence: u32,
 }
 
@@ -111,9 +139,26 @@ fn main() {
     // WebSocketスレッドからBevyへイベントを渡すクロススレッド用チャンネル。
     let (event_tx, event_rx) = unbounded();
     let clients = Arc::new(Mutex::new(HashMap::new()));
-    start_network_thread(event_tx, clients.clone());
+    let bind_address =
+        std::env::var("PIXEL_SHOOTER_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:9001".into());
+    let simulated_latency_ms = env_u64("PIXEL_SHOOTER_LATENCY_MS", 0);
+    let simulated_loss_percent = env_u64("PIXEL_SHOOTER_PACKET_LOSS_PERCENT", 0).min(100) as u32;
+    let simulated_latency = Duration::from_millis(simulated_latency_ms);
+    start_network_thread(
+        event_tx,
+        clients.clone(),
+        bind_address.clone(),
+        simulated_latency,
+        simulated_loss_percent,
+    );
 
-    println!("Pixel Shooter server listening on ws://127.0.0.1:9001");
+    println!("Pixel Shooter server listening on ws://{bind_address}");
+    if simulated_latency_ms > 0 || simulated_loss_percent > 0 {
+        println!(
+            "Network simulation: {simulated_latency_ms} ms latency, \
+             {simulated_loss_percent}% snapshot loss"
+        );
+    }
 
     // AppはBevyアプリケーション全体を組み立てる入口。
     App::new()
@@ -130,6 +175,9 @@ fn main() {
         .insert_resource(Network {
             events: event_rx,
             clients,
+            simulated_latency,
+            simulated_loss_percent,
+            outbound_sequence: 0,
         })
         // Default実装を使ってMatchState Resourceを作る。
         .init_resource::<MatchState>()
@@ -156,11 +204,17 @@ fn main() {
 ///
 /// 非同期通信をBevyのSystem内で待つとゲーム更新が止まるため、
 /// 通信は別スレッド、ゲーム計算はBevyのメインスレッドと役割を分ける。
-fn start_network_thread(events: Sender<NetworkEvent>, clients: ClientSenders) {
+fn start_network_thread(
+    events: Sender<NetworkEvent>,
+    clients: ClientSenders,
+    bind_address: String,
+    simulated_latency: Duration,
+    simulated_loss_percent: u32,
+) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
         runtime.block_on(async move {
-            let listener = TcpListener::bind("127.0.0.1:9001")
+            let listener = TcpListener::bind(&bind_address)
                 .await
                 .expect("bind websocket server");
             let mut next_client_id = 1_u64;
@@ -173,7 +227,14 @@ fn start_network_thread(events: Sender<NetworkEvent>, clients: ClientSenders) {
                         let tx = events.clone();
                         let peers = clients.clone();
                         // クライアントごとに独立した非同期タスクを作る。
-                        tokio::spawn(handle_connection(id, stream, tx, peers));
+                        tokio::spawn(handle_connection(
+                            id,
+                            stream,
+                            tx,
+                            peers,
+                            simulated_latency,
+                            simulated_loss_percent,
+                        ));
                     }
                     Err(error) => eprintln!("accept error: {error}"),
                 }
@@ -188,6 +249,8 @@ async fn handle_connection(
     stream: TcpStream,
     events: Sender<NetworkEvent>,
     clients: ClientSenders,
+    simulated_latency: Duration,
+    simulated_loss_percent: u32,
 ) {
     // TCP接続をWebSocket接続へアップグレードする。
     let websocket = match accept_async(stream).await {
@@ -205,9 +268,38 @@ async fn handle_connection(
 
     // Bevy側からout_txへ投入されたメッセージを、実際のSocketへ書き出すタスク。
     let writer = tokio::spawn(async move {
-        while let Some(message) = out_rx.recv().await {
-            if socket_tx.send(message).await.is_err() {
-                break;
+        let mut delayed = VecDeque::new();
+        loop {
+            if let Some((deliver_at, _)) = delayed.front() {
+                tokio::select! {
+                    outbound = out_rx.recv() => {
+                        let Some(outbound) = outbound else { break };
+                        delayed.push_back((
+                            tokio::time::Instant::now() + outbound.delay,
+                            outbound.message,
+                        ));
+                    }
+                    _ = tokio::time::sleep_until(*deliver_at) => {
+                        let (_, message) = delayed.pop_front().expect("delayed message");
+                        if socket_tx.send(message).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                let Some(outbound) = out_rx.recv().await else {
+                    break;
+                };
+                if outbound.delay.is_zero() {
+                    if socket_tx.send(outbound.message).await.is_err() {
+                        break;
+                    }
+                } else {
+                    delayed.push_back((
+                        tokio::time::Instant::now() + outbound.delay,
+                        outbound.message,
+                    ));
+                }
             }
         }
     });
@@ -217,6 +309,24 @@ async fn handle_connection(
         match result {
             Ok(Message::Text(text)) => match serde_json::from_str::<ClientMessage>(&text) {
                 Ok(message) => {
+                    // Joinは即時に処理し、入力だけを人工的な遅延・欠落の対象にする。
+                    let input_sequence = match &message {
+                        ClientMessage::Input { sequence, .. } => Some(u64::from(*sequence)),
+                        ClientMessage::Join { .. } => None,
+                    };
+                    if let Some(sequence) = input_sequence {
+                        if should_drop_packet(sequence, simulated_loss_percent) {
+                            continue;
+                        }
+                        if !simulated_latency.is_zero() {
+                            let delayed_events = events.clone();
+                            tokio::spawn(async move {
+                                tokio::time::sleep(simulated_latency).await;
+                                let _ = delayed_events.send(NetworkEvent::Message(id, message));
+                            });
+                            continue;
+                        }
+                    }
                     let _ = events.send(NetworkEvent::Message(id, message));
                 }
                 Err(error) => eprintln!("invalid message from {id}: {error}"),
@@ -285,6 +395,14 @@ fn process_network(
                     alive: true,
                     respawn_left: 0.0,
                     shot_cooldown: 0.0,
+                    ammo: MAX_AMMO,
+                    reload_left: 0.0,
+                    reload_requested: false,
+                    invulnerable_left: RESPAWN_INVULNERABLE_SECONDS,
+                    dash_cooldown_left: 0.0,
+                    dash_time_left: 0.0,
+                    dash_direction: Vec2::ZERO,
+                    dash_requested: false,
                     last_input_sequence: 0,
                 });
                 send_to(&network, id, &ServerMessage::Welcome { player_id: id });
@@ -299,6 +417,8 @@ fn process_network(
                     aim_x,
                     aim_y,
                     shooting,
+                    reload_pressed,
+                    dash_pressed,
                 },
             ) => {
                 for (_, mut player) in &mut players {
@@ -314,6 +434,9 @@ fn process_network(
                         player.aim = aim.normalize();
                     }
                     player.shooting = shooting;
+                    // 押した瞬間だけtrueになる操作は、Systemで消費するまでORで保持する。
+                    player.reload_requested |= reload_pressed;
+                    player.dash_requested |= dash_pressed;
                 }
             }
         }
@@ -381,24 +504,52 @@ fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Que
     let dt = time.delta_secs();
     for mut player in &mut players {
         if !player.alive {
+            player.reload_requested = false;
+            player.dash_requested = false;
             continue;
         }
         player.shot_cooldown = (player.shot_cooldown - dt).max(0.0);
+        player.invulnerable_left = (player.invulnerable_left - dt).max(0.0);
+        player.dash_cooldown_left = (player.dash_cooldown_left - dt).max(0.0);
+
+        // Rキーが押され、まだ弾が残っていない場合だけ手動リロードを始める。
+        if player.reload_requested && player.reload_left <= 0.0 && player.ammo < MAX_AMMO {
+            player.reload_left = RELOAD_SECONDS;
+        }
+        player.reload_requested = false;
+
+        if player.reload_left > 0.0 {
+            player.reload_left = (player.reload_left - dt).max(0.0);
+            if player.reload_left <= 0.0 {
+                player.ammo = MAX_AMMO;
+            }
+        }
+
+        // Spaceが押された瞬間に、現在の移動入力方向へダッシュを開始する。
+        if player.dash_requested
+            && player.dash_cooldown_left <= 0.0
+            && player.movement.length_squared() > 0.001
+        {
+            player.dash_direction = player.movement.normalize();
+            player.dash_time_left = DASH_DURATION;
+            player.dash_cooldown_left = DASH_COOLDOWN;
+        }
+        player.dash_requested = false;
+
+        // ダッシュ中は通常入力ではなく、開始時に保存した方向へ高速移動する。
+        let (direction, speed) = if player.dash_time_left > 0.0 {
+            player.dash_time_left = (player.dash_time_left - dt).max(0.0);
+            (player.dash_direction, DASH_SPEED)
+        } else {
+            (player.movement, MOVE_SPEED)
+        };
+
         // 速度(px/秒) × 経過秒で、このtickに進む距離を求める。
-        let delta = player.movement * MOVE_SPEED * dt;
+        let delta = direction * speed * dt;
 
         // X軸とY軸を別々に判定する。
         // まとめて移動すると、片方の軸が壁に当たっただけで両方向とも止まってしまう。
-        let mut next = player.position;
-        next.x += delta.x;
-        if valid_position(next) {
-            player.position.x = next.x;
-        }
-        next = player.position;
-        next.y += delta.y;
-        if valid_position(next) {
-            player.position.y = next.y;
-        }
+        move_with_collision(&mut player.position, delta);
     }
 }
 
@@ -412,10 +563,21 @@ fn fire_bullets(
         return;
     }
     for mut player in &mut players {
-        if !player.alive || !player.shooting || player.shot_cooldown > 0.0 {
+        if !player.alive
+            || !player.shooting
+            || player.shot_cooldown > 0.0
+            || player.reload_left > 0.0
+            || player.dash_time_left > 0.0
+        {
             continue;
         }
+        if player.ammo == 0 {
+            player.reload_left = RELOAD_SECONDS;
+            continue;
+        }
+
         player.shot_cooldown = SHOT_INTERVAL;
+        player.ammo -= 1;
         state.next_bullet_id += 1;
         let aim = player.aim;
         // プレイヤー中心に弾を置くと自分と重なるため、照準方向へ少し前に出す。
@@ -426,6 +588,14 @@ fn fire_bullets(
             velocity: aim * BULLET_SPEED,
             life_left: 2.0,
         });
+
+        // 射撃方向と反対へ少し押し戻す。サーバーで計算するので全員に同じ結果になる。
+        move_with_collision(&mut player.position, -aim * RECOIL_DISTANCE);
+
+        // 最後の1発を撃った直後から自動リロードを開始する。
+        if player.ammo == 0 {
+            player.reload_left = RELOAD_SECONDS;
+        }
     }
 }
 
@@ -459,13 +629,14 @@ fn move_and_hit_bullets(
         let mut killed = false;
         let owner_id = bullet.owner_id;
         for mut player in &mut players {
-            if !player.alive || player.id == owner_id {
+            if !player.alive || player.id == owner_id || player.invulnerable_left > 0.0 {
                 continue;
             }
             // 円同士の当たり判定。sqrtを避けるため距離も半径も二乗して比較する。
             let hit_distance = PLAYER_RADIUS + BULLET_RADIUS;
             if player.position.distance_squared(bullet.position) <= hit_distance * hit_distance {
                 player.hp -= 1;
+                player.invulnerable_left = HIT_INVULNERABLE_SECONDS;
                 hit = true;
                 if player.hp <= 0 {
                     player.alive = false;
@@ -523,6 +694,10 @@ fn update_respawns(
             player.hp = MAX_HP;
             player.alive = true;
             player.shot_cooldown = 0.3;
+            player.ammo = MAX_AMMO;
+            player.reload_left = 0.0;
+            player.invulnerable_left = RESPAWN_INVULNERABLE_SECONDS;
+            player.dash_time_left = 0.0;
         }
     }
 }
@@ -530,12 +705,12 @@ fn update_respawns(
 /// 現在のゲーム状態を全Godotクライアントへ送るSystem。
 fn broadcast_snapshot(
     state: Res<MatchState>,
-    network: Res<Network>,
+    mut network: ResMut<Network>,
     players: Query<&Player>,
     bullets: Query<&Bullet>,
 ) {
     // サーバー更新は60Hzだが、3tickに1回だけ送ることで通信は20Hzになる。
-    if state.tick % 3 != 0 {
+    if !state.tick.is_multiple_of(3) {
         return;
     }
     let phase = if state.running {
@@ -565,6 +740,14 @@ fn broadcast_snapshot(
                 score: player.score,
                 alive: player.alive,
                 respawn_left: player.respawn_left,
+                invulnerable_left: player.invulnerable_left,
+                ammo: player.ammo,
+                max_ammo: MAX_AMMO,
+                reloading: player.reload_left > 0.0,
+                reload_left: player.reload_left,
+                dash_cooldown_left: player.dash_cooldown_left,
+                dashing: player.dash_time_left > 0.0,
+                dash_time_left: player.dash_time_left,
                 last_input_sequence: player.last_input_sequence,
             })
             .collect(),
@@ -574,10 +757,11 @@ fn broadcast_snapshot(
                 id: bullet.id,
                 owner_id: bullet.owner_id,
                 position: net_vec(bullet.position),
+                velocity: net_vec(bullet.velocity),
             })
             .collect(),
     });
-    broadcast(&network, &snapshot);
+    broadcast(&mut network, &snapshot);
 }
 
 /// 新しい試合の開始時にプレイヤー状態を初期化する。
@@ -587,6 +771,13 @@ fn reset_player(player: &mut Player) {
     player.alive = true;
     player.respawn_left = 0.0;
     player.shot_cooldown = 0.0;
+    player.ammo = MAX_AMMO;
+    player.reload_left = 0.0;
+    player.reload_requested = false;
+    player.invulnerable_left = RESPAWN_INVULNERABLE_SECONDS;
+    player.dash_cooldown_left = 0.0;
+    player.dash_time_left = 0.0;
+    player.dash_requested = false;
 }
 
 /// 参加順に応じた左右の初期位置を返す。
@@ -595,6 +786,20 @@ fn spawn_position(index: usize) -> Vec2 {
         Vec2::new(80.0, ARENA_HEIGHT * 0.5)
     } else {
         Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT * 0.5)
+    }
+}
+
+/// X・Y軸を分けて、衝突しない分だけ位置を更新する。
+fn move_with_collision(position: &mut Vec2, delta: Vec2) {
+    let mut next = *position;
+    next.x += delta.x;
+    if valid_position(next) {
+        position.x = next.x;
+    }
+    next = *position;
+    next.y += delta.y;
+    if valid_position(next) {
+        position.y = next.y;
     }
 }
 
@@ -650,23 +855,74 @@ fn net_vec(value: Vec2) -> NetVec2 {
     }
 }
 
+/// 環境変数をu64として読み、未設定・不正値ならdefaultを返す。
+fn env_u64(name: &str, default: u64) -> u64 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
+}
+
+/// 連番から決定的に欠落を判定する。
+///
+/// 乱数を使わないため、同じ設定なら試験結果を再現しやすい。
+fn should_drop_packet(sequence: u64, loss_percent: u32) -> bool {
+    loss_percent > 0 && sequence.wrapping_mul(37) % 100 < u64::from(loss_percent)
+}
+
 /// 指定した接続IDのクライアント1台だけへJSONを送る。
 fn send_to(network: &Network, id: u64, message: &ServerMessage) {
     let Ok(text) = serde_json::to_string(message) else {
         return;
     };
     if let Some(sender) = network.clients.lock().expect("clients lock").get(&id) {
-        let _ = sender.send(Message::Text(text.into()));
+        let _ = sender.send(OutboundMessage {
+            message: Message::Text(text.into()),
+            // welcome/rejectedは試験対象にせず、即時に送る。
+            delay: Duration::ZERO,
+        });
     }
 }
 
 /// 接続中の全クライアントへ同じJSONメッセージを送る。
-fn broadcast(network: &Network, message: &ServerMessage) {
+fn broadcast(network: &mut Network, message: &ServerMessage) {
     let Ok(text) = serde_json::to_string(message) else {
         return;
     };
     let message = Message::Text(text.into());
     for sender in network.clients.lock().expect("clients lock").values() {
-        let _ = sender.send(message.clone());
+        network.outbound_sequence += 1;
+        if should_drop_packet(network.outbound_sequence, network.simulated_loss_percent) {
+            continue;
+        }
+        let _ = sender.send(OutboundMessage {
+            message: message.clone(),
+            delay: network.simulated_latency,
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zero_percent_never_drops() {
+        assert!(!(0..500).any(|sequence| should_drop_packet(sequence, 0)));
+    }
+
+    #[test]
+    fn simulated_loss_is_close_to_requested_percentage() {
+        let dropped = (1..=1000)
+            .filter(|sequence| should_drop_packet(*sequence, 25))
+            .count();
+        assert_eq!(dropped, 250);
+    }
+
+    #[test]
+    fn collision_keeps_player_outside_obstacle() {
+        let mut position = Vec2::new(235.0, 99.0);
+        move_with_collision(&mut position, Vec2::new(10.0, 0.0));
+        assert_eq!(position, Vec2::new(235.0, 99.0));
     }
 }
