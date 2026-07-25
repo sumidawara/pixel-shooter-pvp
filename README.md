@@ -110,6 +110,12 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 
 - `front/`: Godotクライアント
 - `back/`: Bevyヘッドレスサーバー
+  - `src/main.rs`: 設定とSystemをBevy Appへ登録する起動処理
+  - `src/config.rs`: `server.json`と環境変数の読み込み
+  - `src/model.rs`: Player、Bullet、MatchState
+  - `src/arena.rs`: マップ形状、衝突判定、スポーン地点
+  - `src/game.rs`: 試合進行、移動、射撃、リスポーン
+  - `src/network.rs`: WebSocket、接続管理、スナップショット配信
 - `protocol/`: Rustの通信メッセージ型
 - `docs/`: プロトコルとゲームルール
 - `server.json`: サーバーの運用・ゲーム設定
