@@ -15,7 +15,7 @@ unique_name_in_owner = true
 offset_right = 180.0
 offset_bottom = 15.0
 theme_override_font_sizes/font_size = 10
-text = "PLAYER R0 K0 6/6"
+text = "PLAYER 0 PTS 6/6"
 
 [node name="HpContainer" type="HBoxContainer" parent="."]
 unique_name_in_owner = true

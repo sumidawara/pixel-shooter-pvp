@@ -16,8 +16,10 @@ const OBSTACLES := [Rect2(250, 85, 140, 28), Rect2(250, 247, 140, 28)]
 
 const PLAYER_VIEW_SCENE := preload("res://scenes/game/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://scenes/game/bullet_view.tscn")
+const ITEM_VIEW_SCENE := preload("res://scenes/game/item_view.tscn")
 
 @onready var world: Node2D = %World
+@onready var item_layer: Node2D = %ItemLayer
 @onready var player_layer: Node2D = %PlayerLayer
 @onready var bullet_layer: Node2D = %BulletLayer
 @onready var effect_layer: Node2D = %EffectLayer
@@ -27,8 +29,8 @@ const BULLET_VIEW_SCENE := preload("res://scenes/game/bullet_view.tscn")
 @onready var dash_player: AudioStreamPlayer = %DashPlayer
 @onready var reload_player: AudioStreamPlayer = %ReloadPlayer
 @onready var countdown_player: AudioStreamPlayer = %CountdownPlayer
-@onready var round_start_player: AudioStreamPlayer = %RoundStartPlayer
-@onready var round_end_player: AudioStreamPlayer = %RoundEndPlayer
+@onready var match_start_player: AudioStreamPlayer = %MatchStartPlayer
+@onready var match_end_player: AudioStreamPlayer = %MatchEndPlayer
 
 var session_active := false
 var player_id := 0
@@ -38,8 +40,6 @@ var players_by_id: Dictionary = {}
 var player_views: Dictionary = {}
 var phase := "waiting"
 var time_left := 0.0
-var round_number := 0
-var round_winner_id = null
 var winner_id = null
 var reconnect_grace_left := 0.0
 var connection_status := "READY"
@@ -67,6 +67,9 @@ var remote_target_positions: Dictionary = {}
 var bullet_views: Dictionary = {}
 var bullet_positions: Dictionary = {}
 var bullet_velocities: Dictionary = {}
+
+# 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
+var item_views: Dictionary = {}
 
 
 func _ready() -> void:
@@ -113,6 +116,9 @@ func end_session() -> void:
 	bullet_views.clear()
 	bullet_positions.clear()
 	bullet_velocities.clear()
+	for view in item_views.values():
+		view.queue_free()
+	item_views.clear()
 	effect_layer.clear()
 	world.position = Vector2.ZERO
 
@@ -185,17 +191,16 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 		return
 	var next_players: Array = snapshot.get("players", [])
 	var next_bullets: Array = snapshot.get("bullets", [])
+	var next_items: Array = snapshot.get("items", [])
 	var next_phase := str(snapshot.get("phase", "waiting"))
 	var next_time := float(snapshot.get("time_left", 0.0))
-	_capture_snapshot_effects(next_players, next_bullets, next_phase, next_time)
+	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
 	players = next_players
 	players_by_id.clear()
 	for player in players:
 		players_by_id[int(player.get("id", 0))] = player
 	phase = next_phase
 	time_left = next_time
-	round_number = int(snapshot.get("round_number", 0))
-	round_winner_id = snapshot.get("round_winner_id")
 	winner_id = snapshot.get("winner_id")
 	reconnect_grace_left = float(snapshot.get("reconnect_grace_left", 0.0))
 	move_speed = float(snapshot.get("move_speed", DEFAULT_MOVE_SPEED))
@@ -204,16 +209,32 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	dash_cooldown = float(snapshot.get("dash_cooldown", DEFAULT_DASH_COOLDOWN))
 	_sync_players()
 	_sync_bullets(next_bullets)
+	_sync_items(next_items)
 	hud.apply_snapshot(
 		players,
 		phase,
 		time_left,
-		round_number,
-		round_winner_id,
 		winner_id,
 		reconnect_grace_left,
 		dash_cooldown
 	)
+
+
+func _sync_items(next_items: Array) -> void:
+	var active_ids: Dictionary = {}
+	for item in next_items:
+		var id := int(item.get("id", 0))
+		active_ids[id] = true
+		if not item_views.has(id):
+			var view = ITEM_VIEW_SCENE.instantiate()
+			item_layer.add_child(view)
+			view.configure(int(item.get("points", 0)))
+			item_views[id] = view
+		item_views[id].position = _to_vector(item.get("position", {}))
+	for id in item_views.keys():
+		if not active_ids.has(id):
+			item_views[id].queue_free()
+			item_views.erase(id)
 
 
 func _sync_players() -> void:
@@ -302,6 +323,7 @@ func _update_player_views() -> void:
 func _capture_snapshot_effects(
 	next_players: Array,
 	next_bullets: Array,
+	next_items: Array,
 	next_phase: String,
 	next_time: float
 ) -> void:
@@ -340,16 +362,24 @@ func _capture_snapshot_effects(
 		if not next_bullet_ids.has(id):
 			effect_layer.spawn_burst(bullet_positions[id], Color.WHITE, 5, 65.0)
 
+	var next_item_ids: Dictionary = {}
+	for item in next_items:
+		next_item_ids[int(item.get("id", 0))] = true
+	if next_phase == "running":
+		for id in item_views:
+			if not next_item_ids.has(id):
+				effect_layer.spawn_burst(item_views[id].position, Color.WHITE, 16, 105.0)
+
 	var next_second := int(ceil(next_time))
 	if next_phase == "countdown" and next_second != countdown_second:
 		countdown_second = next_second
 		countdown_player.play()
 	if next_phase != phase:
 		if next_phase == "running":
-			round_start_player.play()
+			match_start_player.play()
 			effect_layer.flash(0.28)
-		elif next_phase == "round_end" or next_phase == "match_finished":
-			round_end_player.play()
+		elif next_phase == "match_finished":
+			match_end_player.play()
 		if next_phase != "countdown":
 			countdown_second = -1
 
@@ -436,4 +466,4 @@ func _to_vector(value: Dictionary) -> Vector2:
 
 
 func _is_playing_phase() -> bool:
-	return phase == "running" or phase == "overtime"
+	return phase == "running"

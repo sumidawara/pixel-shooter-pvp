@@ -9,9 +9,8 @@ func apply_player(player: Dictionary, color: Color, dash_cooldown: float) -> voi
 	visible = not player.is_empty()
 	if player.is_empty():
 		return
-	var label := "%s  R%d K%d  %d/%d" % [
+	var label := "%s  %d PTS  %d/%d" % [
 		str(player.get("name", "P")),
-		int(player.get("round_wins", 0)),
 		int(player.get("score", 0)),
 		int(player.get("ammo", 0)),
 		int(player.get("max_ammo", 6)),

@@ -20,8 +20,6 @@ func apply_snapshot(
 	players: Array,
 	phase: String,
 	time_left: float,
-	round_number: int,
-	round_winner_id,
 	winner_id,
 	reconnect_grace_left: float,
 	dash_cooldown: float
@@ -31,25 +29,31 @@ func apply_snapshot(
 	player_one_status.apply_player(sorted[0] if sorted.size() > 0 else {}, CYAN, dash_cooldown)
 	player_two_status.apply_player(sorted[1] if sorted.size() > 1 else {}, MAGENTA, dash_cooldown)
 
-	var center_text := "%02d" % int(ceil(time_left))
+	var center_text := _format_time(time_left)
 	if phase == "waiting":
 		center_text = "WAITING FOR 2 PLAYERS"
 	elif phase == "countdown":
-		center_text = "ROUND %d  %d" % [round_number, int(ceil(time_left))]
-	elif phase == "overtime":
-		center_text = "OVERTIME  %02d" % int(ceil(time_left))
-	elif phase == "round_end":
-		center_text = "ROUND WINNER"
-		if round_winner_id != null:
-			center_text = "PLAYER %d TAKES ROUND" % int(round_winner_id)
+		center_text = "MATCH START  %d" % int(ceil(time_left))
 	elif phase == "paused":
 		center_text = "RECONNECTING... %.1f" % reconnect_grace_left
 	elif phase == "match_finished":
 		center_text = "DRAW"
 		if winner_id != null:
-			center_text = "PLAYER %d WINS MATCH" % int(winner_id)
+			var winner_name := "PLAYER %d" % int(winner_id)
+			var winner_score := 0
+			for player in players:
+				if int(player.get("id", 0)) == int(winner_id):
+					winner_name = str(player.get("name", winner_name))
+					winner_score = int(player.get("score", 0))
+					break
+			center_text = "%s WINS  %d PTS" % [winner_name, winner_score]
 	match_label.text = center_text
 	countdown_label.visible = phase == "countdown"
 	countdown_label.text = str(int(ceil(time_left)))
 	result_overlay.visible = phase == "match_finished"
 	result_label.text = center_text
+
+
+func _format_time(time_left: float) -> String:
+	var total_seconds := maxi(int(ceil(time_left)), 0)
+	return "%02d:%02d" % [total_seconds / 60, total_seconds % 60]
