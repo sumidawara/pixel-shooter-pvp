@@ -33,6 +33,7 @@ const ITEM_VIEW_SCENE := preload("res://scenes/game/item_view.tscn")
 @onready var countdown_player: AudioStreamPlayer = %CountdownPlayer
 @onready var match_start_player: AudioStreamPlayer = %MatchStartPlayer
 @onready var match_end_player: AudioStreamPlayer = %MatchEndPlayer
+@onready var exit_confirm_modal = %ExitConfirmModal
 
 var session_active := false
 var player_id := 0
@@ -76,6 +77,7 @@ var item_views: Dictionary = {}
 
 func _ready() -> void:
 	NetworkClient.snapshot_received.connect(_on_snapshot_received)
+	exit_confirm_modal.exit_confirmed.connect(_confirm_exit)
 
 
 func start_session(id: int) -> void:
@@ -100,6 +102,8 @@ func end_session() -> void:
 	session_active = false
 	if is_instance_valid(hud):
 		hud.visible = false
+	if is_instance_valid(exit_confirm_modal):
+		exit_confirm_modal.close_modal()
 	player_id = 0
 	sequence = 0
 	players.clear()
@@ -132,8 +136,13 @@ func set_connection_status(text: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		exit_requested.emit()
+	if not visible or not session_active or not event.is_action_pressed("ui_cancel"):
+		return
+	if exit_confirm_modal.is_open():
+		exit_confirm_modal.close_modal()
+	else:
+		exit_confirm_modal.open_modal()
+	get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -159,7 +168,12 @@ func _physics_process(delta: float) -> void:
 	if not session_active or player_id == 0 or not NetworkClient.is_open():
 		return
 	sequence += 1
-	var movement := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var input_blocked: bool = exit_confirm_modal.is_open()
+	var movement := (
+		Vector2.ZERO
+		if input_blocked
+		else Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	)
 	var origin := predicted_position if prediction_ready else ARENA_SIZE * 0.5
 	var aim := (get_viewport().get_mouse_position() - origin).normalized()
 	if aim == Vector2.ZERO:
@@ -168,9 +182,9 @@ func _physics_process(delta: float) -> void:
 		"sequence": sequence,
 		"delta": delta,
 		"movement": movement,
-		"dash_pressed": Input.is_action_just_pressed("dash"),
+		"dash_pressed": not input_blocked and Input.is_action_just_pressed("dash"),
 	}
-	if _is_playing_phase():
+	if _is_playing_phase() and not input_blocked:
 		pending_inputs.append(input_record)
 		_simulate_predicted_input(input_record)
 	else:
@@ -182,10 +196,14 @@ func _physics_process(delta: float) -> void:
 		"move_y": movement.y,
 		"aim_x": aim.x,
 		"aim_y": aim.y,
-		"shooting": Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT),
-		"reload_pressed": Input.is_action_just_pressed("reload"),
+		"shooting": not input_blocked and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT),
+		"reload_pressed": not input_blocked and Input.is_action_just_pressed("reload"),
 		"dash_pressed": bool(input_record.dash_pressed),
 	})
+
+
+func _confirm_exit() -> void:
+	exit_requested.emit()
 
 
 func _on_snapshot_received(snapshot: Dictionary) -> void:

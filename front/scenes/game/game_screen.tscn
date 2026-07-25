@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_screen.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/game/arena_view.tscn" id="2_arena"]
@@ -11,6 +11,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/countdown.wav" id="9_countdown"]
 [ext_resource type="AudioStream" path="res://assets/audio/round_start.wav" id="10_start"]
 [ext_resource type="AudioStream" path="res://assets/audio/round_end.wav" id="11_end"]
+[ext_resource type="PackedScene" path="res://scenes/ui/exit_confirm_modal.tscn" id="12_exit_modal"]
 [node name="GameScreen" type="Node2D"]
 unique_name_in_owner = true
 visible = false
@@ -74,3 +75,6 @@ volume_db = -5.0
 [node name="HUD" parent="." instance=ExtResource("4_hud")]
 unique_name_in_owner = true
 visible = false
+
+[node name="ExitConfirmModal" parent="." instance=ExtResource("12_exit_modal")]
+unique_name_in_owner = true
