@@ -1,5 +1,6 @@
 /target/
 /dist/
+tools/debug-web/node_modules/
 front/.godot/
 front/*.import
 .DS_Store
