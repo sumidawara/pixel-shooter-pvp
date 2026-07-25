@@ -23,6 +23,9 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 - `item_spawn_interval`: アイテムの生成間隔
 - `max_items`: 同時に存在できるアイテム数
 
+これらはサーバー起動時のルーム初期値になる。Waiting中はルームホストが
+GodotのCreate Room画面から安全な範囲内で上書きできる。
+
 設定値が極端な場合はサーバー側で安全な範囲に補正します。ファイルがない、
 またはJSONとして読めない場合は組み込みの初期値で起動します。
 

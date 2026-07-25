@@ -37,6 +37,33 @@
 `sequence` が最後に受理した値以下なら、古い入力として破棄する。
 `reload_pressed`と`dash_pressed`はキーを押した瞬間だけ`true`にする。
 
+ルームホストだけが送信できる操作:
+
+```json
+{"type":"add_cpu"}
+{"type":"remove_cpu","player_id":3}
+{"type":"start_match"}
+```
+
+ルーム設定:
+
+```json
+{
+  "type":"update_room_settings",
+  "settings":{
+    "match_seconds":120,
+    "kill_points":100,
+    "death_penalty":25,
+    "item_points":20,
+    "item_spawn_interval":5,
+    "max_items":3
+  }
+}
+```
+
+最初に入室した人間がホストになる。参加者が2人以上いるとき、ホストの
+`start_match`でカウントダウンへ進む。人間とCPUの合計は4人まで。
+
 ## サーバーからクライアント
 
 - `welcome`: プレイヤーID、再接続トークン、再接続だったかを返す
@@ -67,6 +94,10 @@
 - `match_finished`: タイムアップ後または途中離脱後の試合結果
 
 `players[].score`は符号付き整数で、死亡ペナルティにより負数になる場合がある。
+`players[].is_cpu`でサーバー操作のCPUかを判別できる。
 タイムアップ時は最高得点者のIDが`winner_id`へ入り、同点なら`null`になる。
+
+`room`には`host_player_id`、`can_start`、`max_players`、現在のルーム設定が
+含まれる。クライアントは`waiting`中、この情報をルーム画面へ表示する。
 
 Rust側の正式な型定義は `protocol/src/lib.rs` を参照すること。

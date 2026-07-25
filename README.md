@@ -1,6 +1,6 @@
 # Pixel Shooter PvP
 
-GodotフロントエンドとRust + Bevy権威サーバーで動く、1対1の見下ろし型シューティングゲーム。
+GodotフロントエンドとRust + Bevy権威サーバーで動く、最大4人の見下ろし型シューティングゲーム。
 120秒で撃破とアイテム取得によるポイントを競い、死亡時には得点ペナルティが入る。
 
 ## 必要環境
@@ -16,9 +16,14 @@ GodotフロントエンドとRust + Bevy権威サーバーで動く、1対1の�
 cargo run --release -p pixel-shooter-server
 ```
 
-Godotで `front/project.godot` を開いて実行し、メニューでプレイヤー名と
-`ws://127.0.0.1:9001` を入力して接続する。2人で確認する場合は、エディター設定の
-「複数インスタンスを実行」を有効にするか、ビルドしたクライアントを2つ起動する。
+Godotで `front/project.godot` を開いて実行し、`PLAY`から`JOIN ROOM`を選んで
+`ws://127.0.0.1:9001`へ接続する。最初に入室したプレイヤーがホストになり、
+CPU追加、ルール設定、試合開始を操作できる。2人で確認する場合は、エディター設定の
+「複数インスタンスを実行」を有効にするか、CPUを追加する。
+
+デスクトップ版の`CREATE ROOM`は同梱したRustサーバーを子プロセスとして起動する。
+Godotエディターでは`target/debug/pixel-shooter-server`を自動検出するため、
+先に一度`cargo build -p pixel-shooter-server`を実行しておく。
 
 操作:
 
@@ -111,6 +116,7 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 
 - `front/`: Godotクライアント
   - `scenes/main.tscn`: メニューとゲーム画面を配置するルート
+  - `scripts/host_server_controller.gd`: デスクトップ版のRustサーバー起動・終了
   - `scenes/game/`: Arena、Player、Bullet、GameScreen
   - `scenes/ui/`: 接続メニュー、HUD、プレイヤー状態表示
   - `scripts/network_client.gd`: AutoloadのWebSocketクライアント
