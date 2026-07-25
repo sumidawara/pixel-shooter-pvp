@@ -41,7 +41,7 @@
 
 - `welcome`: プレイヤーID、再接続トークン、再接続だったかを返す
 - `rejected`: 定員超過などで参加を拒否する
-- `snapshot`: 20Hzでプレイヤー、弾、試合状態を配信する
+- `snapshot`: 20Hzでプレイヤー、弾、得点アイテム、試合状態を配信する
 
 プレイヤーのスナップショットには、サーバーが最後に処理した
 `last_input_sequence`が含まれる。Godotはこの番号までの予測入力を破棄し、
@@ -50,6 +50,10 @@
 弾のスナップショットには`position`と`velocity`が含まれる。Godotは20Hzの
 受信間隔を`velocity`で外挿し、描画フレームごとに弾を滑らかに移動させる。
 
+`items`には得点アイテムの`id`、`position`、`points`が含まれる。
+アイテムは移動しないため、Godotは受信位置へそのまま表示する。取得判定と加点は
+サーバーだけが行い、取得済みアイテムは次のスナップショットから消える。
+
 スナップショットにはサーバー設定由来の `move_speed`、`dash_speed`、
 `dash_duration`、`dash_cooldown` も含まれる。Godotはこの値で入力予測するため、
 `server.json` で操作パラメーターを変更してもサーバーの確定計算と一致する。
@@ -57,11 +61,12 @@
 試合フェーズ:
 
 - `waiting`: 2人の参加待ち
-- `countdown`: ラウンド開始カウントダウン
-- `running`: 通常ラウンド
-- `overtime`: 延長戦
-- `round_end`: ラウンド間インターバル
+- `countdown`: 試合開始カウントダウン
+- `running`: 時間制ポイントマッチ
 - `paused`: 切断者の再接続待ち
-- `match_finished`: 3ラウンド先取後または途中離脱後の試合結果
+- `match_finished`: タイムアップ後または途中離脱後の試合結果
+
+`players[].score`は符号付き整数で、死亡ペナルティにより負数になる場合がある。
+タイムアップ時は最高得点者のIDが`winner_id`へ入り、同点なら`null`になる。
 
 Rust側の正式な型定義は `protocol/src/lib.rs` を参照すること。

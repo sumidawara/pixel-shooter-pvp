@@ -11,8 +11,17 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 ## セクション
 
 - `network`: 待受アドレス、tick rate、スナップショット頻度、試験用の遅延と欠落率
-- `match`: ラウンド時間、カウントダウン、延長、再接続猶予、先取数
+- `match`: 試合時間、カウントダウン、得点、アイテム生成、再接続猶予
 - `gameplay`: 移動、弾、反動、HP、リロード、無敵時間、ダッシュ、リスポーン
+
+`match`の主な項目:
+
+- `match_seconds`: 試合時間
+- `kill_points`: 相手を撃破したプレイヤーの加点
+- `death_penalty`: 死亡したプレイヤーの減点
+- `item_points`: 得点アイテム1個の加点
+- `item_spawn_interval`: アイテムの生成間隔
+- `max_items`: 同時に存在できるアイテム数
 
 設定値が極端な場合はサーバー側で安全な範囲に補正します。ファイルがない、
 またはJSONとして読めない場合は組み込みの初期値で起動します。
