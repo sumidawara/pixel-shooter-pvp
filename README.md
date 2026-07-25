@@ -20,10 +20,13 @@ Godotで `front/project.godot` を開いて実行し、`PLAY`から`JOIN ROOM`�
 `ws://127.0.0.1:9001`へ接続する。最初に入室したプレイヤーがホストになり、
 CPU追加、ルール設定、試合開始を操作できる。2人で確認する場合は、エディター設定の
 「複数インスタンスを実行」を有効にするか、CPUを追加する。
+ホスト1人のままSTART GAMEを押した場合は、対戦相手のCPUが1体自動追加される。
 
 デスクトップ版の`CREATE ROOM`は同梱したRustサーバーを子プロセスとして起動する。
 Godotエディターでは`target/debug/pixel-shooter-server`を自動検出するため、
 先に一度`cargo build -p pixel-shooter-server`を実行しておく。
+ターミナルでサーバーを先に起動した場合は`CREATE ROOM`ではなく`JOIN ROOM`を使う。
+同じポートで`CREATE ROOM`を選ぶと、ポート使用中のエラーを表示する。
 
 操作:
 
