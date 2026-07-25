@@ -10,8 +10,8 @@ use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, ServerMessage,
-    Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot,
+    ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -95,9 +95,13 @@ fn start_network_thread(
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
         runtime.block_on(async move {
-            let listener = TcpListener::bind(&bind_address)
-                .await
-                .expect("bind websocket server");
+            let listener = match TcpListener::bind(&bind_address).await {
+                Ok(listener) => listener,
+                Err(error) => {
+                    eprintln!("could not bind WebSocket server to {bind_address}: {error}");
+                    std::process::exit(1);
+                }
+            };
             let mut next_client_id = 1_u64;
             loop {
                 // 新しいTCP接続が来るまで非同期に待つ。
@@ -193,7 +197,7 @@ async fn handle_connection(
                     // Joinは即時に処理し、入力だけを人工的な遅延・欠落の対象にする。
                     let input_sequence = match &message {
                         ClientMessage::Input { sequence, .. } => Some(u64::from(*sequence)),
-                        ClientMessage::Join { .. } => None,
+                        _ => None,
                     };
                     if let Some(sequence) = input_sequence {
                         if should_drop_packet(sequence, simulated_loss_percent) {
@@ -306,8 +310,18 @@ pub(crate) fn process_network(
                         &network,
                         connection_id,
                         &ServerMessage::Rejected {
-                            reason: "The arena already has two players. Reconnect with your token."
+                            reason: "The room already has four players. Reconnect with your token."
                                 .into(),
+                        },
+                    );
+                    continue;
+                }
+                if state.phase != MatchPhase::Waiting {
+                    send_to(
+                        &network,
+                        connection_id,
+                        &ServerMessage::Rejected {
+                            reason: "The match has already started.".into(),
                         },
                     );
                     continue;
@@ -320,34 +334,19 @@ pub(crate) fn process_network(
                 state.next_player_id += 1;
                 let player_id = state.next_player_id;
                 let token = generate_reconnect_token();
-                let position = spawn_position(slot);
                 // spawnすると新しいEntityが作られ、Player Componentが付く。
-                commands.spawn(Player {
-                    id: player_id,
-                    connection_id: Some(connection_id),
-                    reconnect_token: token.clone(),
-                    reconnect_grace_left: 0.0,
+                commands.spawn(new_player(
+                    player_id,
+                    Some(connection_id),
+                    false,
+                    token.clone(),
                     slot,
-                    name: sanitize_name(&name, player_id),
-                    position,
-                    aim: if slot == 0 { Vec2::X } else { Vec2::NEG_X },
-                    movement: Vec2::ZERO,
-                    shooting: false,
-                    hp: settings.gameplay.max_hp,
-                    score: 0,
-                    alive: true,
-                    respawn_left: 0.0,
-                    shot_cooldown: 0.0,
-                    ammo: settings.gameplay.max_ammo,
-                    reload_left: 0.0,
-                    reload_requested: false,
-                    invulnerable_left: settings.gameplay.respawn_invulnerable_seconds,
-                    dash_cooldown_left: 0.0,
-                    dash_time_left: 0.0,
-                    dash_direction: Vec2::ZERO,
-                    dash_requested: false,
-                    last_input_sequence: 0,
-                });
+                    sanitize_name(&name, player_id),
+                    &settings,
+                ));
+                if state.host_player_id.is_none() {
+                    state.host_player_id = Some(player_id);
+                }
                 send_to(
                     &network,
                     connection_id,
@@ -392,7 +391,121 @@ pub(crate) fn process_network(
                     player.dash_requested |= dash_pressed;
                 }
             }
+            NetworkEvent::Message(connection_id, ClientMessage::AddCpu) => {
+                if !is_host_connection(connection_id, &state, &players)
+                    || state.phase != MatchPhase::Waiting
+                    || occupied_slots.len() >= MAX_PLAYERS
+                {
+                    continue;
+                }
+                let slot = (0..MAX_PLAYERS)
+                    .find(|slot| !occupied_slots.contains(slot))
+                    .expect("available CPU slot");
+                occupied_slots.push(slot);
+                state.next_player_id += 1;
+                let player_id = state.next_player_id;
+                commands.spawn(new_player(
+                    player_id,
+                    None,
+                    true,
+                    String::new(),
+                    slot,
+                    format!("CPU-{}", slot + 1),
+                    &settings,
+                ));
+                println!("CPU player {player_id} added in slot {slot}");
+            }
+            NetworkEvent::Message(connection_id, ClientMessage::RemoveCpu { player_id }) => {
+                if !is_host_connection(connection_id, &state, &players)
+                    || state.phase != MatchPhase::Waiting
+                {
+                    continue;
+                }
+                if let Some((entity, slot)) = players
+                    .iter()
+                    .find(|(_, player)| player.id == player_id && player.is_cpu)
+                    .map(|(entity, player)| (entity, player.slot))
+                {
+                    commands.entity(entity).despawn();
+                    occupied_slots.retain(|occupied| *occupied != slot);
+                    println!("CPU player {player_id} removed");
+                }
+            }
+            NetworkEvent::Message(
+                connection_id,
+                ClientMessage::UpdateRoomSettings {
+                    settings: room_settings,
+                },
+            ) => {
+                if is_host_connection(connection_id, &state, &players)
+                    && state.phase == MatchPhase::Waiting
+                {
+                    state.room_settings = settings.sanitize_room_settings(room_settings);
+                }
+            }
+            NetworkEvent::Message(connection_id, ClientMessage::StartMatch) => {
+                if is_host_connection(connection_id, &state, &players)
+                    && state.phase == MatchPhase::Waiting
+                    && occupied_slots.len() >= 2
+                {
+                    state.start_requested = true;
+                }
+            }
         }
+    }
+}
+
+fn is_host_connection(
+    connection_id: u64,
+    state: &MatchState,
+    players: &Query<(Entity, &mut Player)>,
+) -> bool {
+    players.iter().any(|(_, player)| {
+        Some(player.id) == state.host_player_id
+            && player.connection_id == Some(connection_id)
+            && !player.is_cpu
+    })
+}
+
+fn new_player(
+    id: u64,
+    connection_id: Option<u64>,
+    is_cpu: bool,
+    reconnect_token: String,
+    slot: usize,
+    name: String,
+    settings: &ServerSettings,
+) -> Player {
+    Player {
+        id,
+        connection_id,
+        is_cpu,
+        reconnect_token,
+        reconnect_grace_left: 0.0,
+        slot,
+        name,
+        position: spawn_position(slot),
+        aim: if slot.is_multiple_of(2) {
+            Vec2::X
+        } else {
+            Vec2::NEG_X
+        },
+        movement: Vec2::ZERO,
+        shooting: false,
+        hp: settings.gameplay.max_hp,
+        score: 0,
+        alive: true,
+        respawn_left: 0.0,
+        shot_cooldown: 0.0,
+        ammo: settings.gameplay.max_ammo,
+        reload_left: 0.0,
+        reload_requested: false,
+        invulnerable_left: settings.gameplay.respawn_invulnerable_seconds,
+        dash_cooldown_left: 0.0,
+        dash_time_left: 0.0,
+        dash_direction: Vec2::ZERO,
+        dash_requested: false,
+        last_input_sequence: 0,
     }
 }
 
@@ -414,7 +527,7 @@ pub(crate) fn broadcast_snapshot(
     }
     let reconnect_grace_left = players
         .iter()
-        .filter(|player| player.connection_id.is_none())
+        .filter(|player| !player.is_cpu && player.connection_id.is_none())
         .map(|player| player.reconnect_grace_left)
         .reduce(f32::min)
         .unwrap_or(0.0);
@@ -441,7 +554,8 @@ pub(crate) fn broadcast_snapshot(
                 hp: player.hp.max(0),
                 max_hp: settings.gameplay.max_hp,
                 score: player.score,
-                connected: player.connection_id.is_some(),
+                is_cpu: player.is_cpu,
+                connected: player.is_cpu || player.connection_id.is_some(),
                 reconnect_grace_left: player.reconnect_grace_left,
                 alive: player.alive,
                 respawn_left: player.respawn_left,
@@ -475,11 +589,22 @@ pub(crate) fn broadcast_snapshot(
                 .map(|item| ItemSnapshot {
                     id: item.id,
                     position: net_vec(item.position),
-                    points: settings.match_rules.item_points,
+                    points: state.room_settings.item_points,
                 })
                 .collect()
         } else {
             Vec::new()
+        },
+        room: RoomSnapshot {
+            host_player_id: state.host_player_id,
+            can_start: state.phase == MatchPhase::Waiting
+                && players
+                    .iter()
+                    .filter(|player| player.is_cpu || player.connection_id.is_some())
+                    .count()
+                    >= 2,
+            max_players: MAX_PLAYERS,
+            settings: state.room_settings,
         },
     });
     broadcast(&mut network, &snapshot);

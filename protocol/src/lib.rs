@@ -30,6 +30,14 @@ pub enum ClientMessage {
         reload_pressed: bool,
         dash_pressed: bool,
     },
+    AddCpu,
+    RemoveCpu {
+        player_id: u64,
+    },
+    UpdateRoomSettings {
+        settings: RoomSettings,
+    },
+    StartMatch,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,6 +68,38 @@ pub struct Snapshot {
     pub players: Vec<PlayerSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
     pub items: Vec<ItemSnapshot>,
+    pub room: RoomSnapshot,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct RoomSettings {
+    pub match_seconds: f32,
+    pub kill_points: i32,
+    pub death_penalty: i32,
+    pub item_points: i32,
+    pub item_spawn_interval: f32,
+    pub max_items: u32,
+}
+
+impl Default for RoomSettings {
+    fn default() -> Self {
+        Self {
+            match_seconds: 120.0,
+            kill_points: 100,
+            death_penalty: 25,
+            item_points: 20,
+            item_spawn_interval: 5.0,
+            max_items: 3,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct RoomSnapshot {
+    pub host_player_id: Option<u64>,
+    pub can_start: bool,
+    pub max_players: usize,
+    pub settings: RoomSettings,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
@@ -82,6 +122,7 @@ pub struct PlayerSnapshot {
     pub hp: i32,
     pub max_hp: i32,
     pub score: i32,
+    pub is_cpu: bool,
     pub connected: bool,
     pub reconnect_grace_left: f32,
     pub alive: bool,

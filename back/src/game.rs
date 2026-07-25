@@ -8,7 +8,7 @@ use crate::{
         bullet_in_bounds, choose_respawn_position, move_with_collision, obstacle_at, spawn_position,
     },
     config::{GameplaySettings, ServerSettings},
-    model::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem},
+    model::{Bullet, MatchState, Player, ScoreItem},
 };
 
 /// 待機から時間制ポイントマッチ終了までの状態遷移を管理するSystem。
@@ -29,7 +29,7 @@ pub(crate) fn update_match(
     // 切断中のプレイヤーには猶予時間を与え、Entityと試合状態を保持する。
     let mut expired = Vec::new();
     for (entity, mut player) in &mut players {
-        if player.connection_id.is_none() {
+        if !player.is_cpu && player.connection_id.is_none() {
             player.reconnect_grace_left = (player.reconnect_grace_left - dt).max(0.0);
             if player.reconnect_grace_left <= 0.0 {
                 expired.push((entity, player.id));
@@ -38,36 +38,53 @@ pub(crate) fn update_match(
     }
 
     if !expired.is_empty() {
-        let connected_winner = players
+        let expired_ids: Vec<u64> = expired.iter().map(|(_, id)| *id).collect();
+        let remaining_ids: Vec<u64> = players
             .iter()
-            .find(|(_, player)| player.connection_id.is_some())
-            .map(|(_, player)| player.id);
+            .filter(|(_, player)| {
+                !expired_ids.contains(&player.id)
+                    && (player.is_cpu || player.connection_id.is_some())
+            })
+            .map(|(_, player)| player.id)
+            .collect();
         let match_was_active = state.phase == MatchPhase::Paused
             || matches!(state.phase, MatchPhase::Countdown | MatchPhase::Running);
         for (entity, player_id) in expired {
             commands.entity(entity).despawn();
             println!("player {player_id} reconnect grace expired");
         }
-        if match_was_active {
-            state.phase = MatchPhase::MatchFinished;
-            state.phase_time_left = settings.match_rules.match_finished_seconds;
-            state.match_winner_id = connected_winner;
-            state.resume_phase = None;
+        if state
+            .host_player_id
+            .is_some_and(|id| expired_ids.contains(&id))
+        {
+            state.host_player_id = players
+                .iter()
+                .find(|(_, player)| {
+                    !player.is_cpu
+                        && !expired_ids.contains(&player.id)
+                        && player.connection_id.is_some()
+                })
+                .map(|(_, player)| player.id);
+        }
+        if match_was_active && remaining_ids.len() < 2 {
+            finish_match(&mut state, remaining_ids.first().copied(), &settings);
             despawn_all_bullets(&mut commands, &bullets);
             despawn_all_items(&mut commands, &items);
-            println!("match ended by forfeit; winner: {connected_winner:?}");
+            println!("match ended because fewer than two players remain");
+        } else if state.phase == MatchPhase::Paused {
+            state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Waiting);
         }
         state.tick += 1;
         return;
     }
 
-    let connected_count = players
+    let active_player_count = players
         .iter()
-        .filter(|(_, player)| player.connection_id.is_some())
+        .filter(|(_, player)| player.is_cpu || player.connection_id.is_some())
         .count();
     let has_disconnected_player = players
         .iter()
-        .any(|(_, player)| player.connection_id.is_none());
+        .any(|(_, player)| !player.is_cpu && player.connection_id.is_none());
 
     // 対戦中の切断はタイマーとゲーム計算を止める。復帰後は同じフェーズへ戻る。
     if has_disconnected_player
@@ -89,7 +106,7 @@ pub(crate) fn update_match(
 
     match state.phase {
         MatchPhase::Waiting => {
-            if connected_count == MAX_PLAYERS {
+            if state.start_requested && active_player_count >= 2 {
                 start_new_match(&mut state, &mut players, &settings);
                 despawn_all_bullets(&mut commands, &bullets);
                 despawn_all_items(&mut commands, &items);
@@ -99,7 +116,7 @@ pub(crate) fn update_match(
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 state.phase = MatchPhase::Running;
-                state.phase_time_left = settings.match_rules.match_seconds;
+                state.phase_time_left = state.room_settings.match_seconds;
                 println!("timed score match started");
             }
         }
@@ -122,12 +139,9 @@ pub(crate) fn update_match(
                     player.score = 0;
                     reset_player(&mut player, &settings.gameplay);
                 }
-                if connected_count == MAX_PLAYERS {
-                    start_new_match(&mut state, &mut players, &settings);
-                } else {
-                    state.phase = MatchPhase::Waiting;
-                    state.phase_time_left = 0.0;
-                }
+                state.phase = MatchPhase::Waiting;
+                state.phase_time_left = 0.0;
+                state.start_requested = false;
             }
         }
         MatchPhase::Paused => {}
@@ -144,6 +158,7 @@ fn start_new_match(
     state.match_winner_id = None;
     state.resume_phase = None;
     state.item_spawn_left = 0.0;
+    state.start_requested = false;
     state.phase = MatchPhase::Countdown;
     state.phase_time_left = settings.match_rules.countdown_seconds;
     for (_, mut player) in players.iter_mut() {
@@ -254,6 +269,55 @@ pub(crate) fn move_players(
     }
 }
 
+/// CPUプレイヤーの入力をサーバー内で作る簡易AI。
+pub(crate) fn update_cpu_players(
+    state: Res<MatchState>,
+    mut players: Query<&mut Player>,
+    items: Query<&ScoreItem>,
+) {
+    if !is_playing_phase(state.phase) {
+        return;
+    }
+
+    let targets: Vec<(u64, Vec2, bool)> = players
+        .iter()
+        .map(|player| (player.id, player.position, player.alive))
+        .collect();
+    let item_positions: Vec<Vec2> = items.iter().map(|item| item.position).collect();
+
+    for mut cpu in &mut players {
+        if !cpu.is_cpu || !cpu.alive {
+            continue;
+        }
+        let Some((_, enemy_position, _)) = targets
+            .iter()
+            .filter(|(id, _, alive)| *id != cpu.id && *alive)
+            .min_by(|left, right| {
+                cpu.position
+                    .distance_squared(left.1)
+                    .total_cmp(&cpu.position.distance_squared(right.1))
+            })
+        else {
+            continue;
+        };
+        let movement_target = item_positions
+            .iter()
+            .min_by(|left, right| {
+                cpu.position
+                    .distance_squared(**left)
+                    .total_cmp(&cpu.position.distance_squared(**right))
+            })
+            .copied()
+            .unwrap_or(*enemy_position);
+        cpu.movement = (movement_target - cpu.position).normalize_or_zero();
+        cpu.aim = (*enemy_position - cpu.position).normalize_or_zero();
+        cpu.shooting = cpu.aim != Vec2::ZERO;
+        if state.tick.is_multiple_of(180) {
+            cpu.dash_requested = true;
+        }
+    }
+}
+
 /// 射撃入力とクールダウンを確認し、Bullet Entityを生成するSystem。
 pub(crate) fn fire_bullets(
     mut commands: Commands,
@@ -361,10 +425,10 @@ pub(crate) fn move_and_hit_bullets(
                 // 得点は負数も取り得るためi32で保持し、極端な設定でも飽和演算する。
                 for mut player in &mut players {
                     if player.id == owner_id {
-                        player.score = add_points(player.score, settings.match_rules.kill_points);
+                        player.score = add_points(player.score, state.room_settings.kill_points);
                     } else if player.id == victim_id {
                         player.score =
-                            subtract_points(player.score, settings.match_rules.death_penalty);
+                            subtract_points(player.score, state.room_settings.death_penalty);
                     }
                 }
             }
@@ -376,7 +440,6 @@ pub(crate) fn move_and_hit_bullets(
 pub(crate) fn update_score_items(
     mut commands: Commands,
     time: Res<Time<Fixed>>,
-    settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
     items: Query<(Entity, &ScoreItem)>,
@@ -388,7 +451,7 @@ pub(crate) fn update_score_items(
     // 一定間隔で候補地点を巡回し、マップ上の個数が上限未満なら1個生成する。
     state.item_spawn_left = (state.item_spawn_left - time.delta_secs()).max(0.0);
     if state.item_spawn_left <= 0.0 {
-        if items.iter().len() < settings.match_rules.max_items {
+        if items.iter().len() < state.room_settings.max_items as usize {
             let player_positions: Vec<_> = players
                 .iter()
                 .filter(|player| player.alive)
@@ -402,7 +465,7 @@ pub(crate) fn update_score_items(
                 commands.spawn(ScoreItem { id, position });
             }
         }
-        state.item_spawn_left = settings.match_rules.item_spawn_interval;
+        state.item_spawn_left = state.room_settings.item_spawn_interval;
     }
 
     // 1つのアイテムを同じtickに2人が取得しないよう、アイテム単位で判定してbreakする。
@@ -413,7 +476,7 @@ pub(crate) fn update_score_items(
                 && player.position.distance_squared(item.position)
                     <= pickup_distance * pickup_distance
             {
-                player.score = add_points(player.score, settings.match_rules.item_points);
+                player.score = add_points(player.score, state.room_settings.item_points);
                 commands.entity(entity).despawn();
                 break;
             }

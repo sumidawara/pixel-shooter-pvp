@@ -3,6 +3,7 @@
 use std::fs;
 
 use bevy::prelude::Resource;
+use pixel_shooter_protocol::RoomSettings;
 use serde::Deserialize;
 
 /// Bevy全体から参照するサーバー設定Resource。
@@ -88,6 +89,27 @@ impl ServerSettings {
         settings.apply_environment_overrides();
         settings.sanitize();
         settings
+    }
+
+    pub(crate) fn room_settings(&self) -> RoomSettings {
+        RoomSettings {
+            match_seconds: self.match_rules.match_seconds,
+            kill_points: self.match_rules.kill_points,
+            death_penalty: self.match_rules.death_penalty,
+            item_points: self.match_rules.item_points,
+            item_spawn_interval: self.match_rules.item_spawn_interval,
+            max_items: self.match_rules.max_items as u32,
+        }
+    }
+
+    pub(crate) fn sanitize_room_settings(&self, mut room: RoomSettings) -> RoomSettings {
+        room.match_seconds = room.match_seconds.clamp(30.0, 900.0);
+        room.kill_points = room.kill_points.clamp(0, 10_000);
+        room.death_penalty = room.death_penalty.clamp(0, 10_000);
+        room.item_points = room.item_points.clamp(0, 10_000);
+        room.item_spawn_interval = room.item_spawn_interval.clamp(0.5, 60.0);
+        room.max_items = room.max_items.clamp(1, 16);
+        room
     }
 
     /// 設定ファイルを書き換えにくいコンテナ環境向けの上書きを適用する。

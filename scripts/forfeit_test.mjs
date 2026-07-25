@@ -33,10 +33,15 @@ function connect(name) {
 }
 
 let sawPaused = false;
+let startSent = false;
 const quitter = connect("ForfeitTest1");
 const survivor = connect("ForfeitTest2");
 
 const poll = setInterval(() => {
+  if (!startSent && quitter.id && survivor.id && survivor.phase === "waiting") {
+    startSent = true;
+    quitter.socket.send(JSON.stringify({ type: "start_match" }));
+  }
   if (quitter.id && survivor.id && survivor.phase === "countdown") {
     quitter.socket.close();
   }

@@ -7,10 +7,11 @@ use crate::model::MAX_PLAYERS;
 
 /// 参加順に応じた左右の初期位置を返す。
 pub(crate) fn spawn_position(index: usize) -> Vec2 {
-    if index == 0 {
-        Vec2::new(80.0, ARENA_HEIGHT * 0.5)
-    } else {
-        Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT * 0.5)
+    match index % MAX_PLAYERS {
+        0 => Vec2::new(80.0, 70.0),
+        1 => Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT - 70.0),
+        2 => Vec2::new(ARENA_WIDTH - 80.0, 70.0),
+        _ => Vec2::new(80.0, ARENA_HEIGHT - 70.0),
     }
 }
 

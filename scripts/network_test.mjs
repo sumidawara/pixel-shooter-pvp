@@ -8,6 +8,7 @@ const TEST_SECONDS = 8;
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
 const clients = [];
 let finished = false;
+let lobbyStarted = false;
 
 for (let index = 0; index < 2; index += 1) {
   const client = {
@@ -29,6 +30,8 @@ for (let index = 0; index < 2; index += 1) {
     sawCountdown: false,
     sawScoreItem: false,
     sawPointMatchFields: false,
+    sawFourPlayerLobby: false,
+    sawCpuPlayers: false,
   };
   clients.push(client);
 
@@ -58,9 +61,13 @@ for (let index = 0; index < 2; index += 1) {
     if (message.phase === "running") client.runningSnapshots += 1;
     client.sawPointMatchFields ||= Boolean(
       "items" in message &&
+        "room" in message &&
+        message.room.max_players === 4 &&
         !("round_number" in message) &&
         !("rounds_to_win" in message),
     );
+    client.sawFourPlayerLobby ||= message.players.length === 4;
+    client.sawCpuPlayers ||= message.players.filter((player) => player.is_cpu).length === 2;
     client.sawScoreItem ||= message.items?.some(
       (item) =>
         Number.isFinite(item.id) &&
@@ -88,6 +95,26 @@ for (let index = 0; index < 2; index += 1) {
 }
 
 const inputTimer = setInterval(() => {
+  if (!lobbyStarted && clients.every((client) => client.id)) {
+    lobbyStarted = true;
+    const host = clients[0];
+    host.socket.send(JSON.stringify({ type: "add_cpu" }));
+    host.socket.send(JSON.stringify({ type: "add_cpu" }));
+    host.socket.send(
+      JSON.stringify({
+        type: "update_room_settings",
+        settings: {
+          match_seconds: 30,
+          kill_points: 100,
+          death_penalty: 25,
+          item_points: 20,
+          item_spawn_interval: 5,
+          max_items: 3,
+        },
+      }),
+    );
+    host.socket.send(JSON.stringify({ type: "start_match" }));
+  }
   for (const client of clients) {
     if (!client.id || client.socket.readyState !== WebSocket.OPEN) continue;
     client.sequence += 1;
@@ -130,6 +157,8 @@ setTimeout(() => {
       countdown: client.sawCountdown,
       pointMatchFields: client.sawPointMatchFields,
       scoreItem: client.sawScoreItem,
+      fourPlayerLobby: client.sawFourPlayerLobby,
+      cpuPlayers: client.sawCpuPlayers,
     };
     console.log(JSON.stringify(result));
     if (
@@ -143,7 +172,9 @@ setTimeout(() => {
       !client.sawBulletVelocity ||
       !client.sawCountdown ||
       !client.sawPointMatchFields ||
-      !client.sawScoreItem
+      !client.sawScoreItem ||
+      !client.sawFourPlayerLobby ||
+      !client.sawCpuPlayers
     ) {
       failed = true;
     }

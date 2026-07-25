@@ -42,8 +42,13 @@ const first = connect("ReconnectTest1");
 const second = connect("ReconnectTest2");
 let replacement = null;
 let originalId = 0;
+let startSent = false;
 
 const poll = setInterval(() => {
+  if (!startSent && first.id && second.id && first.phases.has("waiting")) {
+    startSent = true;
+    first.socket.send(JSON.stringify({ type: "start_match" }));
+  }
   if (!originalId && first.id && second.id && first.phases.has("countdown")) {
     originalId = first.id;
     first.socket.close();

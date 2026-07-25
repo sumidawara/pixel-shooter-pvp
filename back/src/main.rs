@@ -31,9 +31,13 @@ use bevy::{app::ScheduleRunnerPlugin, prelude::*, time::Fixed};
 use crate::{config::ServerSettings, model::MatchState};
 
 fn main() {
-    let settings = ServerSettings::load();
+    let mut settings = ServerSettings::load();
+    if let Some(bind_address) = command_line_value("--bind") {
+        settings.network.bind_address = bind_address;
+    }
     let tick_rate = settings.network.tick_rate;
     let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;
+    let room_settings = settings.room_settings();
     let network = network::start(&settings);
 
     println!(
@@ -71,6 +75,7 @@ fn main() {
         .insert_resource(network)
         .insert_resource(MatchState {
             reconnect_grace_seconds,
+            room_settings,
             ..default()
         })
         .add_systems(
@@ -78,6 +83,7 @@ fn main() {
             (
                 network::process_network,
                 game::update_match,
+                game::update_cpu_players,
                 game::move_players,
                 game::fire_bullets,
                 game::move_and_hit_bullets,
@@ -90,4 +96,14 @@ fn main() {
         )
         // サーバーを終了するまでBevyの更新ループを実行する。
         .run();
+}
+
+fn command_line_value(name: &str) -> Option<String> {
+    let mut args = std::env::args().skip(1);
+    while let Some(argument) = args.next() {
+        if argument == name {
+            return args.next();
+        }
+    }
+    None
 }

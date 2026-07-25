@@ -1,9 +1,9 @@
 //! Bevyのゲーム世界に保存するComponentとResource。
 
 use bevy::prelude::*;
-use pixel_shooter_protocol::MatchPhase;
+use pixel_shooter_protocol::{MatchPhase, RoomSettings};
 
-pub(crate) const MAX_PLAYERS: usize = 2;
+pub(crate) const MAX_PLAYERS: usize = 4;
 
 /// 試合全体で1つだけ存在する状態。
 ///
@@ -23,6 +23,9 @@ pub(crate) struct MatchState {
     pub(crate) item_spawn_left: f32,
     pub(crate) next_player_id: u64,
     pub(crate) reconnect_grace_seconds: f32,
+    pub(crate) host_player_id: Option<u64>,
+    pub(crate) start_requested: bool,
+    pub(crate) room_settings: RoomSettings,
 }
 
 /// プレイヤーEntityに付けるComponent。
@@ -35,6 +38,8 @@ pub(crate) struct Player {
     pub(crate) id: u64,
     /// 現在このプレイヤーを操作しているWebSocket接続。
     pub(crate) connection_id: Option<u64>,
+    /// trueなら通信接続を持たず、サーバーのAI Systemが操作する。
+    pub(crate) is_cpu: bool,
     pub(crate) reconnect_token: String,
     pub(crate) reconnect_grace_left: f32,
     pub(crate) slot: usize,
