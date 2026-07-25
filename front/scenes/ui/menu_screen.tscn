@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bodio8obnrixu" path="res://scripts/ui/menu_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://io262leo3apj" path="res://assets/art/title.png" id="2_title"]
-[ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="3_theme"]
+[ext_resource type="Theme" uid="uid://cgyislqgg8tta" path="res://themes/pixel_theme.tres" id="3_theme"]
 
 [node name="MenuScreen" type="Control" unique_id=1015181799]
 unique_name_in_owner = true
@@ -80,18 +80,21 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+action_mode = 0
 text = "PLAY"
 
 [node name="SettingsButton" type="Button" parent="TitlePage/Panel/Margin/Content" unique_id=2079300222]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+action_mode = 0
 text = "SETTINGS"
 
 [node name="QuitButton" type="Button" parent="TitlePage/Panel/Margin/Content" unique_id=856782652]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+action_mode = 0
 text = "QUIT"
 
 [node name="PlayPage" type="Control" parent="." unique_id=985999457]
@@ -131,6 +134,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+action_mode = 0
 text = "CREATE ROOM"
 
 [node name="CreateRoomHint" type="Label" parent="PlayPage/Panel/Margin/Content" unique_id=1859459624]
@@ -145,11 +149,13 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+action_mode = 0
 text = "JOIN ROOM"
 
 [node name="TitleBackButton" type="Button" parent="PlayPage/Panel/Margin/Content" unique_id=1978732218]
 unique_name_in_owner = true
 layout_mode = 2
+action_mode = 0
 text = "BACK"
 
 [node name="JoinPage" type="Control" parent="." unique_id=543464538]
@@ -197,11 +203,13 @@ placeholder_text = "ws://127.0.0.1:9001"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+action_mode = 0
 text = "JOIN ROOM"
 
 [node name="JoinBackButton" type="Button" parent="JoinPage/Panel/Margin/Content" unique_id=307937819]
 unique_name_in_owner = true
 layout_mode = 2
+action_mode = 0
 text = "BACK"
 
 [node name="CreatePage" type="Control" parent="." unique_id=1020124783]
@@ -262,23 +270,27 @@ theme_override_constants/separation = 6
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+action_mode = 0
 text = "ADD CPU"
 
 [node name="RemoveCpuButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content/CpuButtons" unique_id=1794071402]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+action_mode = 0
 text = "REMOVE CPU"
 
 [node name="StartButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content" unique_id=872451629]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
+action_mode = 0
 text = "START GAME"
 
 [node name="CreateBackButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content" unique_id=1421269334]
 unique_name_in_owner = true
 layout_mode = 2
+action_mode = 0
 text = "LEAVE ROOM"
 
 [node name="RulesPanel" type="PanelContainer" parent="CreatePage" unique_id=777015966]
@@ -424,6 +436,7 @@ value = 9001.0
 [node name="SettingsBackButton" type="Button" parent="SettingsPage/Panel/Margin/Content" unique_id=96669004]
 unique_name_in_owner = true
 layout_mode = 2
+action_mode = 0
 text = "SAVE & BACK"
 
 [node name="Footer" type="ColorRect" parent="." unique_id=116777247]

@@ -76,9 +76,7 @@ func _bind_buttons() -> void:
 	server_input.text_submitted.connect(func(_value: String): request_connection())
 	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit())
 	remove_cpu_button.pressed.connect(func(): remove_cpu_requested.emit(last_cpu_id))
-	# ロビーSnapshotのUI更新がマウスを離す瞬間と重なると`pressed`が
-	# 発火しないことがあるため、押した瞬間の`button_down`で開始要求を送る。
-	start_button.button_down.connect(_request_start_match)
+	start_button.pressed.connect(_request_start_match)
 
 
 func _bind_room_settings() -> void:
@@ -123,7 +121,7 @@ func _request_create_room() -> void:
 func _request_start_match() -> void:
 	if not is_room_host or start_button.disabled:
 		return
-	print("START GAME button down: sending start_match")
+	print("START GAME pressed: sending start_match")
 	start_match_requested.emit()
 
 

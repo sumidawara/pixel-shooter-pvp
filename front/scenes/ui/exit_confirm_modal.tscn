@@ -73,6 +73,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+action_mode = 0
 text = "CANCEL"
 
 [node name="ExitButton" type="Button" parent="ModalRoot/Center/Panel/Margin/Content/Buttons"]
@@ -80,4 +81,5 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+action_mode = 0
 text = "LEAVE ROOM"

@@ -62,7 +62,7 @@ func _run() -> void:
 		quit(1)
 		return
 
-	menu.start_button.button_down.emit()
+	menu.start_button.pressed.emit()
 	for _attempt in range(20):
 		guest.poll()
 		await create_timer(0.05).timeout
