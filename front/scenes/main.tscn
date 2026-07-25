@@ -1,7 +1,14 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource path="res://scripts/main.gd" type="Script" id="1_main"]
+[ext_resource type="Script" path="res://scripts/app.gd" id="1_app"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menu_screen.tscn" id="2_menu"]
+[ext_resource type="PackedScene" path="res://scenes/game/game_screen.tscn" id="3_game"]
 
-[node name="Main" type="Node2D"]
-script = ExtResource("1_main")
+[node name="Main" type="Node"]
+script = ExtResource("1_app")
 
+[node name="MenuScreen" parent="." instance=ExtResource("2_menu")]
+unique_name_in_owner = true
+
+[node name="GameScreen" parent="." instance=ExtResource("3_game")]
+unique_name_in_owner = true
