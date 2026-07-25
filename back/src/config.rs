@@ -31,13 +31,15 @@ pub(crate) struct NetworkSettings {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub(crate) struct MatchRules {
-    pub(crate) round_seconds: f32,
+    pub(crate) match_seconds: f32,
     pub(crate) countdown_seconds: f32,
-    pub(crate) overtime_seconds: f32,
-    pub(crate) round_interval_seconds: f32,
     pub(crate) match_finished_seconds: f32,
     pub(crate) reconnect_grace_seconds: f32,
-    pub(crate) rounds_to_win: u32,
+    pub(crate) kill_points: i32,
+    pub(crate) death_penalty: i32,
+    pub(crate) item_points: i32,
+    pub(crate) item_spawn_interval: f32,
+    pub(crate) max_items: usize,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -113,14 +115,16 @@ impl ServerSettings {
         self.network.tick_rate = self.network.tick_rate.clamp(10.0, 240.0);
         self.network.snapshot_every_ticks = self.network.snapshot_every_ticks.max(1);
         self.network.simulated_loss_percent = self.network.simulated_loss_percent.min(100);
-        self.match_rules.round_seconds = self.match_rules.round_seconds.max(1.0);
+        self.match_rules.match_seconds = self.match_rules.match_seconds.max(1.0);
         self.match_rules.countdown_seconds = self.match_rules.countdown_seconds.max(0.0);
-        self.match_rules.overtime_seconds = self.match_rules.overtime_seconds.max(1.0);
-        self.match_rules.round_interval_seconds = self.match_rules.round_interval_seconds.max(0.1);
         self.match_rules.match_finished_seconds = self.match_rules.match_finished_seconds.max(0.1);
         self.match_rules.reconnect_grace_seconds =
             self.match_rules.reconnect_grace_seconds.max(0.1);
-        self.match_rules.rounds_to_win = self.match_rules.rounds_to_win.max(1);
+        self.match_rules.kill_points = self.match_rules.kill_points.max(0);
+        self.match_rules.death_penalty = self.match_rules.death_penalty.max(0);
+        self.match_rules.item_points = self.match_rules.item_points.max(0);
+        self.match_rules.item_spawn_interval = self.match_rules.item_spawn_interval.max(0.1);
+        self.match_rules.max_items = self.match_rules.max_items.clamp(1, 16);
         self.gameplay.move_speed = self.gameplay.move_speed.max(1.0);
         self.gameplay.bullet_speed = self.gameplay.bullet_speed.max(1.0);
         self.gameplay.shot_interval = self.gameplay.shot_interval.max(0.01);
@@ -153,13 +157,15 @@ impl Default for NetworkSettings {
 impl Default for MatchRules {
     fn default() -> Self {
         Self {
-            round_seconds: 60.0,
+            match_seconds: 120.0,
             countdown_seconds: 3.0,
-            overtime_seconds: 30.0,
-            round_interval_seconds: 3.0,
             match_finished_seconds: 6.0,
             reconnect_grace_seconds: 15.0,
-            rounds_to_win: 3,
+            kill_points: 100,
+            death_penalty: 25,
+            item_points: 20,
+            item_spawn_interval: 5.0,
+            max_items: 3,
         }
     }
 }
@@ -210,7 +216,8 @@ mod tests {
         settings.network.simulated_loss_percent = 999;
         settings.gameplay.max_hp = 0;
         settings.gameplay.max_ammo = 0;
-        settings.match_rules.rounds_to_win = 0;
+        settings.match_rules.kill_points = -1;
+        settings.match_rules.max_items = 0;
 
         settings.sanitize();
 
@@ -219,6 +226,7 @@ mod tests {
         assert_eq!(settings.network.simulated_loss_percent, 100);
         assert_eq!(settings.gameplay.max_hp, 1);
         assert_eq!(settings.gameplay.max_ammo, 1);
-        assert_eq!(settings.match_rules.rounds_to_win, 1);
+        assert_eq!(settings.match_rules.kill_points, 0);
+        assert_eq!(settings.match_rules.max_items, 1);
     }
 }

@@ -10,8 +10,8 @@ use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ClientMessage, MatchPhase, PlayerSnapshot, ServerMessage, Snapshot,
-    Vec2 as NetVec2,
+    BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, ServerMessage,
+    Snapshot, Vec2 as NetVec2,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -22,7 +22,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use crate::{
     arena::spawn_position,
     config::ServerSettings,
-    model::{Bullet, MAX_PLAYERS, MatchState, Player},
+    model::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem},
 };
 
 // 接続IDから、そのクライアントへメッセージを送るチャンネルを検索する表。
@@ -335,7 +335,6 @@ pub(crate) fn process_network(
                     shooting: false,
                     hp: settings.gameplay.max_hp,
                     score: 0,
-                    round_wins: 0,
                     alive: true,
                     respawn_left: 0.0,
                     shot_cooldown: 0.0,
@@ -404,6 +403,7 @@ pub(crate) fn broadcast_snapshot(
     mut network: ResMut<Network>,
     players: Query<&Player>,
     bullets: Query<&Bullet>,
+    items: Query<&ScoreItem>,
 ) {
     // サーバー更新は60Hzだが、設定したtick間隔で送信頻度を抑える。
     if !state
@@ -425,9 +425,6 @@ pub(crate) fn broadcast_snapshot(
         tick: state.tick,
         phase: state.phase,
         time_left: state.phase_time_left,
-        round_number: state.round_number,
-        rounds_to_win: settings.match_rules.rounds_to_win,
-        round_winner_id: state.round_winner_id,
         winner_id: state.match_winner_id,
         reconnect_grace_left,
         move_speed: settings.gameplay.move_speed,
@@ -444,7 +441,6 @@ pub(crate) fn broadcast_snapshot(
                 hp: player.hp.max(0),
                 max_hp: settings.gameplay.max_hp,
                 score: player.score,
-                round_wins: player.round_wins,
                 connected: player.connection_id.is_some(),
                 reconnect_grace_left: player.reconnect_grace_left,
                 alive: player.alive,
@@ -460,7 +456,7 @@ pub(crate) fn broadcast_snapshot(
                 last_input_sequence: player.last_input_sequence,
             })
             .collect(),
-        bullets: if matches!(state.phase, MatchPhase::Running | MatchPhase::Overtime) {
+        bullets: if state.phase == MatchPhase::Running {
             bullets
                 .iter()
                 .map(|bullet| BulletSnapshot {
@@ -468,6 +464,18 @@ pub(crate) fn broadcast_snapshot(
                     owner_id: bullet.owner_id,
                     position: net_vec(bullet.position),
                     velocity: net_vec(bullet.velocity),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
+        items: if state.phase == MatchPhase::Running {
+            items
+                .iter()
+                .map(|item| ItemSnapshot {
+                    id: item.id,
+                    position: net_vec(item.position),
+                    points: settings.match_rules.item_points,
                 })
                 .collect()
         } else {

@@ -27,6 +27,8 @@ for (let index = 0; index < 2; index += 1) {
     sawInvulnerability: false,
     sawBulletVelocity: false,
     sawCountdown: false,
+    sawScoreItem: false,
+    sawPointMatchFields: false,
   };
   clients.push(client);
 
@@ -54,6 +56,17 @@ for (let index = 0; index < 2; index += 1) {
     client.snapshots += 1;
     if (message.phase === "countdown") client.sawCountdown = true;
     if (message.phase === "running") client.runningSnapshots += 1;
+    client.sawPointMatchFields ||= Boolean(
+      "items" in message &&
+        !("round_number" in message) &&
+        !("rounds_to_win" in message),
+    );
+    client.sawScoreItem ||= message.items?.some(
+      (item) =>
+        Number.isFinite(item.id) &&
+        Number.isFinite(item.position?.x) &&
+        Number.isFinite(item.points),
+    );
     const me = message.players.find((player) => player.id === client.id);
     client.sawStageTwoFields ||= Boolean(
       me &&
@@ -115,6 +128,8 @@ setTimeout(() => {
       invulnerability: client.sawInvulnerability,
       bulletVelocity: client.sawBulletVelocity,
       countdown: client.sawCountdown,
+      pointMatchFields: client.sawPointMatchFields,
+      scoreItem: client.sawScoreItem,
     };
     console.log(JSON.stringify(result));
     if (
@@ -126,7 +141,9 @@ setTimeout(() => {
       !client.sawDashCooldown ||
       !client.sawInvulnerability ||
       !client.sawBulletVelocity ||
-      !client.sawCountdown
+      !client.sawCountdown ||
+      !client.sawPointMatchFields ||
+      !client.sawScoreItem
     ) {
       failed = true;
     }

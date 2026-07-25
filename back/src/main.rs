@@ -41,9 +41,11 @@ fn main() {
         settings.network.bind_address
     );
     println!(
-        "Rules: first to {} rounds, {} seconds per round, {} HP, {} ammo",
-        settings.match_rules.rounds_to_win,
-        settings.match_rules.round_seconds,
+        "Rules: {} second score match, kill +{}, death -{}, item +{}, {} HP, {} ammo",
+        settings.match_rules.match_seconds,
+        settings.match_rules.kill_points,
+        settings.match_rules.death_penalty,
+        settings.match_rules.item_points,
         settings.gameplay.max_hp,
         settings.gameplay.max_ammo
     );
@@ -79,6 +81,7 @@ fn main() {
                 game::move_players,
                 game::fire_bullets,
                 game::move_and_hit_bullets,
+                game::update_score_items,
                 game::update_respawns,
                 network::broadcast_snapshot,
             )

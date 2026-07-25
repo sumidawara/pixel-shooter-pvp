@@ -7,13 +7,15 @@
     "simulated_loss_percent": 0
   },
   "match": {
-    "round_seconds": 60.0,
+    "match_seconds": 120.0,
     "countdown_seconds": 3.0,
-    "overtime_seconds": 30.0,
-    "round_interval_seconds": 3.0,
     "match_finished_seconds": 6.0,
     "reconnect_grace_seconds": 15.0,
-    "rounds_to_win": 3
+    "kill_points": 100,
+    "death_penalty": 25,
+    "item_points": 20,
+    "item_spawn_interval": 5.0,
+    "max_items": 3
   },
   "gameplay": {
     "move_speed": 150.0,

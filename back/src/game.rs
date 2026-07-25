@@ -1,17 +1,17 @@
 //! 試合進行、移動、射撃、当たり判定、リスポーンを処理するBevy System。
 
 use bevy::{prelude::*, time::Fixed};
-use pixel_shooter_protocol::{BULLET_RADIUS, MatchPhase, PLAYER_RADIUS};
+use pixel_shooter_protocol::{BULLET_RADIUS, ITEM_RADIUS, MatchPhase, PLAYER_RADIUS};
 
 use crate::{
     arena::{
         bullet_in_bounds, choose_respawn_position, move_with_collision, obstacle_at, spawn_position,
     },
-    config::{GameplaySettings, MatchRules, ServerSettings},
-    model::{Bullet, MAX_PLAYERS, MatchState, Player},
+    config::{GameplaySettings, ServerSettings},
+    model::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem},
 };
 
-/// 待機から3ラウンド先取までの状態遷移を管理するSystem。
+/// 待機から時間制ポイントマッチ終了までの状態遷移を管理するSystem。
 ///
 /// `ResMut<MatchState>` はResourceを変更可能で借りる指定。
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
@@ -21,6 +21,7 @@ pub(crate) fn update_match(
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
+    items: Query<Entity, With<ScoreItem>>,
     mut commands: Commands,
 ) {
     let dt = time.delta_secs();
@@ -42,13 +43,7 @@ pub(crate) fn update_match(
             .find(|(_, player)| player.connection_id.is_some())
             .map(|(_, player)| player.id);
         let match_was_active = state.phase == MatchPhase::Paused
-            || matches!(
-                state.phase,
-                MatchPhase::Countdown
-                    | MatchPhase::Running
-                    | MatchPhase::Overtime
-                    | MatchPhase::RoundEnd
-            );
+            || matches!(state.phase, MatchPhase::Countdown | MatchPhase::Running);
         for (entity, player_id) in expired {
             commands.entity(entity).despawn();
             println!("player {player_id} reconnect grace expired");
@@ -57,9 +52,9 @@ pub(crate) fn update_match(
             state.phase = MatchPhase::MatchFinished;
             state.phase_time_left = settings.match_rules.match_finished_seconds;
             state.match_winner_id = connected_winner;
-            state.round_winner_id = None;
             state.resume_phase = None;
             despawn_all_bullets(&mut commands, &bullets);
+            despawn_all_items(&mut commands, &items);
             println!("match ended by forfeit; winner: {connected_winner:?}");
         }
         state.tick += 1;
@@ -97,70 +92,33 @@ pub(crate) fn update_match(
             if connected_count == MAX_PLAYERS {
                 start_new_match(&mut state, &mut players, &settings);
                 despawn_all_bullets(&mut commands, &bullets);
+                despawn_all_items(&mut commands, &items);
             }
         }
         MatchPhase::Countdown => {
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 state.phase = MatchPhase::Running;
-                state.phase_time_left = settings.match_rules.round_seconds;
-                println!("round {} started", state.round_number);
+                state.phase_time_left = settings.match_rules.match_seconds;
+                println!("timed score match started");
             }
         }
         MatchPhase::Running => {
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
-                let mut standings: Vec<(u64, u32)> = players
-                    .iter()
-                    .map(|(_, player)| (player.id, player.score))
-                    .collect();
-                standings.sort_by_key(|(_, score)| *score);
-                if standings.len() == 2 && standings[0].1 == standings[1].1 {
-                    state.phase = MatchPhase::Overtime;
-                    state.phase_time_left = settings.match_rules.overtime_seconds;
-                    println!("round {} entered overtime", state.round_number);
-                } else if let Some((winner_id, _)) = standings.last() {
-                    award_round(&mut state, &mut players, *winner_id, &settings);
-                    despawn_all_bullets(&mut commands, &bullets);
-                }
-            }
-        }
-        MatchPhase::Overtime => {
-            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
-            if state.phase_time_left <= 0.0 {
-                let mut standings: Vec<(u64, i32)> = players
-                    .iter()
-                    .map(|(_, player)| (player.id, player.hp))
-                    .collect();
-                standings.sort_by_key(|(_, hp)| *hp);
-                if standings.len() == 2 && standings[0].1 == standings[1].1 {
-                    // HPまで同じなら10秒ずつサドンデスを継続する。
-                    state.phase_time_left = 10.0;
-                } else if let Some((winner_id, _)) = standings.last() {
-                    award_round(&mut state, &mut players, *winner_id, &settings);
-                    despawn_all_bullets(&mut commands, &bullets);
-                }
-            }
-        }
-        MatchPhase::RoundEnd => {
-            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
-            if state.phase_time_left <= 0.0 {
-                state.round_number += 1;
-                prepare_round(&mut players, &settings.gameplay);
-                state.round_winner_id = None;
-                state.phase = MatchPhase::Countdown;
-                state.phase_time_left = settings.match_rules.countdown_seconds;
+                let winner_id = unique_score_winner(
+                    players.iter().map(|(_, player)| (player.id, player.score)),
+                );
+                finish_match(&mut state, winner_id, &settings);
                 despawn_all_bullets(&mut commands, &bullets);
+                despawn_all_items(&mut commands, &items);
             }
         }
         MatchPhase::MatchFinished => {
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 state.match_winner_id = None;
-                state.round_winner_id = None;
-                state.round_number = 0;
                 for (_, mut player) in &mut players {
-                    player.round_wins = 0;
                     player.score = 0;
                     reset_player(&mut player, &settings.gameplay);
                 }
@@ -183,56 +141,36 @@ fn start_new_match(
     players: &mut Query<(Entity, &mut Player)>,
     settings: &ServerSettings,
 ) {
-    state.round_number = 1;
-    state.round_winner_id = None;
     state.match_winner_id = None;
     state.resume_phase = None;
+    state.item_spawn_left = 0.0;
     state.phase = MatchPhase::Countdown;
     state.phase_time_left = settings.match_rules.countdown_seconds;
     for (_, mut player) in players.iter_mut() {
-        player.round_wins = 0;
         player.score = 0;
         reset_player(&mut player, &settings.gameplay);
     }
-    println!("new best-of-five match started");
+    println!("new timed score match is ready");
 }
 
-fn prepare_round(players: &mut Query<(Entity, &mut Player)>, gameplay: &GameplaySettings) {
-    for (_, mut player) in players.iter_mut() {
-        player.score = 0;
-        reset_player(&mut player, gameplay);
-    }
-}
-
-fn award_round(
-    state: &mut MatchState,
-    players: &mut Query<(Entity, &mut Player)>,
-    winner_id: u64,
-    settings: &ServerSettings,
-) {
-    let mut match_won = false;
-    for (_, mut player) in players.iter_mut() {
-        if player.id == winner_id {
-            player.round_wins += 1;
-            match_won = player.round_wins >= settings.match_rules.rounds_to_win;
-            break;
+fn unique_score_winner(standings: impl Iterator<Item = (u64, i32)>) -> Option<u64> {
+    let mut standings: Vec<_> = standings.collect();
+    standings.sort_by(|left, right| right.1.cmp(&left.1));
+    match standings.as_slice() {
+        [(winner_id, winner_score), (_, second_score), ..] if winner_score > second_score => {
+            Some(*winner_id)
         }
+        [(winner_id, _)] => Some(*winner_id),
+        _ => None,
     }
-    set_round_result(state, winner_id, match_won, &settings.match_rules);
 }
 
-fn set_round_result(state: &mut MatchState, winner_id: u64, match_won: bool, rules: &MatchRules) {
-    state.round_winner_id = Some(winner_id);
-    if match_won {
-        state.phase = MatchPhase::MatchFinished;
-        state.phase_time_left = rules.match_finished_seconds;
-        state.match_winner_id = Some(winner_id);
-        println!("player {winner_id} won the match");
-    } else {
-        state.phase = MatchPhase::RoundEnd;
-        state.phase_time_left = rules.round_interval_seconds;
-        println!("player {winner_id} won round {}", state.round_number);
-    }
+fn finish_match(state: &mut MatchState, winner_id: Option<u64>, settings: &ServerSettings) {
+    state.phase = MatchPhase::MatchFinished;
+    state.phase_time_left = settings.match_rules.match_finished_seconds;
+    state.match_winner_id = winner_id;
+    state.resume_phase = None;
+    println!("match finished; winner: {winner_id:?}");
 }
 
 fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bullet>>) {
@@ -241,8 +179,14 @@ fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bul
     }
 }
 
+fn despawn_all_items(commands: &mut Commands, items: &Query<Entity, With<ScoreItem>>) {
+    for entity in items {
+        commands.entity(entity).despawn();
+    }
+}
+
 fn is_playing_phase(phase: MatchPhase) -> bool {
-    matches!(phase, MatchPhase::Running | MatchPhase::Overtime)
+    phase == MatchPhase::Running
 }
 
 /// クライアントから受け取った移動入力でプレイヤーを動かすSystem。
@@ -365,7 +309,7 @@ pub(crate) fn move_and_hit_bullets(
     mut commands: Commands,
     time: Res<Time<Fixed>>,
     settings: Res<ServerSettings>,
-    mut state: ResMut<MatchState>,
+    state: Res<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
     mut players: Query<&mut Player>,
 ) {
@@ -388,7 +332,7 @@ pub(crate) fn move_and_hit_bullets(
         }
 
         let mut hit = false;
-        let mut killed = false;
+        let mut killed_player_id = None;
         let owner_id = bullet.owner_id;
         for mut player in &mut players {
             if !player.alive || player.id == owner_id || player.invulnerable_left > 0.0 {
@@ -404,7 +348,7 @@ pub(crate) fn move_and_hit_bullets(
                     player.alive = false;
                     player.respawn_left = settings.gameplay.respawn_seconds;
                     player.shooting = false;
-                    killed = true;
+                    killed_player_id = Some(player.id);
                 }
                 break;
             }
@@ -412,26 +356,111 @@ pub(crate) fn move_and_hit_bullets(
         if hit {
             // 1つの弾は1回だけダメージを与える。
             commands.entity(entity).despawn();
-            if killed {
-                // 撃破した弾のowner_idと一致するプレイヤーへ1点追加する。
-                let overtime_kill = state.phase == MatchPhase::Overtime;
-                let mut match_won = false;
+            if let Some(victim_id) = killed_player_id {
+                // 撃破者へ加点し、死亡したプレイヤーからペナルティを引く。
+                // 得点は負数も取り得るためi32で保持し、極端な設定でも飽和演算する。
                 for mut player in &mut players {
                     if player.id == owner_id {
-                        player.score += 1;
-                        if overtime_kill {
-                            player.round_wins += 1;
-                            match_won = player.round_wins >= settings.match_rules.rounds_to_win;
-                        }
-                        break;
+                        player.score = add_points(player.score, settings.match_rules.kill_points);
+                    } else if player.id == victim_id {
+                        player.score =
+                            subtract_points(player.score, settings.match_rules.death_penalty);
                     }
-                }
-                if overtime_kill {
-                    set_round_result(&mut state, owner_id, match_won, &settings.match_rules);
                 }
             }
         }
     }
+}
+
+/// 得点アイテムの生成と取得判定を処理するSystem。
+pub(crate) fn update_score_items(
+    mut commands: Commands,
+    time: Res<Time<Fixed>>,
+    settings: Res<ServerSettings>,
+    mut state: ResMut<MatchState>,
+    mut players: Query<&mut Player>,
+    items: Query<(Entity, &ScoreItem)>,
+) {
+    if !is_playing_phase(state.phase) {
+        return;
+    }
+
+    // 一定間隔で候補地点を巡回し、マップ上の個数が上限未満なら1個生成する。
+    state.item_spawn_left = (state.item_spawn_left - time.delta_secs()).max(0.0);
+    if state.item_spawn_left <= 0.0 {
+        if items.iter().len() < settings.match_rules.max_items {
+            let player_positions: Vec<_> = players
+                .iter()
+                .filter(|player| player.alive)
+                .map(|player| player.position)
+                .collect();
+            let item_positions: Vec<_> = items.iter().map(|(_, item)| item.position).collect();
+            if let Some((id, position)) =
+                choose_score_item_spawn(state.next_item_id, &player_positions, &item_positions)
+            {
+                state.next_item_id = id;
+                commands.spawn(ScoreItem { id, position });
+            }
+        }
+        state.item_spawn_left = settings.match_rules.item_spawn_interval;
+    }
+
+    // 1つのアイテムを同じtickに2人が取得しないよう、アイテム単位で判定してbreakする。
+    let pickup_distance = PLAYER_RADIUS + ITEM_RADIUS;
+    for (entity, item) in &items {
+        for mut player in &mut players {
+            if player.alive
+                && player.position.distance_squared(item.position)
+                    <= pickup_distance * pickup_distance
+            {
+                player.score = add_points(player.score, settings.match_rules.item_points);
+                commands.entity(entity).despawn();
+                break;
+            }
+        }
+    }
+}
+
+/// 障害物と初期スポーンを避けた固定候補を順番に使う。
+fn score_item_spawn_position(item_id: u64) -> Vec2 {
+    const POSITIONS: [Vec2; 9] = [
+        Vec2::new(320.0, 180.0),
+        Vec2::new(120.0, 80.0),
+        Vec2::new(520.0, 280.0),
+        Vec2::new(520.0, 80.0),
+        Vec2::new(120.0, 280.0),
+        Vec2::new(320.0, 40.0),
+        Vec2::new(320.0, 320.0),
+        Vec2::new(200.0, 180.0),
+        Vec2::new(440.0, 180.0),
+    ];
+    POSITIONS[(item_id.saturating_sub(1) as usize) % POSITIONS.len()]
+}
+
+fn choose_score_item_spawn(
+    current_id: u64,
+    player_positions: &[Vec2],
+    item_positions: &[Vec2],
+) -> Option<(u64, Vec2)> {
+    (1..=9).find_map(|offset| {
+        let id = current_id.saturating_add(offset);
+        let position = score_item_spawn_position(id);
+        let away_from_players = player_positions
+            .iter()
+            .all(|other| other.distance_squared(position) > 48.0 * 48.0);
+        let away_from_items = item_positions
+            .iter()
+            .all(|other| other.distance_squared(position) > ITEM_RADIUS * ITEM_RADIUS * 4.0);
+        (away_from_players && away_from_items).then_some((id, position))
+    })
+}
+
+fn add_points(score: i32, points: i32) -> i32 {
+    score.saturating_add(points)
+}
+
+fn subtract_points(score: i32, penalty: i32) -> i32 {
+    score.saturating_sub(penalty)
 }
 
 /// 死亡したプレイヤーの復活カウントを進めるSystem。
@@ -490,15 +519,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn round_result_moves_to_interval_or_match_result() {
-        let mut state = MatchState::default();
-        let rules = MatchRules::default();
-        set_round_result(&mut state, 7, false, &rules);
-        assert_eq!(state.phase, MatchPhase::RoundEnd);
-        assert_eq!(state.round_winner_id, Some(7));
+    fn highest_unique_score_wins() {
+        assert_eq!(
+            unique_score_winner([(1, 75), (2, 120)].into_iter()),
+            Some(2)
+        );
+        assert_eq!(unique_score_winner([(1, -25), (2, -25)].into_iter()), None);
+    }
 
-        set_round_result(&mut state, 7, true, &rules);
-        assert_eq!(state.phase, MatchPhase::MatchFinished);
-        assert_eq!(state.match_winner_id, Some(7));
+    #[test]
+    fn score_item_positions_do_not_overlap_obstacles() {
+        for item_id in 1..=9 {
+            assert!(!obstacle_at(
+                score_item_spawn_position(item_id),
+                ITEM_RADIUS
+            ));
+        }
+    }
+
+    #[test]
+    fn score_item_spawn_avoids_occupied_candidate() {
+        let occupied = score_item_spawn_position(1);
+        let (_, position) =
+            choose_score_item_spawn(0, &[occupied], &[]).expect("another candidate");
+        assert_ne!(position, occupied);
+    }
+
+    #[test]
+    fn score_events_include_kill_death_and_item_values() {
+        let rules = crate::config::MatchRules::default();
+        assert_eq!(add_points(0, rules.kill_points), 100);
+        assert_eq!(subtract_points(0, rules.death_penalty), -25);
+        assert_eq!(add_points(-25, rules.item_points), -5);
     }
 }

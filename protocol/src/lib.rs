@@ -4,6 +4,7 @@ pub const ARENA_WIDTH: f32 = 640.0;
 pub const ARENA_HEIGHT: f32 = 360.0;
 pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
+pub const ITEM_RADIUS: f32 = 10.0;
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct Vec2 {
@@ -50,9 +51,6 @@ pub struct Snapshot {
     pub tick: u64,
     pub phase: MatchPhase,
     pub time_left: f32,
-    pub round_number: u32,
-    pub rounds_to_win: u32,
-    pub round_winner_id: Option<u64>,
     pub winner_id: Option<u64>,
     pub reconnect_grace_left: f32,
     pub move_speed: f32,
@@ -61,6 +59,7 @@ pub struct Snapshot {
     pub dash_cooldown: f32,
     pub players: Vec<PlayerSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
+    pub items: Vec<ItemSnapshot>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
@@ -70,8 +69,6 @@ pub enum MatchPhase {
     Waiting,
     Countdown,
     Running,
-    Overtime,
-    RoundEnd,
     Paused,
     MatchFinished,
 }
@@ -84,8 +81,7 @@ pub struct PlayerSnapshot {
     pub aim: Vec2,
     pub hp: i32,
     pub max_hp: i32,
-    pub score: u32,
-    pub round_wins: u32,
+    pub score: i32,
     pub connected: bool,
     pub reconnect_grace_left: f32,
     pub alive: bool,
@@ -107,4 +103,11 @@ pub struct BulletSnapshot {
     pub owner_id: u64,
     pub position: Vec2,
     pub velocity: Vec2,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ItemSnapshot {
+    pub id: u64,
+    pub position: Vec2,
+    pub points: i32,
 }
