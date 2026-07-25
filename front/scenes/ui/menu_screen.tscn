@@ -34,88 +34,389 @@ anchor_right = 1.0
 anchor_bottom = 0.9
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.025, 0.035, 0.35)
+color = Color(0.02, 0.025, 0.035, 0.58)
 mouse_filter = 2
 
-[node name="ConnectionPanel" type="PanelContainer" parent="."]
-layout_mode = 0
-offset_left = 30.0
-offset_top = 54.0
-offset_right = 302.0
-offset_bottom = 332.0
+[node name="TitlePage" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Margin" type="MarginContainer" parent="ConnectionPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 15
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 15
+[node name="Panel" type="PanelContainer" parent="TitlePage"]
+offset_left = 40.0
+offset_top = 50.0
+offset_right = 310.0
+offset_bottom = 330.0
 
-[node name="Form" type="VBoxContainer" parent="ConnectionPanel/Margin"]
+[node name="Margin" type="MarginContainer" parent="TitlePage/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
 
-[node name="TitleLabel" type="Label" parent="ConnectionPanel/Margin/Form"]
+[node name="Content" type="VBoxContainer" parent="TitlePage/Panel/Margin"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.945, 0.97, 1)
-theme_override_font_sizes/font_size = 25
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="TitlePage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
 text = "PIXEL SHOOTER"
 
-[node name="SubtitleLabel" type="Label" parent="ConnectionPanel/Margin/Form"]
+[node name="Subtitle" type="Label" parent="TitlePage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.898, 1, 1)
+text = "POINT BATTLE // ONLINE"
+
+[node name="Separator" type="HSeparator" parent="TitlePage/Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="TitlePage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "PLAY"
+
+[node name="SettingsButton" type="Button" parent="TitlePage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "SETTINGS"
+
+[node name="QuitButton" type="Button" parent="TitlePage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "QUIT"
+
+[node name="PlayPage" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="PlayPage"]
+offset_left = 150.0
+offset_top = 65.0
+offset_right = 490.0
+offset_bottom = 320.0
+
+[node name="Margin" type="MarginContainer" parent="PlayPage/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="PlayPage/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="Title" type="Label" parent="PlayPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "PLAY"
+horizontal_alignment = 1
+
+[node name="CreateRoomButton" type="Button" parent="PlayPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "CREATE ROOM"
+
+[node name="CreateRoomHint" type="Label" parent="PlayPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+theme_override_font_sizes/font_size = 9
+text = "START A LOCAL SERVER"
+horizontal_alignment = 1
+
+[node name="OpenJoinButton" type="Button" parent="PlayPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "JOIN ROOM"
+
+[node name="TitleBackButton" type="Button" parent="PlayPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BACK"
+
+[node name="JoinPage" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="JoinPage"]
+offset_left = 135.0
+offset_top = 70.0
+offset_right = 505.0
+offset_bottom = 310.0
+
+[node name="Margin" type="MarginContainer" parent="JoinPage/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="JoinPage/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="JoinPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "JOIN ROOM"
+
+[node name="UrlLabel" type="Label" parent="JoinPage/Panel/Margin/Content"]
+layout_mode = 2
+text = "SERVER URL"
+
+[node name="ServerUrlInput" type="LineEdit" parent="JoinPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "ws://127.0.0.1:9001"
+
+[node name="JoinButton" type="Button" parent="JoinPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "JOIN ROOM"
+
+[node name="JoinBackButton" type="Button" parent="JoinPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BACK"
+
+[node name="CreatePage" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LobbyPanel" type="PanelContainer" parent="CreatePage"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 315.0
+offset_bottom = 345.0
+
+[node name="Margin" type="MarginContainer" parent="CreatePage/LobbyPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="CreatePage/LobbyPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Title" type="Label" parent="CreatePage/LobbyPanel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ROOM LOBBY"
+
+[node name="RoomAddressLabel" type="Label" parent="CreatePage/LobbyPanel/Margin/Content"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.153, 0.898, 1, 1)
 theme_override_font_sizes/font_size = 10
-text = "PVP // AUTHORITATIVE SERVER"
+text = "ws://127.0.0.1:9001"
 
-[node name="Separator" type="HSeparator" parent="ConnectionPanel/Margin/Form"]
+[node name="RoomWaitingLabel" type="Label" parent="CreatePage/LobbyPanel/Margin/Content"]
+unique_name_in_owner = true
 layout_mode = 2
+text = "WAITING FOR PLAYERS  1/4"
 
-[node name="PlayerNameLabel" type="Label" parent="ConnectionPanel/Margin/Form"]
+[node name="RoomPlayers" type="VBoxContainer" parent="CreatePage/LobbyPanel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 94)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+theme_override_constants/separation = 3
+
+[node name="CpuButtons" type="HBoxContainer" parent="CreatePage/LobbyPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AddCpuButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content/CpuButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ADD CPU"
+
+[node name="RemoveCpuButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content/CpuButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "REMOVE CPU"
+
+[node name="StartButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "START GAME"
+
+[node name="CreateBackButton" type="Button" parent="CreatePage/LobbyPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "LEAVE ROOM"
+
+[node name="RulesPanel" type="PanelContainer" parent="CreatePage"]
+offset_left = 325.0
+offset_top = 18.0
+offset_right = 622.0
+offset_bottom = 345.0
+
+[node name="Margin" type="MarginContainer" parent="CreatePage/RulesPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="CreatePage/RulesPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Title" type="Label" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "GAME SETTINGS"
+
+[node name="MatchLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+text = "MATCH SECONDS"
+[node name="MatchSecondsInput" type="SpinBox" parent="CreatePage/RulesPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 30.0
+max_value = 900.0
+step = 30.0
+value = 120.0
+
+[node name="KillLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+text = "KILL POINTS"
+[node name="KillPointsInput" type="SpinBox" parent="CreatePage/RulesPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 10000.0
+step = 5.0
+value = 100.0
+
+[node name="PenaltyLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+text = "DEATH PENALTY"
+[node name="DeathPenaltyInput" type="SpinBox" parent="CreatePage/RulesPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 10000.0
+step = 5.0
+value = 25.0
+
+[node name="ItemRow" type="HBoxContainer" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+[node name="ItemPointsInput" type="SpinBox" parent="CreatePage/RulesPanel/Margin/Content/ItemRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 10000.0
+step = 5.0
+value = 20.0
+prefix = "ITEM "
+[node name="MaxItemsInput" type="SpinBox" parent="CreatePage/RulesPanel/Margin/Content/ItemRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 16.0
+value = 3.0
+prefix = "MAX "
+
+[node name="SettingsPage" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="SettingsPage"]
+offset_left = 155.0
+offset_top = 42.0
+offset_right = 485.0
+offset_bottom = 338.0
+
+[node name="Margin" type="MarginContainer" parent="SettingsPage/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="Content" type="VBoxContainer" parent="SettingsPage/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="Title" type="Label" parent="SettingsPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "SETTINGS"
+
+[node name="NameLabel" type="Label" parent="SettingsPage/Panel/Margin/Content"]
+layout_mode = 2
 text = "PLAYER NAME"
-
-[node name="PlayerNameInput" type="LineEdit" parent="ConnectionPanel/Margin/Form"]
+[node name="PlayerNameInput" type="LineEdit" parent="SettingsPage/Panel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 max_length = 16
 placeholder_text = "Player"
 
-[node name="ServerUrlLabel" type="Label" parent="ConnectionPanel/Margin/Form"]
+[node name="VolumeLabel" type="Label" parent="SettingsPage/Panel/Margin/Content"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
-text = "SERVER URL"
-
-[node name="ServerUrlInput" type="LineEdit" parent="ConnectionPanel/Margin/Form"]
+text = "MASTER VOLUME"
+[node name="VolumeSlider" type="HSlider" parent="SettingsPage/Panel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-placeholder_text = "ws://127.0.0.1:9001"
+max_value = 100.0
+value = 80.0
 
-[node name="ConnectButton" type="Button" parent="ConnectionPanel/Margin/Form"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 36)
+[node name="PortLabel" type="Label" parent="SettingsPage/Panel/Margin/Content"]
 layout_mode = 2
-text = "CONNECT"
-
-[node name="StatusLabel" type="Label" parent="ConnectionPanel/Margin/Form"]
+text = "HOST PORT"
+[node name="PortInput" type="SpinBox" parent="SettingsPage/Panel/Margin/Content"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
-theme_override_font_sizes/font_size = 10
-text = "READY"
-autowrap_mode = 2
+min_value = 1024.0
+max_value = 65535.0
+value = 9001.0
 
-[node name="OperationGuide" type="Label" parent="."]
-layout_mode = 0
-offset_left = 360.0
-offset_top = 300.0
-offset_right = 625.0
-offset_bottom = 340.0
-theme_override_colors/font_color = Color(0.91, 0.945, 0.97, 1)
-theme_override_font_sizes/font_size = 10
-text = "WASD MOVE  /  LMB FIRE\nR RELOAD  /  SPACE DASH"
-horizontal_alignment = 1
+[node name="SettingsBackButton" type="Button" parent="SettingsPage/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SAVE & BACK"
 
 [node name="Footer" type="ColorRect" parent="."]
 layout_mode = 1
@@ -128,7 +429,8 @@ grow_vertical = 0
 color = Color(0.02, 0.025, 0.035, 1)
 mouse_filter = 2
 
-[node name="FooterLabel" type="Label" parent="Footer"]
+[node name="StatusLabel" type="Label" parent="Footer"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -137,5 +439,5 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
 theme_override_font_sizes/font_size = 10
-text = "  MONOCHROME ARENA // CYAN VS MAGENTA"
+text = "  READY"
 vertical_alignment = 1

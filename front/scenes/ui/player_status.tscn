@@ -4,7 +4,7 @@
 [ext_resource type="Theme" path="res://themes/pixel_theme.tres" id="2_theme"]
 
 [node name="PlayerStatus" type="Control"]
-custom_minimum_size = Vector2(180, 38)
+custom_minimum_size = Vector2(150, 38)
 layout_mode = 3
 anchors_preset = 0
 theme = ExtResource("2_theme")
@@ -12,7 +12,7 @@ script = ExtResource("1_script")
 
 [node name="InfoLabel" type="Label" parent="."]
 unique_name_in_owner = true
-offset_right = 180.0
+offset_right = 150.0
 offset_bottom = 15.0
 theme_override_font_sizes/font_size = 10
 text = "PLAYER 0 PTS 6/6"

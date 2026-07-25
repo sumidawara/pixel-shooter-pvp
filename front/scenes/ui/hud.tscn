@@ -26,26 +26,40 @@ color = Color(0.02, 0.027, 0.04, 1)
 
 [node name="PlayerOneStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 10.0
+offset_left = 5.0
 offset_top = 361.0
-offset_right = 190.0
+offset_right = 155.0
 offset_bottom = 399.0
 
 [node name="PlayerTwoStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 450.0
+offset_left = 160.0
+offset_top = 361.0
+offset_right = 310.0
+offset_bottom = 399.0
+
+[node name="PlayerThreeStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+unique_name_in_owner = true
+offset_left = 320.0
+offset_top = 361.0
+offset_right = 470.0
+offset_bottom = 399.0
+
+[node name="PlayerFourStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+unique_name_in_owner = true
+offset_left = 480.0
 offset_top = 361.0
 offset_right = 630.0
 offset_bottom = 399.0
 
 [node name="MatchLabel" type="Label" parent="HUDRoot"]
 unique_name_in_owner = true
-offset_left = 205.0
-offset_top = 363.0
-offset_right = 435.0
-offset_bottom = 396.0
+offset_left = 235.0
+offset_top = 4.0
+offset_right = 405.0
+offset_bottom = 34.0
 theme_override_font_sizes/font_size = 17
-text = "WAITING FOR 2 PLAYERS"
+text = "02:00"
 horizontal_alignment = 1
 vertical_alignment = 1
 

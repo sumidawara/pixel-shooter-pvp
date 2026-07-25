@@ -9,8 +9,11 @@ func apply_player(player: Dictionary, color: Color, dash_cooldown: float) -> voi
 	visible = not player.is_empty()
 	if player.is_empty():
 		return
-	var label := "%s  %d PTS  %d/%d" % [
-		str(player.get("name", "P")),
+	var display_name := str(player.get("name", "P"))
+	if bool(player.get("is_cpu", false)):
+		display_name += "*"
+	var label := "%s %dP %d/%d" % [
+		display_name,
 		int(player.get("score", 0)),
 		int(player.get("ammo", 0)),
 		int(player.get("max_ammo", 6)),

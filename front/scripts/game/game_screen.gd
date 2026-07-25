@@ -12,6 +12,8 @@ const INTERPOLATION_SPEED := 14.0
 const CORRECTION_DECAY := 18.0
 const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
+const YELLOW := Color("#ffe66d")
+const GREEN := Color("#7cff6b")
 const OBSTACLES := [Rect2(250, 85, 140, 28), Rect2(250, 247, 140, 28)]
 
 const PLAYER_VIEW_SCENE := preload("res://scenes/game/player_view.tscn")
@@ -458,7 +460,9 @@ func _player_color_for_list(id: int, player_list: Array) -> Color:
 	for player in player_list:
 		sorted_ids.append(int(player.get("id", 0)))
 	sorted_ids.sort()
-	return CYAN if sorted_ids.is_empty() or id == sorted_ids[0] else MAGENTA
+	var index := sorted_ids.find(id)
+	var colors := [CYAN, MAGENTA, YELLOW, GREEN]
+	return colors[maxi(index, 0) % colors.size()]
 
 
 func _to_vector(value: Dictionary) -> Vector2:

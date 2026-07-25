@@ -2,9 +2,13 @@ extends CanvasLayer
 
 const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
+const YELLOW := Color("#ffe66d")
+const GREEN := Color("#7cff6b")
 
 @onready var player_one_status = %PlayerOneStatus
 @onready var player_two_status = %PlayerTwoStatus
+@onready var player_three_status = %PlayerThreeStatus
+@onready var player_four_status = %PlayerFourStatus
 @onready var match_label: Label = %MatchLabel
 @onready var connection_label: Label = %ConnectionLabel
 @onready var countdown_label: Label = %CountdownLabel
@@ -28,10 +32,12 @@ func apply_snapshot(
 	sorted.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	player_one_status.apply_player(sorted[0] if sorted.size() > 0 else {}, CYAN, dash_cooldown)
 	player_two_status.apply_player(sorted[1] if sorted.size() > 1 else {}, MAGENTA, dash_cooldown)
+	player_three_status.apply_player(sorted[2] if sorted.size() > 2 else {}, YELLOW, dash_cooldown)
+	player_four_status.apply_player(sorted[3] if sorted.size() > 3 else {}, GREEN, dash_cooldown)
 
 	var center_text := _format_time(time_left)
 	if phase == "waiting":
-		center_text = "WAITING FOR 2 PLAYERS"
+		center_text = "WAITING IN LOBBY"
 	elif phase == "countdown":
 		center_text = "MATCH START  %d" % int(ceil(time_left))
 	elif phase == "paused":

@@ -42,8 +42,28 @@ func disconnect_from_server() -> void:
 
 
 func send_input(input_message: Dictionary) -> void:
+	send_message(input_message)
+
+
+func send_message(message: Dictionary) -> void:
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
-		socket.send_text(JSON.stringify(input_message))
+		socket.send_text(JSON.stringify(message))
+
+
+func add_cpu() -> void:
+	send_message({"type": "add_cpu"})
+
+
+func remove_cpu(id: int) -> void:
+	send_message({"type": "remove_cpu", "player_id": id})
+
+
+func update_room_settings(settings: Dictionary) -> void:
+	send_message({"type": "update_room_settings", "settings": settings})
+
+
+func start_match() -> void:
+	send_message({"type": "start_match"})
 
 
 func is_open() -> bool:
