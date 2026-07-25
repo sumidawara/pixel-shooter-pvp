@@ -50,6 +50,10 @@
 弾のスナップショットには`position`と`velocity`が含まれる。Godotは20Hzの
 受信間隔を`velocity`で外挿し、描画フレームごとに弾を滑らかに移動させる。
 
+スナップショットにはサーバー設定由来の `move_speed`、`dash_speed`、
+`dash_duration`、`dash_cooldown` も含まれる。Godotはこの値で入力予測するため、
+`server.json` で操作パラメーターを変更してもサーバーの確定計算と一致する。
+
 試合フェーズ:
 
 - `waiting`: 2人の参加待ち

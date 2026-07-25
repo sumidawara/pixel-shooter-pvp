@@ -13,6 +13,7 @@
 
 use std::{
     collections::{HashMap, VecDeque},
+    fs,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -24,34 +25,113 @@ use pixel_shooter_protocol::{
     ARENA_HEIGHT, ARENA_WIDTH, BULLET_RADIUS, BulletSnapshot, ClientMessage, MatchPhase,
     PLAYER_RADIUS, PlayerSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
 };
+use serde::Deserialize;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::mpsc,
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-const TICK_RATE: f64 = 60.0;
-const ROUND_SECONDS: f32 = 60.0;
-const COUNTDOWN_SECONDS: f32 = 3.0;
-const OVERTIME_SECONDS: f32 = 30.0;
-const ROUND_INTERVAL_SECONDS: f32 = 3.0;
-const MATCH_FINISHED_SECONDS: f32 = 6.0;
-const RECONNECT_GRACE_SECONDS: f32 = 15.0;
-const ROUNDS_TO_WIN: u32 = 3;
-const MOVE_SPEED: f32 = 150.0;
-const BULLET_SPEED: f32 = 340.0;
-const SHOT_INTERVAL: f32 = 0.24;
-const RECOIL_DISTANCE: f32 = 5.0;
-const MAX_AMMO: u32 = 6;
-const RELOAD_SECONDS: f32 = 1.0;
-const HIT_INVULNERABLE_SECONDS: f32 = 0.18;
-const RESPAWN_INVULNERABLE_SECONDS: f32 = 1.0;
-const DASH_SPEED: f32 = 520.0;
-const DASH_DURATION: f32 = 0.13;
-const DASH_COOLDOWN: f32 = 1.1;
-const RESPAWN_SECONDS: f32 = 2.0;
-const MAX_HP: i32 = 5;
 const MAX_PLAYERS: usize = 2;
+
+/// `server.json` から読み込むサーバー設定。
+///
+/// `#[serde(default)]` により、設定ファイルに新しい項目が増えても、
+/// 書かれていない項目には安全な初期値が入る。
+#[derive(Resource, Clone, Debug, Default, Deserialize)]
+#[serde(default)]
+struct ServerSettings {
+    network: NetworkSettings,
+    #[serde(rename = "match")]
+    match_rules: MatchRules,
+    gameplay: GameplaySettings,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+struct NetworkSettings {
+    bind_address: String,
+    tick_rate: f64,
+    snapshot_every_ticks: u64,
+    simulated_latency_ms: u64,
+    simulated_loss_percent: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+struct MatchRules {
+    round_seconds: f32,
+    countdown_seconds: f32,
+    overtime_seconds: f32,
+    round_interval_seconds: f32,
+    match_finished_seconds: f32,
+    reconnect_grace_seconds: f32,
+    rounds_to_win: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+struct GameplaySettings {
+    move_speed: f32,
+    bullet_speed: f32,
+    shot_interval: f32,
+    recoil_distance: f32,
+    max_ammo: u32,
+    reload_seconds: f32,
+    max_hp: i32,
+    hit_invulnerable_seconds: f32,
+    respawn_invulnerable_seconds: f32,
+    respawn_seconds: f32,
+    dash_speed: f32,
+    dash_duration: f32,
+    dash_cooldown: f32,
+}
+
+impl Default for NetworkSettings {
+    fn default() -> Self {
+        Self {
+            bind_address: "127.0.0.1:9001".into(),
+            tick_rate: 60.0,
+            snapshot_every_ticks: 3,
+            simulated_latency_ms: 0,
+            simulated_loss_percent: 0,
+        }
+    }
+}
+
+impl Default for MatchRules {
+    fn default() -> Self {
+        Self {
+            round_seconds: 60.0,
+            countdown_seconds: 3.0,
+            overtime_seconds: 30.0,
+            round_interval_seconds: 3.0,
+            match_finished_seconds: 6.0,
+            reconnect_grace_seconds: 15.0,
+            rounds_to_win: 3,
+        }
+    }
+}
+
+impl Default for GameplaySettings {
+    fn default() -> Self {
+        Self {
+            move_speed: 150.0,
+            bullet_speed: 340.0,
+            shot_interval: 0.24,
+            recoil_distance: 5.0,
+            max_ammo: 6,
+            reload_seconds: 1.0,
+            max_hp: 5,
+            hit_invulnerable_seconds: 0.18,
+            respawn_invulnerable_seconds: 1.0,
+            respawn_seconds: 2.0,
+            dash_speed: 520.0,
+            dash_duration: 0.13,
+            dash_cooldown: 1.1,
+        }
+    }
+}
 
 // 接続IDから、そのクライアントへメッセージを送るチャンネルを検索する表。
 // WebSocketは別スレッドで動くため、Arcで複数スレッドから共有し、
@@ -154,18 +234,34 @@ struct Bullet {
 }
 
 fn main() {
+    let mut settings = load_server_settings();
+    // 運用環境では設定ファイルを変更せず、一部の値だけ環境変数で上書きできる。
+    settings.network.bind_address = std::env::var("PIXEL_SHOOTER_BIND_ADDR")
+        .unwrap_or_else(|_| settings.network.bind_address.clone());
+    settings.network.simulated_latency_ms = env_u64(
+        "PIXEL_SHOOTER_LATENCY_MS",
+        settings.network.simulated_latency_ms,
+    );
+    settings.network.simulated_loss_percent = env_u64(
+        "PIXEL_SHOOTER_PACKET_LOSS_PERCENT",
+        u64::from(settings.network.simulated_loss_percent),
+    )
+    .min(100) as u32;
+    settings.match_rules.reconnect_grace_seconds = env_f32(
+        "PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS",
+        settings.match_rules.reconnect_grace_seconds,
+    )
+    .max(0.1);
+    sanitize_settings(&mut settings);
+
     // WebSocketスレッドからBevyへイベントを渡すクロススレッド用チャンネル。
     let (event_tx, event_rx) = unbounded();
     let clients = Arc::new(Mutex::new(HashMap::new()));
-    let bind_address =
-        std::env::var("PIXEL_SHOOTER_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:9001".into());
-    let simulated_latency_ms = env_u64("PIXEL_SHOOTER_LATENCY_MS", 0);
-    let simulated_loss_percent = env_u64("PIXEL_SHOOTER_PACKET_LOSS_PERCENT", 0).min(100) as u32;
-    let reconnect_grace_seconds = env_f32(
-        "PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS",
-        RECONNECT_GRACE_SECONDS,
-    )
-    .max(0.1);
+    let bind_address = settings.network.bind_address.clone();
+    let simulated_latency_ms = settings.network.simulated_latency_ms;
+    let simulated_loss_percent = settings.network.simulated_loss_percent;
+    let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;
+    let tick_rate = settings.network.tick_rate;
     let simulated_latency = Duration::from_millis(simulated_latency_ms);
     start_network_thread(
         event_tx,
@@ -176,6 +272,13 @@ fn main() {
     );
 
     println!("Pixel Shooter server listening on ws://{bind_address}");
+    println!(
+        "Rules: first to {} rounds, {} seconds per round, {} HP, {} ammo",
+        settings.match_rules.rounds_to_win,
+        settings.match_rules.round_seconds,
+        settings.gameplay.max_hp,
+        settings.gameplay.max_ammo
+    );
     if simulated_latency_ms > 0 || simulated_loss_percent > 0 {
         println!(
             "Network simulation: {simulated_latency_ms} ms latency, \
@@ -189,11 +292,12 @@ fn main() {
             // サーバーでは画面、音声、ウィンドウが不要なのでMinimalPluginsを使う。
             // ScheduleRunnerPluginにより、ウィンドウのイベントループなしで60Hz動作する。
             MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
-                1.0 / TICK_RATE,
+                1.0 / tick_rate,
             ))),
         )
         // FixedUpdateが1秒間に60回進むよう、固定時間を設定する。
-        .insert_resource(Time::<Fixed>::from_hz(TICK_RATE))
+        .insert_resource(Time::<Fixed>::from_hz(tick_rate))
+        .insert_resource(settings)
         // 作成済みの値をResourceとしてゲーム世界へ登録する。
         .insert_resource(Network {
             events: event_rx,
@@ -223,6 +327,61 @@ fn main() {
         )
         // サーバーを終了するまでBevyの更新ループを実行する。
         .run();
+}
+
+fn load_server_settings() -> ServerSettings {
+    let path = std::env::var("PIXEL_SHOOTER_CONFIG").unwrap_or_else(|_| "server.json".to_string());
+    match fs::read_to_string(&path) {
+        Ok(text) => match serde_json::from_str(&text) {
+            Ok(settings) => {
+                println!("Loaded server settings from {path}");
+                settings
+            }
+            Err(error) => {
+                eprintln!("Could not parse {path}: {error}; using defaults");
+                ServerSettings::default()
+            }
+        },
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            eprintln!("{path} was not found; using built-in defaults");
+            ServerSettings::default()
+        }
+        Err(error) => {
+            eprintln!("Could not read {path}: {error}; using defaults");
+            ServerSettings::default()
+        }
+    }
+}
+
+fn sanitize_settings(settings: &mut ServerSettings) {
+    settings.network.tick_rate = settings.network.tick_rate.clamp(10.0, 240.0);
+    settings.network.snapshot_every_ticks = settings.network.snapshot_every_ticks.max(1);
+    settings.network.simulated_loss_percent = settings.network.simulated_loss_percent.min(100);
+    settings.match_rules.round_seconds = settings.match_rules.round_seconds.max(1.0);
+    settings.match_rules.countdown_seconds = settings.match_rules.countdown_seconds.max(0.0);
+    settings.match_rules.overtime_seconds = settings.match_rules.overtime_seconds.max(1.0);
+    settings.match_rules.round_interval_seconds =
+        settings.match_rules.round_interval_seconds.max(0.1);
+    settings.match_rules.match_finished_seconds =
+        settings.match_rules.match_finished_seconds.max(0.1);
+    settings.match_rules.reconnect_grace_seconds =
+        settings.match_rules.reconnect_grace_seconds.max(0.1);
+    settings.match_rules.rounds_to_win = settings.match_rules.rounds_to_win.max(1);
+    settings.gameplay.move_speed = settings.gameplay.move_speed.max(1.0);
+    settings.gameplay.bullet_speed = settings.gameplay.bullet_speed.max(1.0);
+    settings.gameplay.shot_interval = settings.gameplay.shot_interval.max(0.01);
+    settings.gameplay.recoil_distance = settings.gameplay.recoil_distance.max(0.0);
+    settings.gameplay.max_ammo = settings.gameplay.max_ammo.max(1);
+    settings.gameplay.reload_seconds = settings.gameplay.reload_seconds.max(0.01);
+    settings.gameplay.max_hp = settings.gameplay.max_hp.max(1);
+    settings.gameplay.hit_invulnerable_seconds =
+        settings.gameplay.hit_invulnerable_seconds.max(0.0);
+    settings.gameplay.respawn_invulnerable_seconds =
+        settings.gameplay.respawn_invulnerable_seconds.max(0.0);
+    settings.gameplay.respawn_seconds = settings.gameplay.respawn_seconds.max(0.1);
+    settings.gameplay.dash_speed = settings.gameplay.dash_speed.max(1.0);
+    settings.gameplay.dash_duration = settings.gameplay.dash_duration.max(0.01);
+    settings.gameplay.dash_cooldown = settings.gameplay.dash_cooldown.max(0.01);
 }
 
 /// TokioとWebSocketを動かす専用OSスレッドを開始する。
@@ -376,6 +535,7 @@ async fn handle_connection(
 fn process_network(
     mut commands: Commands,
     network: Res<Network>,
+    settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
 ) {
@@ -476,16 +636,16 @@ fn process_network(
                     aim: if slot == 0 { Vec2::X } else { Vec2::NEG_X },
                     movement: Vec2::ZERO,
                     shooting: false,
-                    hp: MAX_HP,
+                    hp: settings.gameplay.max_hp,
                     score: 0,
                     round_wins: 0,
                     alive: true,
                     respawn_left: 0.0,
                     shot_cooldown: 0.0,
-                    ammo: MAX_AMMO,
+                    ammo: settings.gameplay.max_ammo,
                     reload_left: 0.0,
                     reload_requested: false,
-                    invulnerable_left: RESPAWN_INVULNERABLE_SECONDS,
+                    invulnerable_left: settings.gameplay.respawn_invulnerable_seconds,
                     dash_cooldown_left: 0.0,
                     dash_time_left: 0.0,
                     dash_direction: Vec2::ZERO,
@@ -546,6 +706,7 @@ fn process_network(
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
 fn update_match(
     time: Res<Time<Fixed>>,
+    settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
@@ -583,7 +744,7 @@ fn update_match(
         }
         if match_was_active {
             state.phase = MatchPhase::MatchFinished;
-            state.phase_time_left = MATCH_FINISHED_SECONDS;
+            state.phase_time_left = settings.match_rules.match_finished_seconds;
             state.match_winner_id = connected_winner;
             state.round_winner_id = None;
             state.resume_phase = None;
@@ -623,7 +784,7 @@ fn update_match(
     match state.phase {
         MatchPhase::Waiting => {
             if connected_count == MAX_PLAYERS {
-                start_new_match(&mut state, &mut players);
+                start_new_match(&mut state, &mut players, &settings);
                 despawn_all_bullets(&mut commands, &bullets);
             }
         }
@@ -631,7 +792,7 @@ fn update_match(
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 state.phase = MatchPhase::Running;
-                state.phase_time_left = ROUND_SECONDS;
+                state.phase_time_left = settings.match_rules.round_seconds;
                 println!("round {} started", state.round_number);
             }
         }
@@ -645,10 +806,10 @@ fn update_match(
                 standings.sort_by_key(|(_, score)| *score);
                 if standings.len() == 2 && standings[0].1 == standings[1].1 {
                     state.phase = MatchPhase::Overtime;
-                    state.phase_time_left = OVERTIME_SECONDS;
+                    state.phase_time_left = settings.match_rules.overtime_seconds;
                     println!("round {} entered overtime", state.round_number);
                 } else if let Some((winner_id, _)) = standings.last() {
-                    award_round(&mut state, &mut players, *winner_id);
+                    award_round(&mut state, &mut players, *winner_id, &settings);
                     despawn_all_bullets(&mut commands, &bullets);
                 }
             }
@@ -665,7 +826,7 @@ fn update_match(
                     // HPまで同じなら10秒ずつサドンデスを継続する。
                     state.phase_time_left = 10.0;
                 } else if let Some((winner_id, _)) = standings.last() {
-                    award_round(&mut state, &mut players, *winner_id);
+                    award_round(&mut state, &mut players, *winner_id, &settings);
                     despawn_all_bullets(&mut commands, &bullets);
                 }
             }
@@ -674,10 +835,10 @@ fn update_match(
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 state.round_number += 1;
-                prepare_round(&mut players);
+                prepare_round(&mut players, &settings.gameplay);
                 state.round_winner_id = None;
                 state.phase = MatchPhase::Countdown;
-                state.phase_time_left = COUNTDOWN_SECONDS;
+                state.phase_time_left = settings.match_rules.countdown_seconds;
                 despawn_all_bullets(&mut commands, &bullets);
             }
         }
@@ -690,10 +851,10 @@ fn update_match(
                 for (_, mut player) in &mut players {
                     player.round_wins = 0;
                     player.score = 0;
-                    reset_player(&mut player);
+                    reset_player(&mut player, &settings.gameplay);
                 }
                 if connected_count == MAX_PLAYERS {
-                    start_new_match(&mut state, &mut players);
+                    start_new_match(&mut state, &mut players, &settings);
                 } else {
                     state.phase = MatchPhase::Waiting;
                     state.phase_time_left = 0.0;
@@ -706,50 +867,59 @@ fn update_match(
     state.tick += 1;
 }
 
-fn start_new_match(state: &mut MatchState, players: &mut Query<(Entity, &mut Player)>) {
+fn start_new_match(
+    state: &mut MatchState,
+    players: &mut Query<(Entity, &mut Player)>,
+    settings: &ServerSettings,
+) {
     state.round_number = 1;
     state.round_winner_id = None;
     state.match_winner_id = None;
     state.resume_phase = None;
     state.phase = MatchPhase::Countdown;
-    state.phase_time_left = COUNTDOWN_SECONDS;
+    state.phase_time_left = settings.match_rules.countdown_seconds;
     for (_, mut player) in players.iter_mut() {
         player.round_wins = 0;
         player.score = 0;
-        reset_player(&mut player);
+        reset_player(&mut player, &settings.gameplay);
     }
     println!("new best-of-five match started");
 }
 
-fn prepare_round(players: &mut Query<(Entity, &mut Player)>) {
+fn prepare_round(players: &mut Query<(Entity, &mut Player)>, gameplay: &GameplaySettings) {
     for (_, mut player) in players.iter_mut() {
         player.score = 0;
-        reset_player(&mut player);
+        reset_player(&mut player, gameplay);
     }
 }
 
-fn award_round(state: &mut MatchState, players: &mut Query<(Entity, &mut Player)>, winner_id: u64) {
+fn award_round(
+    state: &mut MatchState,
+    players: &mut Query<(Entity, &mut Player)>,
+    winner_id: u64,
+    settings: &ServerSettings,
+) {
     let mut match_won = false;
     for (_, mut player) in players.iter_mut() {
         if player.id == winner_id {
             player.round_wins += 1;
-            match_won = player.round_wins >= ROUNDS_TO_WIN;
+            match_won = player.round_wins >= settings.match_rules.rounds_to_win;
             break;
         }
     }
-    set_round_result(state, winner_id, match_won);
+    set_round_result(state, winner_id, match_won, &settings.match_rules);
 }
 
-fn set_round_result(state: &mut MatchState, winner_id: u64, match_won: bool) {
+fn set_round_result(state: &mut MatchState, winner_id: u64, match_won: bool, rules: &MatchRules) {
     state.round_winner_id = Some(winner_id);
     if match_won {
         state.phase = MatchPhase::MatchFinished;
-        state.phase_time_left = MATCH_FINISHED_SECONDS;
+        state.phase_time_left = rules.match_finished_seconds;
         state.match_winner_id = Some(winner_id);
         println!("player {winner_id} won the match");
     } else {
         state.phase = MatchPhase::RoundEnd;
-        state.phase_time_left = ROUND_INTERVAL_SECONDS;
+        state.phase_time_left = rules.round_interval_seconds;
         println!("player {winner_id} won round {}", state.round_number);
     }
 }
@@ -765,7 +935,12 @@ fn is_playing_phase(phase: MatchPhase) -> bool {
 }
 
 /// クライアントから受け取った移動入力でプレイヤーを動かすSystem。
-fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Query<&mut Player>) {
+fn move_players(
+    time: Res<Time<Fixed>>,
+    settings: Res<ServerSettings>,
+    state: Res<MatchState>,
+    mut players: Query<&mut Player>,
+) {
     if !is_playing_phase(state.phase) {
         return;
     }
@@ -781,15 +956,18 @@ fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Que
         player.dash_cooldown_left = (player.dash_cooldown_left - dt).max(0.0);
 
         // Rキーが押され、まだ弾が残っていない場合だけ手動リロードを始める。
-        if player.reload_requested && player.reload_left <= 0.0 && player.ammo < MAX_AMMO {
-            player.reload_left = RELOAD_SECONDS;
+        if player.reload_requested
+            && player.reload_left <= 0.0
+            && player.ammo < settings.gameplay.max_ammo
+        {
+            player.reload_left = settings.gameplay.reload_seconds;
         }
         player.reload_requested = false;
 
         if player.reload_left > 0.0 {
             player.reload_left = (player.reload_left - dt).max(0.0);
             if player.reload_left <= 0.0 {
-                player.ammo = MAX_AMMO;
+                player.ammo = settings.gameplay.max_ammo;
             }
         }
 
@@ -799,17 +977,17 @@ fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Que
             && player.movement.length_squared() > 0.001
         {
             player.dash_direction = player.movement.normalize();
-            player.dash_time_left = DASH_DURATION;
-            player.dash_cooldown_left = DASH_COOLDOWN;
+            player.dash_time_left = settings.gameplay.dash_duration;
+            player.dash_cooldown_left = settings.gameplay.dash_cooldown;
         }
         player.dash_requested = false;
 
         // ダッシュ中は通常入力ではなく、開始時に保存した方向へ高速移動する。
         let (direction, speed) = if player.dash_time_left > 0.0 {
             player.dash_time_left = (player.dash_time_left - dt).max(0.0);
-            (player.dash_direction, DASH_SPEED)
+            (player.dash_direction, settings.gameplay.dash_speed)
         } else {
-            (player.movement, MOVE_SPEED)
+            (player.movement, settings.gameplay.move_speed)
         };
 
         // 速度(px/秒) × 経過秒で、このtickに進む距離を求める。
@@ -824,6 +1002,7 @@ fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Que
 /// 射撃入力とクールダウンを確認し、Bullet Entityを生成するSystem。
 fn fire_bullets(
     mut commands: Commands,
+    settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
 ) {
@@ -840,11 +1019,11 @@ fn fire_bullets(
             continue;
         }
         if player.ammo == 0 {
-            player.reload_left = RELOAD_SECONDS;
+            player.reload_left = settings.gameplay.reload_seconds;
             continue;
         }
 
-        player.shot_cooldown = SHOT_INTERVAL;
+        player.shot_cooldown = settings.gameplay.shot_interval;
         player.ammo -= 1;
         state.next_bullet_id += 1;
         let aim = player.aim;
@@ -853,16 +1032,19 @@ fn fire_bullets(
             id: state.next_bullet_id,
             owner_id: player.id,
             position: player.position + aim * (PLAYER_RADIUS + 6.0),
-            velocity: aim * BULLET_SPEED,
+            velocity: aim * settings.gameplay.bullet_speed,
             life_left: 2.0,
         });
 
         // 射撃方向と反対へ少し押し戻す。サーバーで計算するので全員に同じ結果になる。
-        move_with_collision(&mut player.position, -aim * RECOIL_DISTANCE);
+        move_with_collision(
+            &mut player.position,
+            -aim * settings.gameplay.recoil_distance,
+        );
 
         // 最後の1発を撃った直後から自動リロードを開始する。
         if player.ammo == 0 {
-            player.reload_left = RELOAD_SECONDS;
+            player.reload_left = settings.gameplay.reload_seconds;
         }
     }
 }
@@ -871,6 +1053,7 @@ fn fire_bullets(
 fn move_and_hit_bullets(
     mut commands: Commands,
     time: Res<Time<Fixed>>,
+    settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
     mut players: Query<&mut Player>,
@@ -904,11 +1087,11 @@ fn move_and_hit_bullets(
             let hit_distance = PLAYER_RADIUS + BULLET_RADIUS;
             if player.position.distance_squared(bullet.position) <= hit_distance * hit_distance {
                 player.hp -= 1;
-                player.invulnerable_left = HIT_INVULNERABLE_SECONDS;
+                player.invulnerable_left = settings.gameplay.hit_invulnerable_seconds;
                 hit = true;
                 if player.hp <= 0 {
                     player.alive = false;
-                    player.respawn_left = RESPAWN_SECONDS;
+                    player.respawn_left = settings.gameplay.respawn_seconds;
                     player.shooting = false;
                     killed = true;
                 }
@@ -927,13 +1110,13 @@ fn move_and_hit_bullets(
                         player.score += 1;
                         if overtime_kill {
                             player.round_wins += 1;
-                            match_won = player.round_wins >= ROUNDS_TO_WIN;
+                            match_won = player.round_wins >= settings.match_rules.rounds_to_win;
                         }
                         break;
                     }
                 }
                 if overtime_kill {
-                    set_round_result(&mut state, owner_id, match_won);
+                    set_round_result(&mut state, owner_id, match_won, &settings.match_rules);
                 }
             }
         }
@@ -943,6 +1126,7 @@ fn move_and_hit_bullets(
 /// 死亡したプレイヤーの復活カウントを進めるSystem。
 fn update_respawns(
     time: Res<Time<Fixed>>,
+    settings: Res<ServerSettings>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
     bullets: Query<&Bullet>,
@@ -963,12 +1147,12 @@ fn update_respawns(
             // 複数候補から相手と弾に最も近づきにくい地点を選ぶ。
             player.position =
                 choose_respawn_position(player.id, &positions, &bullet_positions, state.tick);
-            player.hp = MAX_HP;
+            player.hp = settings.gameplay.max_hp;
             player.alive = true;
             player.shot_cooldown = 0.3;
-            player.ammo = MAX_AMMO;
+            player.ammo = settings.gameplay.max_ammo;
             player.reload_left = 0.0;
-            player.invulnerable_left = RESPAWN_INVULNERABLE_SECONDS;
+            player.invulnerable_left = settings.gameplay.respawn_invulnerable_seconds;
             player.dash_time_left = 0.0;
         }
     }
@@ -977,12 +1161,16 @@ fn update_respawns(
 /// 現在のゲーム状態を全Godotクライアントへ送るSystem。
 fn broadcast_snapshot(
     state: Res<MatchState>,
+    settings: Res<ServerSettings>,
     mut network: ResMut<Network>,
     players: Query<&Player>,
     bullets: Query<&Bullet>,
 ) {
     // サーバー更新は60Hzだが、3tickに1回だけ送ることで通信は20Hzになる。
-    if !state.tick.is_multiple_of(3) {
+    if !state
+        .tick
+        .is_multiple_of(settings.network.snapshot_every_ticks)
+    {
         return;
     }
     let reconnect_grace_left = players
@@ -999,10 +1187,14 @@ fn broadcast_snapshot(
         phase: state.phase,
         time_left: state.phase_time_left,
         round_number: state.round_number,
-        rounds_to_win: ROUNDS_TO_WIN,
+        rounds_to_win: settings.match_rules.rounds_to_win,
         round_winner_id: state.round_winner_id,
         winner_id: state.match_winner_id,
         reconnect_grace_left,
+        move_speed: settings.gameplay.move_speed,
+        dash_speed: settings.gameplay.dash_speed,
+        dash_duration: settings.gameplay.dash_duration,
+        dash_cooldown: settings.gameplay.dash_cooldown,
         players: players
             .iter()
             .map(|player| PlayerSnapshot {
@@ -1011,7 +1203,7 @@ fn broadcast_snapshot(
                 position: net_vec(player.position),
                 aim: net_vec(player.aim),
                 hp: player.hp.max(0),
-                max_hp: MAX_HP,
+                max_hp: settings.gameplay.max_hp,
                 score: player.score,
                 round_wins: player.round_wins,
                 connected: player.connection_id.is_some(),
@@ -1020,7 +1212,7 @@ fn broadcast_snapshot(
                 respawn_left: player.respawn_left,
                 invulnerable_left: player.invulnerable_left,
                 ammo: player.ammo,
-                max_ammo: MAX_AMMO,
+                max_ammo: settings.gameplay.max_ammo,
                 reloading: player.reload_left > 0.0,
                 reload_left: player.reload_left,
                 dash_cooldown_left: player.dash_cooldown_left,
@@ -1047,16 +1239,16 @@ fn broadcast_snapshot(
 }
 
 /// 新しい試合の開始時にプレイヤー状態を初期化する。
-fn reset_player(player: &mut Player) {
+fn reset_player(player: &mut Player, gameplay: &GameplaySettings) {
     player.position = spawn_position(player.slot);
-    player.hp = MAX_HP;
+    player.hp = gameplay.max_hp;
     player.alive = true;
     player.respawn_left = 0.0;
     player.shot_cooldown = 0.0;
-    player.ammo = MAX_AMMO;
+    player.ammo = gameplay.max_ammo;
     player.reload_left = 0.0;
     player.reload_requested = false;
-    player.invulnerable_left = RESPAWN_INVULNERABLE_SECONDS;
+    player.invulnerable_left = gameplay.respawn_invulnerable_seconds;
     player.dash_cooldown_left = 0.0;
     player.dash_time_left = 0.0;
     player.dash_requested = false;
@@ -1295,12 +1487,33 @@ mod tests {
     #[test]
     fn round_result_moves_to_interval_or_match_result() {
         let mut state = MatchState::default();
-        set_round_result(&mut state, 7, false);
+        let rules = MatchRules::default();
+        set_round_result(&mut state, 7, false, &rules);
         assert_eq!(state.phase, MatchPhase::RoundEnd);
         assert_eq!(state.round_winner_id, Some(7));
 
-        set_round_result(&mut state, 7, true);
+        set_round_result(&mut state, 7, true, &rules);
         assert_eq!(state.phase, MatchPhase::MatchFinished);
         assert_eq!(state.match_winner_id, Some(7));
+    }
+
+    #[test]
+    fn unsafe_server_settings_are_clamped() {
+        let mut settings = ServerSettings::default();
+        settings.network.tick_rate = 0.0;
+        settings.network.snapshot_every_ticks = 0;
+        settings.network.simulated_loss_percent = 999;
+        settings.gameplay.max_hp = 0;
+        settings.gameplay.max_ammo = 0;
+        settings.match_rules.rounds_to_win = 0;
+
+        sanitize_settings(&mut settings);
+
+        assert_eq!(settings.network.tick_rate, 10.0);
+        assert_eq!(settings.network.snapshot_every_ticks, 1);
+        assert_eq!(settings.network.simulated_loss_percent, 100);
+        assert_eq!(settings.gameplay.max_hp, 1);
+        assert_eq!(settings.gameplay.max_ammo, 1);
+        assert_eq!(settings.match_rules.rounds_to_win, 1);
     }
 }

@@ -2193,6 +2193,7 @@ dependencies = [
  "futures-util",
  "pixel-shooter-protocol",
  "rand",
+ "serde",
  "serde_json",
  "tokio",
  "tokio-tungstenite",

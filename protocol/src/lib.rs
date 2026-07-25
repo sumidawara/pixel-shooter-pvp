@@ -55,6 +55,10 @@ pub struct Snapshot {
     pub round_winner_id: Option<u64>,
     pub winner_id: Option<u64>,
     pub reconnect_grace_left: f32,
+    pub move_speed: f32,
+    pub dash_speed: f32,
+    pub dash_duration: f32,
+    pub dash_cooldown: f32,
     pub players: Vec<PlayerSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
 }
