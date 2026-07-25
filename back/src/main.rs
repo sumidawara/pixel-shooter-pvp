@@ -20,6 +20,7 @@
 
 mod arena;
 mod config;
+mod debug_web;
 mod game;
 mod model;
 mod network;
@@ -34,6 +35,9 @@ fn main() {
     let mut settings = ServerSettings::load();
     if let Some(bind_address) = command_line_value("--bind") {
         settings.network.bind_address = bind_address;
+    }
+    if let Some(debug_bind_address) = command_line_value("--debug-bind") {
+        settings.debug.bind_address = debug_bind_address;
     }
     let tick_rate = settings.network.tick_rate;
     let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;

@@ -22,6 +22,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use crate::{
     arena::spawn_position,
     config::ServerSettings,
+    debug_web::{self, SharedDebugSnapshot},
     model::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem},
 };
 
@@ -51,6 +52,8 @@ pub(crate) struct Network {
     simulated_loss_percent: u32,
     /// 欠落判定を再現可能にするための連番。
     outbound_sequence: u64,
+    /// Webデバッグ画面へ公開する最新の読み取り専用Snapshot。
+    debug_snapshot: SharedDebugSnapshot,
 }
 
 /// 通信スレッドで起きた出来事をBevyのメインスレッドへ渡すための値。
@@ -60,17 +63,31 @@ enum NetworkEvent {
     Message(u64, ClientMessage),
 }
 
+struct NetworkThreadSettings {
+    bind_address: String,
+    simulated_latency: Duration,
+    simulated_loss_percent: u32,
+    debug_enabled: bool,
+    debug_bind_address: String,
+}
+
 /// WebSocket用スレッドを開始し、Bevyへ登録するNetwork Resourceを返す。
 pub(crate) fn start(settings: &ServerSettings) -> Network {
     let (event_tx, event_rx) = unbounded();
     let clients = Arc::new(Mutex::new(HashMap::new()));
+    let debug_snapshot = debug_web::empty_snapshot();
     let simulated_latency = Duration::from_millis(settings.network.simulated_latency_ms);
     start_network_thread(
         event_tx,
         clients.clone(),
-        settings.network.bind_address.clone(),
-        simulated_latency,
-        settings.network.simulated_loss_percent,
+        debug_snapshot.clone(),
+        NetworkThreadSettings {
+            bind_address: settings.network.bind_address.clone(),
+            simulated_latency,
+            simulated_loss_percent: settings.network.simulated_loss_percent,
+            debug_enabled: settings.debug.enabled,
+            debug_bind_address: settings.debug.bind_address.clone(),
+        },
     );
     Network {
         events: event_rx,
@@ -78,6 +95,7 @@ pub(crate) fn start(settings: &ServerSettings) -> Network {
         simulated_latency,
         simulated_loss_percent: settings.network.simulated_loss_percent,
         outbound_sequence: 0,
+        debug_snapshot,
     }
 }
 
@@ -88,17 +106,25 @@ pub(crate) fn start(settings: &ServerSettings) -> Network {
 fn start_network_thread(
     events: Sender<NetworkEvent>,
     clients: ClientSenders,
-    bind_address: String,
-    simulated_latency: Duration,
-    simulated_loss_percent: u32,
+    debug_snapshot: SharedDebugSnapshot,
+    settings: NetworkThreadSettings,
 ) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
         runtime.block_on(async move {
-            let listener = match TcpListener::bind(&bind_address).await {
+            if settings.debug_enabled {
+                tokio::spawn(debug_web::serve(
+                    settings.debug_bind_address,
+                    debug_snapshot,
+                ));
+            }
+            let listener = match TcpListener::bind(&settings.bind_address).await {
                 Ok(listener) => listener,
                 Err(error) => {
-                    eprintln!("could not bind WebSocket server to {bind_address}: {error}");
+                    eprintln!(
+                        "could not bind WebSocket server to {}: {error}",
+                        settings.bind_address
+                    );
                     std::process::exit(1);
                 }
             };
@@ -117,8 +143,8 @@ fn start_network_thread(
                             stream,
                             tx,
                             peers,
-                            simulated_latency,
-                            simulated_loss_percent,
+                            settings.simulated_latency,
+                            settings.simulated_loss_percent,
                         ));
                     }
                     Err(error) => eprintln!("accept error: {error}"),
@@ -674,6 +700,9 @@ fn broadcast(network: &mut Network, message: &ServerMessage) {
     let Ok(text) = serde_json::to_string(message) else {
         return;
     };
+    if let Ok(mut snapshot) = network.debug_snapshot.write() {
+        *snapshot = Some(text.clone());
+    }
     let message = Message::Text(text.into());
     for sender in network.clients.lock().expect("clients lock").values() {
         network.outbound_sequence += 1;

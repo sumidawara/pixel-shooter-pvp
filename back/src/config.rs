@@ -14,6 +14,7 @@ use serde::Deserialize;
 #[serde(default)]
 pub(crate) struct ServerSettings {
     pub(crate) network: NetworkSettings,
+    pub(crate) debug: DebugSettings,
     #[serde(rename = "match")]
     pub(crate) match_rules: MatchRules,
     pub(crate) gameplay: GameplaySettings,
@@ -27,6 +28,13 @@ pub(crate) struct NetworkSettings {
     pub(crate) snapshot_every_ticks: u64,
     pub(crate) simulated_latency_ms: u64,
     pub(crate) simulated_loss_percent: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub(crate) struct DebugSettings {
+    pub(crate) enabled: bool,
+    pub(crate) bind_address: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -125,6 +133,9 @@ impl ServerSettings {
             u64::from(self.network.simulated_loss_percent),
         )
         .min(100) as u32;
+        self.debug.enabled = env_bool("PIXEL_SHOOTER_DEBUG_ENABLED", self.debug.enabled);
+        self.debug.bind_address = std::env::var("PIXEL_SHOOTER_DEBUG_BIND_ADDR")
+            .unwrap_or_else(|_| self.debug.bind_address.clone());
         self.match_rules.reconnect_grace_seconds = env_f32(
             "PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS",
             self.match_rules.reconnect_grace_seconds,
@@ -176,6 +187,15 @@ impl Default for NetworkSettings {
     }
 }
 
+impl Default for DebugSettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            bind_address: "127.0.0.1:9101".into(),
+        }
+    }
+}
+
 impl Default for MatchRules {
     fn default() -> Self {
         Self {
@@ -216,6 +236,17 @@ fn env_u64(name: &str, default: u64) -> u64 {
     std::env::var(name)
         .ok()
         .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
+}
+
+fn env_bool(name: &str, default: bool) -> bool {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| match value.to_ascii_lowercase().as_str() {
+            "1" | "true" | "yes" | "on" => Some(true),
+            "0" | "false" | "no" | "off" => Some(false),
+            _ => None,
+        })
         .unwrap_or(default)
 }
 

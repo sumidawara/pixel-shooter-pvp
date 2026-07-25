@@ -6,6 +6,10 @@
     "simulated_latency_ms": 0,
     "simulated_loss_percent": 0
   },
+  "debug": {
+    "enabled": true,
+    "bind_address": "127.0.0.1:9101"
+  },
   "match": {
     "match_seconds": 120.0,
     "countdown_seconds": 3.0,
