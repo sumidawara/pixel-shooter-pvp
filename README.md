@@ -54,6 +54,19 @@ cargo run -p pixel-shooter-server
 node scripts/network_test.mjs
 ```
 
+切断・再接続・一時停止の試験:
+
+```sh
+node scripts/reconnect_test.mjs
+```
+
+途中離脱の短縮試験では、再接続猶予だけを1秒にできる。
+
+```sh
+PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS=1 cargo run -p pixel-shooter-server
+node scripts/forfeit_test.mjs
+```
+
 ポートを変更した場合:
 
 ```sh

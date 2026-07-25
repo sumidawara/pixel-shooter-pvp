@@ -31,8 +31,13 @@ use tokio::{
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 const TICK_RATE: f64 = 60.0;
-const MATCH_SECONDS: f32 = 60.0;
-const FINISHED_SECONDS: f32 = 5.0;
+const ROUND_SECONDS: f32 = 60.0;
+const COUNTDOWN_SECONDS: f32 = 3.0;
+const OVERTIME_SECONDS: f32 = 30.0;
+const ROUND_INTERVAL_SECONDS: f32 = 3.0;
+const MATCH_FINISHED_SECONDS: f32 = 6.0;
+const RECONNECT_GRACE_SECONDS: f32 = 15.0;
+const ROUNDS_TO_WIN: u32 = 3;
 const MOVE_SPEED: f32 = 150.0;
 const BULLET_SPEED: f32 = 340.0;
 const SHOT_INTERVAL: f32 = 0.24;
@@ -90,11 +95,17 @@ enum NetworkEvent {
 struct MatchState {
     /// サーバーが何回固定更新を実行したか。
     tick: u64,
-    running: bool,
-    time_left: f32,
-    finished_left: f32,
-    winner_id: Option<u64>,
+    phase: MatchPhase,
+    /// 現在のフェーズの残り時間。Runningではラウンド残り時間になる。
+    phase_time_left: f32,
+    /// 切断による一時停止から戻るフェーズ。
+    resume_phase: Option<MatchPhase>,
+    round_number: u32,
+    round_winner_id: Option<u64>,
+    match_winner_id: Option<u64>,
     next_bullet_id: u64,
+    next_player_id: u64,
+    reconnect_grace_seconds: f32,
 }
 
 /// プレイヤーEntityに付けるComponent。
@@ -103,7 +114,13 @@ struct MatchState {
 /// Entityへ必要なComponentを付けてゲームオブジェクトを表現する。
 #[derive(Component)]
 struct Player {
+    /// 試合中変わらないプレイヤーID。WebSocketの接続IDとは別。
     id: u64,
+    /// 現在このプレイヤーを操作しているWebSocket接続。
+    connection_id: Option<u64>,
+    reconnect_token: String,
+    reconnect_grace_left: f32,
+    slot: usize,
     name: String,
     position: Vec2,
     aim: Vec2,
@@ -111,6 +128,7 @@ struct Player {
     shooting: bool,
     hp: i32,
     score: u32,
+    round_wins: u32,
     alive: bool,
     respawn_left: f32,
     shot_cooldown: f32,
@@ -143,6 +161,11 @@ fn main() {
         std::env::var("PIXEL_SHOOTER_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:9001".into());
     let simulated_latency_ms = env_u64("PIXEL_SHOOTER_LATENCY_MS", 0);
     let simulated_loss_percent = env_u64("PIXEL_SHOOTER_PACKET_LOSS_PERCENT", 0).min(100) as u32;
+    let reconnect_grace_seconds = env_f32(
+        "PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS",
+        RECONNECT_GRACE_SECONDS,
+    )
+    .max(0.1);
     let simulated_latency = Duration::from_millis(simulated_latency_ms);
     start_network_thread(
         event_tx,
@@ -179,8 +202,10 @@ fn main() {
             simulated_loss_percent,
             outbound_sequence: 0,
         })
-        // Default実装を使ってMatchState Resourceを作る。
-        .init_resource::<MatchState>()
+        .insert_resource(MatchState {
+            reconnect_grace_seconds,
+            ..default()
+        })
         .add_systems(
             FixedUpdate,
             (
@@ -351,47 +376,109 @@ async fn handle_connection(
 fn process_network(
     mut commands: Commands,
     network: Res<Network>,
+    mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
 ) {
+    // 同じtickに2人がJoinしても、Commandsで予約中のslotと重ならないよう保持する。
+    let mut occupied_slots: Vec<usize> = players.iter().map(|(_, player)| player.slot).collect();
+
     // try_recvは待たずに受信する。通信がなくてもゲームループを止めないため。
     while let Ok(event) = network.events.try_recv() {
         match event {
             NetworkEvent::Connected(id) => println!("client {id} connected"),
-            NetworkEvent::Disconnected(id) => {
-                for (entity, player) in &mut players {
-                    if player.id == id {
-                        commands.entity(entity).despawn();
-                        println!("player {id} disconnected");
+            NetworkEvent::Disconnected(connection_id) => {
+                for (_, mut player) in &mut players {
+                    if player.connection_id == Some(connection_id) {
+                        player.connection_id = None;
+                        player.reconnect_grace_left = state.reconnect_grace_seconds;
+                        player.movement = Vec2::ZERO;
+                        player.shooting = false;
+                        player.reload_requested = false;
+                        player.dash_requested = false;
+                        println!(
+                            "player {} disconnected; waiting {} seconds",
+                            player.id, state.reconnect_grace_seconds
+                        );
                     }
                 }
             }
-            NetworkEvent::Message(id, ClientMessage::Join { name }) => {
+            NetworkEvent::Message(
+                connection_id,
+                ClientMessage::Join {
+                    name,
+                    reconnect_token,
+                },
+            ) => {
                 // 同じ接続からJoinが再送されてもPlayerを重複作成しない。
-                if players.iter().any(|(_, player)| player.id == id) {
+                if players
+                    .iter()
+                    .any(|(_, player)| player.connection_id == Some(connection_id))
+                {
                     continue;
                 }
-                if players.iter().count() >= MAX_PLAYERS {
+
+                // 有効なトークンなら、以前のPlayer Entityへ新しい接続を結び直す。
+                let mut reconnected = None;
+                if let Some(token) = reconnect_token.filter(|token| !token.is_empty()) {
+                    for (_, mut player) in &mut players {
+                        if player.reconnect_token == token && player.connection_id.is_none() {
+                            player.connection_id = Some(connection_id);
+                            player.reconnect_grace_left = 0.0;
+                            player.last_input_sequence = 0;
+                            reconnected = Some((player.id, player.reconnect_token.clone()));
+                            break;
+                        }
+                    }
+                }
+                if let Some((player_id, token)) = reconnected {
                     send_to(
                         &network,
-                        id,
+                        connection_id,
+                        &ServerMessage::Welcome {
+                            player_id,
+                            reconnect_token: token,
+                            reconnected: true,
+                        },
+                    );
+                    println!("player {player_id} reconnected");
+                    continue;
+                }
+
+                if occupied_slots.len() >= MAX_PLAYERS {
+                    send_to(
+                        &network,
+                        connection_id,
                         &ServerMessage::Rejected {
-                            reason: "The arena already has two players.".into(),
+                            reason: "The arena already has two players. Reconnect with your token."
+                                .into(),
                         },
                     );
                     continue;
                 }
-                let index = players.iter().count();
-                let position = spawn_position(index);
+
+                let slot = (0..MAX_PLAYERS)
+                    .find(|slot| !occupied_slots.contains(slot))
+                    .expect("available player slot");
+                occupied_slots.push(slot);
+                state.next_player_id += 1;
+                let player_id = state.next_player_id;
+                let token = generate_reconnect_token();
+                let position = spawn_position(slot);
                 // spawnすると新しいEntityが作られ、Player Componentが付く。
                 commands.spawn(Player {
-                    id,
-                    name: sanitize_name(&name, id),
+                    id: player_id,
+                    connection_id: Some(connection_id),
+                    reconnect_token: token.clone(),
+                    reconnect_grace_left: 0.0,
+                    slot,
+                    name: sanitize_name(&name, player_id),
                     position,
-                    aim: if index == 0 { Vec2::X } else { Vec2::NEG_X },
+                    aim: if slot == 0 { Vec2::X } else { Vec2::NEG_X },
                     movement: Vec2::ZERO,
                     shooting: false,
                     hp: MAX_HP,
                     score: 0,
+                    round_wins: 0,
                     alive: true,
                     respawn_left: 0.0,
                     shot_cooldown: 0.0,
@@ -405,11 +492,19 @@ fn process_network(
                     dash_requested: false,
                     last_input_sequence: 0,
                 });
-                send_to(&network, id, &ServerMessage::Welcome { player_id: id });
-                println!("player {id} joined");
+                send_to(
+                    &network,
+                    connection_id,
+                    &ServerMessage::Welcome {
+                        player_id,
+                        reconnect_token: token,
+                        reconnected: false,
+                    },
+                );
+                println!("player {player_id} joined in slot {slot}");
             }
             NetworkEvent::Message(
-                id,
+                connection_id,
                 ClientMessage::Input {
                     sequence,
                     move_x,
@@ -423,7 +518,9 @@ fn process_network(
             ) => {
                 for (_, mut player) in &mut players {
                     // 古いsequenceの入力を後から適用すると巻き戻るため破棄する。
-                    if player.id != id || sequence <= player.last_input_sequence {
+                    if player.connection_id != Some(connection_id)
+                        || sequence <= player.last_input_sequence
+                    {
                         continue;
                     }
                     player.last_input_sequence = sequence;
@@ -443,62 +540,233 @@ fn process_network(
     }
 }
 
-/// 待機・対戦中・結果表示という試合の進行を管理するSystem。
+/// 待機から3ラウンド先取までの状態遷移を管理するSystem。
 ///
 /// `ResMut<MatchState>` はResourceを変更可能で借りる指定。
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
 fn update_match(
     time: Res<Time<Fixed>>,
     mut state: ResMut<MatchState>,
-    mut players: Query<&mut Player>,
+    mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
     mut commands: Commands,
 ) {
-    // FixedUpdate内のdelta_secsは、設定した60Hzなら基本的に1/60秒。
     let dt = time.delta_secs();
-    let count = players.iter().count();
 
-    // 2人そろい、前試合の結果表示も終わっていれば新しい試合を開始する。
-    if !state.running && state.finished_left <= 0.0 && count == MAX_PLAYERS {
-        state.running = true;
-        state.time_left = MATCH_SECONDS;
-        state.winner_id = None;
-        for mut player in &mut players {
-            player.score = 0;
-            reset_player(&mut player);
+    // 切断中のプレイヤーには猶予時間を与え、Entityと試合状態を保持する。
+    let mut expired = Vec::new();
+    for (entity, mut player) in &mut players {
+        if player.connection_id.is_none() {
+            player.reconnect_grace_left = (player.reconnect_grace_left - dt).max(0.0);
+            if player.reconnect_grace_left <= 0.0 {
+                expired.push((entity, player.id));
+            }
         }
-        println!("match started");
     }
 
-    if state.running {
-        state.time_left = (state.time_left - dt).max(0.0);
-        if state.time_left <= 0.0 {
-            state.running = false;
-            state.finished_left = FINISHED_SECONDS;
-            // max_by_keyはタプルを左から比較するため、まずscore、同点ならHPで決める。
-            state.winner_id = players
-                .iter()
-                .max_by_key(|player| (player.score, player.hp.max(0) as u32))
-                .map(|player| player.id);
-            for entity in &bullets {
-                // Commandsによるdespawnは即時ではなく、System実行後にまとめて反映される。
-                commands.entity(entity).despawn();
-            }
-            println!("match finished; winner: {:?}", state.winner_id);
+    if !expired.is_empty() {
+        let connected_winner = players
+            .iter()
+            .find(|(_, player)| player.connection_id.is_some())
+            .map(|(_, player)| player.id);
+        let match_was_active = state.phase == MatchPhase::Paused
+            || matches!(
+                state.phase,
+                MatchPhase::Countdown
+                    | MatchPhase::Running
+                    | MatchPhase::Overtime
+                    | MatchPhase::RoundEnd
+            );
+        for (entity, player_id) in expired {
+            commands.entity(entity).despawn();
+            println!("player {player_id} reconnect grace expired");
         }
-    } else if state.finished_left > 0.0 {
-        state.finished_left = (state.finished_left - dt).max(0.0);
-    } else if count < MAX_PLAYERS {
-        state.time_left = MATCH_SECONDS;
-        state.winner_id = None;
+        if match_was_active {
+            state.phase = MatchPhase::MatchFinished;
+            state.phase_time_left = MATCH_FINISHED_SECONDS;
+            state.match_winner_id = connected_winner;
+            state.round_winner_id = None;
+            state.resume_phase = None;
+            despawn_all_bullets(&mut commands, &bullets);
+            println!("match ended by forfeit; winner: {connected_winner:?}");
+        }
+        state.tick += 1;
+        return;
+    }
+
+    let connected_count = players
+        .iter()
+        .filter(|(_, player)| player.connection_id.is_some())
+        .count();
+    let has_disconnected_player = players
+        .iter()
+        .any(|(_, player)| player.connection_id.is_none());
+
+    // 対戦中の切断はタイマーとゲーム計算を止める。復帰後は同じフェーズへ戻る。
+    if has_disconnected_player
+        && !matches!(
+            state.phase,
+            MatchPhase::Waiting | MatchPhase::MatchFinished | MatchPhase::Paused
+        )
+    {
+        state.resume_phase = Some(state.phase);
+        state.phase = MatchPhase::Paused;
+        for (_, mut player) in &mut players {
+            player.movement = Vec2::ZERO;
+            player.shooting = false;
+        }
+    } else if !has_disconnected_player && state.phase == MatchPhase::Paused {
+        state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Countdown);
+        println!("match resumed after reconnect");
+    }
+
+    match state.phase {
+        MatchPhase::Waiting => {
+            if connected_count == MAX_PLAYERS {
+                start_new_match(&mut state, &mut players);
+                despawn_all_bullets(&mut commands, &bullets);
+            }
+        }
+        MatchPhase::Countdown => {
+            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
+            if state.phase_time_left <= 0.0 {
+                state.phase = MatchPhase::Running;
+                state.phase_time_left = ROUND_SECONDS;
+                println!("round {} started", state.round_number);
+            }
+        }
+        MatchPhase::Running => {
+            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
+            if state.phase_time_left <= 0.0 {
+                let mut standings: Vec<(u64, u32)> = players
+                    .iter()
+                    .map(|(_, player)| (player.id, player.score))
+                    .collect();
+                standings.sort_by_key(|(_, score)| *score);
+                if standings.len() == 2 && standings[0].1 == standings[1].1 {
+                    state.phase = MatchPhase::Overtime;
+                    state.phase_time_left = OVERTIME_SECONDS;
+                    println!("round {} entered overtime", state.round_number);
+                } else if let Some((winner_id, _)) = standings.last() {
+                    award_round(&mut state, &mut players, *winner_id);
+                    despawn_all_bullets(&mut commands, &bullets);
+                }
+            }
+        }
+        MatchPhase::Overtime => {
+            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
+            if state.phase_time_left <= 0.0 {
+                let mut standings: Vec<(u64, i32)> = players
+                    .iter()
+                    .map(|(_, player)| (player.id, player.hp))
+                    .collect();
+                standings.sort_by_key(|(_, hp)| *hp);
+                if standings.len() == 2 && standings[0].1 == standings[1].1 {
+                    // HPまで同じなら10秒ずつサドンデスを継続する。
+                    state.phase_time_left = 10.0;
+                } else if let Some((winner_id, _)) = standings.last() {
+                    award_round(&mut state, &mut players, *winner_id);
+                    despawn_all_bullets(&mut commands, &bullets);
+                }
+            }
+        }
+        MatchPhase::RoundEnd => {
+            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
+            if state.phase_time_left <= 0.0 {
+                state.round_number += 1;
+                prepare_round(&mut players);
+                state.round_winner_id = None;
+                state.phase = MatchPhase::Countdown;
+                state.phase_time_left = COUNTDOWN_SECONDS;
+                despawn_all_bullets(&mut commands, &bullets);
+            }
+        }
+        MatchPhase::MatchFinished => {
+            state.phase_time_left = (state.phase_time_left - dt).max(0.0);
+            if state.phase_time_left <= 0.0 {
+                state.match_winner_id = None;
+                state.round_winner_id = None;
+                state.round_number = 0;
+                for (_, mut player) in &mut players {
+                    player.round_wins = 0;
+                    player.score = 0;
+                    reset_player(&mut player);
+                }
+                if connected_count == MAX_PLAYERS {
+                    start_new_match(&mut state, &mut players);
+                } else {
+                    state.phase = MatchPhase::Waiting;
+                    state.phase_time_left = 0.0;
+                }
+            }
+        }
+        MatchPhase::Paused => {}
     }
 
     state.tick += 1;
 }
 
+fn start_new_match(state: &mut MatchState, players: &mut Query<(Entity, &mut Player)>) {
+    state.round_number = 1;
+    state.round_winner_id = None;
+    state.match_winner_id = None;
+    state.resume_phase = None;
+    state.phase = MatchPhase::Countdown;
+    state.phase_time_left = COUNTDOWN_SECONDS;
+    for (_, mut player) in players.iter_mut() {
+        player.round_wins = 0;
+        player.score = 0;
+        reset_player(&mut player);
+    }
+    println!("new best-of-five match started");
+}
+
+fn prepare_round(players: &mut Query<(Entity, &mut Player)>) {
+    for (_, mut player) in players.iter_mut() {
+        player.score = 0;
+        reset_player(&mut player);
+    }
+}
+
+fn award_round(state: &mut MatchState, players: &mut Query<(Entity, &mut Player)>, winner_id: u64) {
+    let mut match_won = false;
+    for (_, mut player) in players.iter_mut() {
+        if player.id == winner_id {
+            player.round_wins += 1;
+            match_won = player.round_wins >= ROUNDS_TO_WIN;
+            break;
+        }
+    }
+    set_round_result(state, winner_id, match_won);
+}
+
+fn set_round_result(state: &mut MatchState, winner_id: u64, match_won: bool) {
+    state.round_winner_id = Some(winner_id);
+    if match_won {
+        state.phase = MatchPhase::MatchFinished;
+        state.phase_time_left = MATCH_FINISHED_SECONDS;
+        state.match_winner_id = Some(winner_id);
+        println!("player {winner_id} won the match");
+    } else {
+        state.phase = MatchPhase::RoundEnd;
+        state.phase_time_left = ROUND_INTERVAL_SECONDS;
+        println!("player {winner_id} won round {}", state.round_number);
+    }
+}
+
+fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bullet>>) {
+    for entity in bullets {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn is_playing_phase(phase: MatchPhase) -> bool {
+    matches!(phase, MatchPhase::Running | MatchPhase::Overtime)
+}
+
 /// クライアントから受け取った移動入力でプレイヤーを動かすSystem。
 fn move_players(time: Res<Time<Fixed>>, state: Res<MatchState>, mut players: Query<&mut Player>) {
-    if !state.running {
+    if !is_playing_phase(state.phase) {
         return;
     }
     let dt = time.delta_secs();
@@ -559,7 +827,7 @@ fn fire_bullets(
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
 ) {
-    if !state.running {
+    if !is_playing_phase(state.phase) {
         return;
     }
     for mut player in &mut players {
@@ -603,11 +871,11 @@ fn fire_bullets(
 fn move_and_hit_bullets(
     mut commands: Commands,
     time: Res<Time<Fixed>>,
-    state: Res<MatchState>,
+    mut state: ResMut<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
     mut players: Query<&mut Player>,
 ) {
-    if !state.running {
+    if !is_playing_phase(state.phase) {
         return;
     }
     let dt = time.delta_secs();
@@ -652,10 +920,20 @@ fn move_and_hit_bullets(
             commands.entity(entity).despawn();
             if killed {
                 // 撃破した弾のowner_idと一致するプレイヤーへ1点追加する。
+                let overtime_kill = state.phase == MatchPhase::Overtime;
+                let mut match_won = false;
                 for mut player in &mut players {
                     if player.id == owner_id {
                         player.score += 1;
+                        if overtime_kill {
+                            player.round_wins += 1;
+                            match_won = player.round_wins >= ROUNDS_TO_WIN;
+                        }
+                        break;
                     }
+                }
+                if overtime_kill {
+                    set_round_result(&mut state, owner_id, match_won);
                 }
             }
         }
@@ -667,30 +945,24 @@ fn update_respawns(
     time: Res<Time<Fixed>>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
+    bullets: Query<&Bullet>,
 ) {
-    if !state.running {
+    if !is_playing_phase(state.phase) {
         return;
     }
     let dt = time.delta_secs();
     // 下のループではPlayerを変更可能で借りるため、先に全員の位置だけコピーしておく。
     let positions: Vec<(u64, Vec2)> = players.iter().map(|p| (p.id, p.position)).collect();
+    let bullet_positions: Vec<Vec2> = bullets.iter().map(|bullet| bullet.position).collect();
     for mut player in &mut players {
         if player.alive {
             continue;
         }
         player.respawn_left = (player.respawn_left - dt).max(0.0);
         if player.respawn_left <= 0.0 {
-            // 相手が左側なら右、右側なら左に復活させ、即座の再撃破を起こしにくくする。
-            let opponent = positions
-                .iter()
-                .find(|(id, _)| *id != player.id)
-                .map(|(_, position)| *position)
-                .unwrap_or(Vec2::splat(ARENA_WIDTH * 0.5));
-            player.position = if opponent.x < ARENA_WIDTH * 0.5 {
-                spawn_position(1)
-            } else {
-                spawn_position(0)
-            };
+            // 複数候補から相手と弾に最も近づきにくい地点を選ぶ。
+            player.position =
+                choose_respawn_position(player.id, &positions, &bullet_positions, state.tick);
             player.hp = MAX_HP;
             player.alive = true;
             player.shot_cooldown = 0.3;
@@ -713,21 +985,24 @@ fn broadcast_snapshot(
     if !state.tick.is_multiple_of(3) {
         return;
     }
-    let phase = if state.running {
-        MatchPhase::Running
-    } else if state.finished_left > 0.0 {
-        MatchPhase::Finished
-    } else {
-        MatchPhase::Waiting
-    };
+    let reconnect_grace_left = players
+        .iter()
+        .filter(|player| player.connection_id.is_none())
+        .map(|player| player.reconnect_grace_left)
+        .reduce(f32::min)
+        .unwrap_or(0.0);
 
     // Bevy内部のComponentを、通信専用のSnapshot型へ詰め替える。
     // 内部データを直接シリアライズしないことで、通信仕様とゲーム実装を分離できる。
     let snapshot = ServerMessage::Snapshot(Snapshot {
         tick: state.tick,
-        phase,
-        time_left: state.time_left,
-        winner_id: state.winner_id,
+        phase: state.phase,
+        time_left: state.phase_time_left,
+        round_number: state.round_number,
+        rounds_to_win: ROUNDS_TO_WIN,
+        round_winner_id: state.round_winner_id,
+        winner_id: state.match_winner_id,
+        reconnect_grace_left,
         players: players
             .iter()
             .map(|player| PlayerSnapshot {
@@ -738,6 +1013,9 @@ fn broadcast_snapshot(
                 hp: player.hp.max(0),
                 max_hp: MAX_HP,
                 score: player.score,
+                round_wins: player.round_wins,
+                connected: player.connection_id.is_some(),
+                reconnect_grace_left: player.reconnect_grace_left,
                 alive: player.alive,
                 respawn_left: player.respawn_left,
                 invulnerable_left: player.invulnerable_left,
@@ -751,22 +1029,26 @@ fn broadcast_snapshot(
                 last_input_sequence: player.last_input_sequence,
             })
             .collect(),
-        bullets: bullets
-            .iter()
-            .map(|bullet| BulletSnapshot {
-                id: bullet.id,
-                owner_id: bullet.owner_id,
-                position: net_vec(bullet.position),
-                velocity: net_vec(bullet.velocity),
-            })
-            .collect(),
+        bullets: if is_playing_phase(state.phase) {
+            bullets
+                .iter()
+                .map(|bullet| BulletSnapshot {
+                    id: bullet.id,
+                    owner_id: bullet.owner_id,
+                    position: net_vec(bullet.position),
+                    velocity: net_vec(bullet.velocity),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
     });
     broadcast(&mut network, &snapshot);
 }
 
 /// 新しい試合の開始時にプレイヤー状態を初期化する。
 fn reset_player(player: &mut Player) {
-    player.position = spawn_position(if player.id % 2 == 1 { 0 } else { 1 });
+    player.position = spawn_position(player.slot);
     player.hp = MAX_HP;
     player.alive = true;
     player.respawn_left = 0.0;
@@ -787,6 +1069,72 @@ fn spawn_position(index: usize) -> Vec2 {
     } else {
         Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT * 0.5)
     }
+}
+
+/// 相手との距離を主に、近くの弾と小さな揺らぎも考慮して復活地点を選ぶ。
+fn choose_respawn_position(
+    player_id: u64,
+    player_positions: &[(u64, Vec2)],
+    bullet_positions: &[Vec2],
+    tick: u64,
+) -> Vec2 {
+    let candidates = [
+        Vec2::new(64.0, 60.0),
+        Vec2::new(64.0, ARENA_HEIGHT - 60.0),
+        Vec2::new(ARENA_WIDTH - 64.0, 60.0),
+        Vec2::new(ARENA_WIDTH - 64.0, ARENA_HEIGHT - 60.0),
+        Vec2::new(92.0, ARENA_HEIGHT * 0.5),
+        Vec2::new(ARENA_WIDTH - 92.0, ARENA_HEIGHT * 0.5),
+    ];
+
+    candidates
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| valid_position(**candidate))
+        .max_by(|(left_index, left), (right_index, right)| {
+            let left_score = respawn_safety_score(
+                player_id,
+                **left,
+                *left_index,
+                player_positions,
+                bullet_positions,
+                tick,
+            );
+            let right_score = respawn_safety_score(
+                player_id,
+                **right,
+                *right_index,
+                player_positions,
+                bullet_positions,
+                tick,
+            );
+            left_score.total_cmp(&right_score)
+        })
+        .map(|(_, position)| *position)
+        .unwrap_or_else(|| spawn_position((player_id as usize) % MAX_PLAYERS))
+}
+
+fn respawn_safety_score(
+    player_id: u64,
+    candidate: Vec2,
+    candidate_index: usize,
+    player_positions: &[(u64, Vec2)],
+    bullet_positions: &[Vec2],
+    tick: u64,
+) -> f32 {
+    let opponent_distance = player_positions
+        .iter()
+        .filter(|(id, _)| *id != player_id)
+        .map(|(_, position)| candidate.distance(*position))
+        .fold(ARENA_WIDTH, f32::min);
+    let bullet_distance = bullet_positions
+        .iter()
+        .map(|position| candidate.distance(*position))
+        .fold(ARENA_WIDTH, f32::min);
+
+    // 毎回完全に同じ地点にならないよう、距離評価を壊さない範囲で決定的な揺らぎを加える。
+    let variation = ((tick + player_id * 31 + candidate_index as u64 * 17) % 11) as f32;
+    opponent_distance + bullet_distance * 0.25 + variation
 }
 
 /// X・Y軸を分けて、衝突しない分だけ位置を更新する。
@@ -847,6 +1195,11 @@ fn sanitize_name(name: &str, id: u64) -> String {
     }
 }
 
+/// 再接続時にPlayer Entityを安全に特定するためのランダムトークンを作る。
+fn generate_reconnect_token() -> String {
+    format!("{:032x}", rand::random::<u128>())
+}
+
 /// Bevyで使うVec2を、protocol crateの通信用Vec2へ変換する。
 fn net_vec(value: Vec2) -> NetVec2 {
     NetVec2 {
@@ -857,6 +1210,13 @@ fn net_vec(value: Vec2) -> NetVec2 {
 
 /// 環境変数をu64として読み、未設定・不正値ならdefaultを返す。
 fn env_u64(name: &str, default: u64) -> u64 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
+}
+
+fn env_f32(name: &str, default: f32) -> f32 {
     std::env::var(name)
         .ok()
         .and_then(|value| value.parse().ok())
@@ -924,5 +1284,23 @@ mod tests {
         let mut position = Vec2::new(235.0, 99.0);
         move_with_collision(&mut position, Vec2::new(10.0, 0.0));
         assert_eq!(position, Vec2::new(235.0, 99.0));
+    }
+
+    #[test]
+    fn respawn_prefers_the_side_away_from_opponent() {
+        let position = choose_respawn_position(1, &[(2, Vec2::new(60.0, 180.0))], &[], 100);
+        assert!(position.x > ARENA_WIDTH * 0.5);
+    }
+
+    #[test]
+    fn round_result_moves_to_interval_or_match_result() {
+        let mut state = MatchState::default();
+        set_round_result(&mut state, 7, false);
+        assert_eq!(state.phase, MatchPhase::RoundEnd);
+        assert_eq!(state.round_winner_id, Some(7));
+
+        set_round_result(&mut state, 7, true);
+        assert_eq!(state.phase, MatchPhase::MatchFinished);
+        assert_eq!(state.match_winner_id, Some(7));
     }
 }

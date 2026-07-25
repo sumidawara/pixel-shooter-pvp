@@ -16,6 +16,8 @@ pub struct Vec2 {
 pub enum ClientMessage {
     Join {
         name: String,
+        #[serde(default)]
+        reconnect_token: Option<String>,
     },
     Input {
         sequence: u32,
@@ -32,8 +34,14 @@ pub enum ClientMessage {
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
-    Welcome { player_id: u64 },
-    Rejected { reason: String },
+    Welcome {
+        player_id: u64,
+        reconnect_token: String,
+        reconnected: bool,
+    },
+    Rejected {
+        reason: String,
+    },
     Snapshot(Snapshot),
 }
 
@@ -42,17 +50,26 @@ pub struct Snapshot {
     pub tick: u64,
     pub phase: MatchPhase,
     pub time_left: f32,
+    pub round_number: u32,
+    pub rounds_to_win: u32,
+    pub round_winner_id: Option<u64>,
     pub winner_id: Option<u64>,
+    pub reconnect_grace_left: f32,
     pub players: Vec<PlayerSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MatchPhase {
+    #[default]
     Waiting,
+    Countdown,
     Running,
-    Finished,
+    Overtime,
+    RoundEnd,
+    Paused,
+    MatchFinished,
 }
 
 #[derive(Debug, Serialize)]
@@ -64,6 +81,9 @@ pub struct PlayerSnapshot {
     pub hp: i32,
     pub max_hp: i32,
     pub score: u32,
+    pub round_wins: u32,
+    pub connected: bool,
+    pub reconnect_grace_left: f32,
     pub alive: bool,
     pub respawn_left: f32,
     pub invulnerable_left: f32,

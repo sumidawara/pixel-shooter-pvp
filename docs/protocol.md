@@ -8,8 +8,15 @@
 接続直後:
 
 ```json
-{"type":"join","name":"Player"}
+{
+  "type":"join",
+  "name":"Player",
+  "reconnect_token":""
+}
 ```
+
+初回接続の`reconnect_token`は空文字列にする。`welcome`で受け取ったトークンを
+保持し、WebSocket切断後のJoinで再送すると同じPlayer Entityへ復帰できる。
 
 入力（毎フレーム）:
 
@@ -32,7 +39,7 @@
 
 ## サーバーからクライアント
 
-- `welcome`: プレイヤーIDを割り当てる
+- `welcome`: プレイヤーID、再接続トークン、再接続だったかを返す
 - `rejected`: 定員超過などで参加を拒否する
 - `snapshot`: 20Hzでプレイヤー、弾、試合状態を配信する
 
@@ -42,5 +49,15 @@
 
 弾のスナップショットには`position`と`velocity`が含まれる。Godotは20Hzの
 受信間隔を`velocity`で外挿し、描画フレームごとに弾を滑らかに移動させる。
+
+試合フェーズ:
+
+- `waiting`: 2人の参加待ち
+- `countdown`: ラウンド開始カウントダウン
+- `running`: 通常ラウンド
+- `overtime`: 延長戦
+- `round_end`: ラウンド間インターバル
+- `paused`: 切断者の再接続待ち
+- `match_finished`: 3ラウンド先取後または途中離脱後の試合結果
 
 Rust側の正式な型定義は `protocol/src/lib.rs` を参照すること。

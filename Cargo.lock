@@ -2192,6 +2192,7 @@ dependencies = [
  "crossbeam-channel",
  "futures-util",
  "pixel-shooter-protocol",
+ "rand",
  "serde_json",
  "tokio",
  "tokio-tungstenite",

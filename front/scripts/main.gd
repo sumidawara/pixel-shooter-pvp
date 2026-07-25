@@ -23,10 +23,15 @@ var bullets: Array = []
 var phase := "waiting"
 var time_left := 60.0
 var winner_id = null
+var round_winner_id = null
+var round_number := 0
+var rounds_to_win := 3
+var reconnect_grace_left := 0.0
 var status := "CONNECTING..."
 var reconnect_left := 0.0
 var has_joined := false
 var server_url := DEFAULT_SERVER_URL
+var reconnect_token := ""
 
 # 自分の入力をサーバーの返答より先に画面へ反映するための状態。
 var predicted_position := Vector2.ZERO
@@ -67,7 +72,11 @@ func _process(delta: float) -> void:
 		if not has_joined:
 			has_joined = true
 			status = "CONNECTED"
-			_send({"type": "join", "name": "Player"})
+			_send({
+				"type": "join",
+				"name": "Player",
+				"reconnect_token": reconnect_token,
+			})
 		while socket.get_available_packet_count() > 0:
 			_receive(socket.get_packet().get_string_from_utf8())
 	elif state == WebSocketPeer.STATE_CLOSED:
@@ -119,8 +128,11 @@ func _physics_process(delta: float) -> void:
 		"movement": movement,
 		"dash_pressed": dash_pressed,
 	}
-	pending_inputs.append(input_record)
-	_simulate_predicted_input(input_record)
+	if _is_playing_phase():
+		pending_inputs.append(input_record)
+		_simulate_predicted_input(input_record)
+	else:
+		pending_inputs.clear()
 
 	_send({
 		"type": "input",
@@ -147,6 +159,8 @@ func _receive(text: String) -> void:
 	match message.get("type", ""):
 		"welcome":
 			player_id = int(message.get("player_id", 0))
+			reconnect_token = str(message.get("reconnect_token", ""))
+			status = "RECONNECTED" if bool(message.get("reconnected", false)) else "CONNECTED"
 		"rejected":
 			status = str(message.get("reason", "Connection rejected"))
 		"snapshot":
@@ -154,7 +168,11 @@ func _receive(text: String) -> void:
 			bullets = message.get("bullets", [])
 			phase = message.get("phase", "waiting")
 			time_left = float(message.get("time_left", 0.0))
+			round_number = int(message.get("round_number", 0))
+			rounds_to_win = int(message.get("rounds_to_win", 3))
+			round_winner_id = message.get("round_winner_id")
 			winner_id = message.get("winner_id")
+			reconnect_grace_left = float(message.get("reconnect_grace_left", 0.0))
 			_update_positions_from_snapshot()
 			_update_bullets_from_snapshot()
 
@@ -293,6 +311,16 @@ func _draw_player(player: Dictionary) -> void:
 	var id := int(player.get("id", 0))
 	var position := _render_position(player)
 	var color := _player_color(id)
+	if not bool(player.get("connected", true)):
+		draw_string(
+			ThemeDB.fallback_font,
+			position + Vector2(-38, -20),
+			"DISCONNECTED",
+			HORIZONTAL_ALIGNMENT_CENTER,
+			76,
+			10,
+			color
+		)
 	var alive := bool(player.get("alive", false))
 	if not alive:
 		var respawn := float(player.get("respawn_left", 0.0))
@@ -331,10 +359,17 @@ func _draw_hud() -> void:
 		var color := _player_color(int(player.get("id", 0)))
 		var hp := int(player.get("hp", 0))
 		var score := int(player.get("score", 0))
+		var round_wins := int(player.get("round_wins", 0))
 		var ammo := int(player.get("ammo", 0))
 		var max_ammo := int(player.get("max_ammo", 6))
 		var reloading := bool(player.get("reloading", false))
-		var label := "%s K:%d  %d/%d" % [str(player.get("name", "P")), score, ammo, max_ammo]
+		var label := "%s R:%d K:%d %d/%d" % [
+			str(player.get("name", "P")),
+			round_wins,
+			score,
+			ammo,
+			max_ammo
+		]
 		if reloading:
 			label = "%s  R:%.1f" % [label, float(player.get("reload_left", 0.0))]
 		draw_string(ThemeDB.fallback_font, Vector2(x, 374), label, HORIZONTAL_ALIGNMENT_LEFT, 190, 11, color)
@@ -348,10 +383,18 @@ func _draw_hud() -> void:
 	var center_text := "%02d" % int(ceil(time_left))
 	if phase == "waiting":
 		center_text = "WAITING FOR 2 PLAYERS"
-	elif phase == "finished":
+	elif phase == "countdown":
+		center_text = "ROUND %d  %d" % [round_number, int(ceil(time_left))]
+	elif phase == "overtime":
+		center_text = "OVERTIME  %02d" % int(ceil(time_left))
+	elif phase == "round_end":
+		center_text = "PLAYER %d TAKES ROUND" % int(round_winner_id)
+	elif phase == "paused":
+		center_text = "RECONNECTING... %.1f" % reconnect_grace_left
+	elif phase == "match_finished":
 		center_text = "DRAW"
 		if winner_id != null:
-			center_text = "PLAYER %d WINS" % int(winner_id)
+			center_text = "PLAYER %d WINS MATCH" % int(winner_id)
 	draw_string(ThemeDB.fallback_font, Vector2(220, 385), center_text, HORIZONTAL_ALIGNMENT_CENTER, 200, 18, Color.WHITE)
 	draw_string(ThemeDB.fallback_font, Vector2(8, 18), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#758195"))
 	draw_string(ThemeDB.fallback_font, Vector2(425, 18), "WASD / LMB / R / SPACE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#758195"))
@@ -367,3 +410,7 @@ func _player_color(id: int) -> Color:
 
 func _to_vector(value: Dictionary) -> Vector2:
 	return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+
+
+func _is_playing_phase() -> bool:
+	return phase == "running" or phase == "overtime"

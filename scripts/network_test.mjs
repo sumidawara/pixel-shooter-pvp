@@ -4,7 +4,7 @@
 //   cargo run -p pixel-shooter-server
 // node scripts/network_test.mjs
 
-const TEST_SECONDS = 4;
+const TEST_SECONDS = 8;
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
 const clients = [];
 let finished = false;
@@ -26,6 +26,7 @@ for (let index = 0; index < 2; index += 1) {
     sawDashCooldown: false,
     sawInvulnerability: false,
     sawBulletVelocity: false,
+    sawCountdown: false,
   };
   clients.push(client);
 
@@ -51,6 +52,7 @@ for (let index = 0; index < 2; index += 1) {
     }
     client.lastSnapshotAt = now;
     client.snapshots += 1;
+    if (message.phase === "countdown") client.sawCountdown = true;
     if (message.phase === "running") client.runningSnapshots += 1;
     const me = message.players.find((player) => player.id === client.id);
     client.sawStageTwoFields ||= Boolean(
@@ -112,6 +114,7 @@ setTimeout(() => {
       dash: client.sawDashCooldown,
       invulnerability: client.sawInvulnerability,
       bulletVelocity: client.sawBulletVelocity,
+      countdown: client.sawCountdown,
     };
     console.log(JSON.stringify(result));
     if (
@@ -122,7 +125,8 @@ setTimeout(() => {
       !client.sawReload ||
       !client.sawDashCooldown ||
       !client.sawInvulnerability ||
-      !client.sawBulletVelocity
+      !client.sawBulletVelocity ||
+      !client.sawCountdown
     ) {
       failed = true;
     }
