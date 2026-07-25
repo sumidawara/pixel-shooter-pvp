@@ -10,7 +10,13 @@ mkdir -p "${distribution_dir}/server"
 
 echo "[1/3] Building the Bevy server"
 cargo build --release --manifest-path "${project_root}/Cargo.toml" -p pixel-shooter-server
-cp "${project_root}/target/release/pixel-shooter-server" "${distribution_dir}/server/"
+server_source="${project_root}/target/release/pixel-shooter-server"
+server_name="pixel-shooter-server"
+if [[ -f "${server_source}.exe" ]]; then
+  server_source="${server_source}.exe"
+  server_name="pixel-shooter-server.exe"
+fi
+cp "${server_source}" "${distribution_dir}/server/${server_name}"
 cp "${project_root}/server.json" "${distribution_dir}/server/"
 
 if [[ "${target_name}" == "server" ]]; then
@@ -52,6 +58,11 @@ if [[ "${target_name}" == "pck" ]]; then
   "${godot_binary}" --headless --path "${project_root}/front" --export-pack "${preset}" "${output}"
 else
   "${godot_binary}" --headless --path "${project_root}/front" --export-release "${preset}" "${output}"
+fi
+
+if [[ "${target_name}" == "macos" ]]; then
+  cp "${server_source}" "${output}/Contents/MacOS/pixel-shooter-server"
+  cp "${project_root}/server.json" "${output}/Contents/Resources/server.json"
 fi
 
 echo "[3/3] Release output"
