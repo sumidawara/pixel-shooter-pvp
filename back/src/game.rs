@@ -26,6 +26,25 @@ pub(crate) fn update_match(
 ) {
     let dt = time.delta_secs();
 
+    // ロビーまたは結果画面で最後の人間が退出した場合、CPUだけのルームを残さない。
+    // CPUは接続を持たないため、この状態を放置するとホスト不在のまま開始不能になる。
+    let has_player = players.iter().next().is_some();
+    let has_human_player = players.iter().any(|(_, player)| !player.is_cpu);
+    if has_player
+        && !has_human_player
+        && matches!(state.phase, MatchPhase::Waiting | MatchPhase::MatchFinished)
+    {
+        for (entity, _) in &players {
+            commands.entity(entity).despawn();
+        }
+        despawn_all_bullets(&mut commands, &bullets);
+        despawn_all_items(&mut commands, &items);
+        reset_empty_room(&mut state);
+        state.tick += 1;
+        println!("room reset because no human players remain");
+        return;
+    }
+
     // 切断中のプレイヤーには猶予時間を与え、Entityと試合状態を保持する。
     let mut expired = Vec::new();
     for (entity, mut player) in &mut players {
@@ -39,6 +58,28 @@ pub(crate) fn update_match(
 
     if !expired.is_empty() {
         let expired_ids: Vec<u64> = expired.iter().map(|(_, id)| *id).collect();
+        let remaining_human_count = players
+            .iter()
+            .filter(|(_, player)| !player.is_cpu && !expired_ids.contains(&player.id))
+            .count();
+
+        // 人間+CPUの対戦で最後の人間の再接続猶予が切れた場合は、
+        // CPUを勝者として結果画面に残さず、ルーム全体を空へ戻す。
+        if remaining_human_count == 0 {
+            for (entity, player) in &players {
+                commands.entity(entity).despawn();
+                if expired_ids.contains(&player.id) {
+                    println!("player {} reconnect grace expired", player.id);
+                }
+            }
+            despawn_all_bullets(&mut commands, &bullets);
+            despawn_all_items(&mut commands, &items);
+            reset_empty_room(&mut state);
+            state.tick += 1;
+            println!("room reset because no human players remain");
+            return;
+        }
+
         let remaining_ids: Vec<u64> = players
             .iter()
             .filter(|(_, player)| {
@@ -186,6 +227,17 @@ fn finish_match(state: &mut MatchState, winner_id: Option<u64>, settings: &Serve
     state.match_winner_id = winner_id;
     state.resume_phase = None;
     println!("match finished; winner: {winner_id:?}");
+}
+
+/// 人間がいなくなったルームを、次の参加者がホストになれる空状態へ戻す。
+fn reset_empty_room(state: &mut MatchState) {
+    state.phase = MatchPhase::Waiting;
+    state.phase_time_left = 0.0;
+    state.resume_phase = None;
+    state.match_winner_id = None;
+    state.item_spawn_left = 0.0;
+    state.host_player_id = None;
+    state.start_requested = false;
 }
 
 fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bullet>>) {
@@ -614,5 +666,29 @@ mod tests {
         assert_eq!(add_points(0, rules.kill_points), 100);
         assert_eq!(subtract_points(0, rules.death_penalty), -25);
         assert_eq!(add_points(-25, rules.item_points), -5);
+    }
+
+    #[test]
+    fn empty_room_reset_removes_host_and_pending_match_state() {
+        let mut state = MatchState {
+            phase: MatchPhase::MatchFinished,
+            phase_time_left: 4.0,
+            resume_phase: Some(MatchPhase::Running),
+            match_winner_id: Some(2),
+            item_spawn_left: 1.0,
+            host_player_id: Some(1),
+            start_requested: true,
+            ..default()
+        };
+
+        reset_empty_room(&mut state);
+
+        assert_eq!(state.phase, MatchPhase::Waiting);
+        assert_eq!(state.phase_time_left, 0.0);
+        assert_eq!(state.resume_phase, None);
+        assert_eq!(state.match_winner_id, None);
+        assert_eq!(state.item_spawn_left, 0.0);
+        assert_eq!(state.host_player_id, None);
+        assert!(!state.start_requested);
     }
 }

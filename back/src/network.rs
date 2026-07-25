@@ -683,11 +683,13 @@ pub(crate) fn broadcast_snapshot(
         room: RoomSnapshot {
             host_player_id: state.host_player_id,
             can_start: state.phase == MatchPhase::Waiting
-                && players
-                    .iter()
-                    .filter(|player| player.is_cpu || player.connection_id.is_some())
-                    .count()
-                    >= 1,
+                && state.host_player_id.is_some_and(|host_player_id| {
+                    players.iter().any(|player| {
+                        !player.is_cpu
+                            && player.id == host_player_id
+                            && player.connection_id.is_some()
+                    })
+                }),
             max_players: MAX_PLAYERS,
             settings: state.room_settings,
         },

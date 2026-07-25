@@ -98,6 +98,7 @@ node scripts/reconnect_test.mjs
 ```sh
 PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS=1 cargo run -p pixel-shooter-server
 node scripts/forfeit_test.mjs
+node scripts/cpu_orphan_test.mjs
 ```
 
 ポートを変更した場合:
