@@ -28,6 +28,17 @@ Godotエディターでは`target/debug/pixel-shooter-server`を自動検出す�
 ターミナルでサーバーを先に起動した場合は`CREATE ROOM`ではなく`JOIN ROOM`を使う。
 同じポートで`CREATE ROOM`を選ぶと、ポート使用中のエラーを表示する。
 
+サーバー起動後、読み取り専用のデバッグ画面を
+`http://127.0.0.1:9101/debug/`で確認できる。現在のマップ、プレイヤー状態、
+ルーム設定、入力ACK、Snapshot JSONを200ms間隔で表示する。Svelte画面を変更した
+場合は、Rustをビルドする前に次を実行して埋め込み用ファイルを更新する。
+
+```sh
+cd tools/debug-web
+npm ci
+npm run build
+```
+
 操作:
 
 - WASD: 移動
@@ -45,6 +56,11 @@ Godotエディターでは`target/debug/pixel-shooter-server`を自動検出す�
 ゲームルールとネットワーク設定は [`server.json`](server.json) で変更できる。
 設定ファイルの全項目と環境変数による上書きは
 [`docs/server-settings.md`](docs/server-settings.md) を参照。
+
+デバッグ画面は`server.json`の`debug.enabled`で無効化できる。待受先は
+`PIXEL_SHOOTER_DEBUG_BIND_ADDR`、有効・無効は
+`PIXEL_SHOOTER_DEBUG_ENABLED`でも上書きできる。外部公開を前提とした認証機能は
+ないため、通常は`127.0.0.1`のまま使用する。
 
 ## 遅延・パケット欠落試験
 
