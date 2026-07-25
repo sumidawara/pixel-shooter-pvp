@@ -1,5 +1,5 @@
 /target/
+/dist/
 front/.godot/
 front/*.import
 .DS_Store
-

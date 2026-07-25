@@ -12,10 +12,11 @@ GodotフロントエンドとRust + Bevy権威サーバーで動く、1対1の�
 最初にサーバーを起動する。
 
 ```sh
-cargo run -p pixel-shooter-server
+cargo run --release -p pixel-shooter-server
 ```
 
-Godotで `front/project.godot` を開いて実行する。2人で確認する場合は、エディター設定の
+Godotで `front/project.godot` を開いて実行し、メニューでプレイヤー名と
+`ws://127.0.0.1:9001` を入力して接続する。2人で確認する場合は、エディター設定の
 「複数インスタンスを実行」を有効にするか、ビルドしたクライアントを2つ起動する。
 
 操作:
@@ -25,9 +26,16 @@ Godotで `front/project.godot` を開いて実行する。2人で確認する場
 - 左クリック: 射撃
 - R: リロード
 - Space: 移動入力方向へダッシュ
+- Esc: 接続を終了してメニューへ戻る
 
 クライアントは自分の移動を入力予測し、他プレイヤーは受信した位置の間を補間する。
 サーバーの確定位置と差が出た場合は、未処理入力を再適用して滑らかに補正する。
+
+## サーバー設定
+
+ゲームルールとネットワーク設定は [`server.json`](server.json) で変更できる。
+設定ファイルの全項目と環境変数による上書きは
+[`docs/server-settings.md`](docs/server-settings.md) を参照。
 
 ## 遅延・パケット欠落試験
 
@@ -77,9 +85,32 @@ PIXEL_SHOOTER_SERVER_URL=ws://127.0.0.1:9002 node scripts/network_test.mjs
 `PIXEL_SHOOTER_LATENCY_MS`は片道の遅延値である。参加処理を検証可能に保つため、
 `join`、`welcome`、`rejected`には適用しない。
 
+## ビルドと配布
+
+Godotの「エディター → エクスポートテンプレートの管理」から4.7用テンプレートを
+インストールした後、macOS版とサーバーを次のコマンドで作成する。
+
+```sh
+./scripts/build_release.sh macos
+```
+
+`windows`、`linux`、`server` も指定できる。Godot本体が標準の場所にない場合は
+`GODOT_BIN` で実行ファイルを指定する。出力はGit管理外の `dist/` に作られる。
+
+エクスポートテンプレートなしでクライアントのパックだけを検証する場合:
+
+```sh
+./scripts/build_release.sh pck
+```
+
+画像・フォントの出典と効果音の再生成方法は
+[`docs/assets.md`](docs/assets.md) に記載している。
+
 ## 構成
 
 - `front/`: Godotクライアント
 - `back/`: Bevyヘッドレスサーバー
 - `protocol/`: Rustの通信メッセージ型
 - `docs/`: プロトコルとゲームルール
+- `server.json`: サーバーの運用・ゲーム設定
+- `scripts/build_release.sh`: サーバーとクライアントの配布ビルド
