@@ -248,18 +248,43 @@ pub(crate) fn process_network(
         match event {
             NetworkEvent::Connected(id) => println!("client {id} connected"),
             NetworkEvent::Disconnected(connection_id) => {
-                for (_, mut player) in &mut players {
-                    if player.connection_id == Some(connection_id) {
-                        player.connection_id = None;
-                        player.reconnect_grace_left = state.reconnect_grace_seconds;
-                        player.movement = Vec2::ZERO;
-                        player.shooting = false;
-                        player.reload_requested = false;
-                        player.dash_requested = false;
-                        println!(
-                            "player {} disconnected; waiting {} seconds",
-                            player.id, state.reconnect_grace_seconds
-                        );
+                // ロビーでは席をすぐ空ける。ここで再接続猶予を使うと、
+                // 退出後も最大15秒間プレイヤー一覧に残ってしまう。
+                if matches!(state.phase, MatchPhase::Waiting | MatchPhase::MatchFinished) {
+                    let departed = players
+                        .iter()
+                        .find(|(_, player)| player.connection_id == Some(connection_id))
+                        .map(|(entity, player)| (entity, player.id, player.slot));
+                    if let Some((entity, player_id, slot)) = departed {
+                        commands.entity(entity).despawn();
+                        occupied_slots.retain(|occupied| *occupied != slot);
+                        if state.host_player_id == Some(player_id) {
+                            state.host_player_id = players
+                                .iter()
+                                .find(|(_, player)| {
+                                    player.id != player_id
+                                        && !player.is_cpu
+                                        && player.connection_id.is_some()
+                                })
+                                .map(|(_, player)| player.id);
+                        }
+                        println!("player {player_id} left the lobby");
+                    }
+                } else {
+                    // 試合中の一時的な通信断だけは、従来どおり同じPlayerへ戻れる。
+                    for (_, mut player) in &mut players {
+                        if player.connection_id == Some(connection_id) {
+                            player.connection_id = None;
+                            player.reconnect_grace_left = state.reconnect_grace_seconds;
+                            player.movement = Vec2::ZERO;
+                            player.shooting = false;
+                            player.reload_requested = false;
+                            player.dash_requested = false;
+                            println!(
+                                "player {} disconnected; waiting {} seconds",
+                                player.id, state.reconnect_grace_seconds
+                            );
+                        }
                     }
                 }
             }
@@ -444,12 +469,46 @@ pub(crate) fn process_network(
                 }
             }
             NetworkEvent::Message(connection_id, ClientMessage::StartMatch) => {
-                if is_host_connection(connection_id, &state, &players)
-                    && state.phase == MatchPhase::Waiting
-                    && occupied_slots.len() >= 2
-                {
-                    state.start_requested = true;
+                if !is_host_connection(connection_id, &state, &players) {
+                    println!("start request from client {connection_id} rejected: not the host");
+                    continue;
                 }
+                if state.phase != MatchPhase::Waiting {
+                    println!(
+                        "start request from client {connection_id} rejected: phase is {:?}",
+                        state.phase
+                    );
+                    continue;
+                }
+                let mut active_player_count = players
+                    .iter()
+                    .filter(|(_, player)| player.is_cpu || player.connection_id.is_some())
+                    .count();
+                // ホスト1人だけでも開始できるよう、対戦相手のCPUを自動で補う。
+                if active_player_count == 1 {
+                    let slot = (0..MAX_PLAYERS)
+                        .find(|slot| !occupied_slots.contains(slot))
+                        .expect("automatic CPU slot");
+                    occupied_slots.push(slot);
+                    state.next_player_id += 1;
+                    let player_id = state.next_player_id;
+                    commands.spawn(new_player(
+                        player_id,
+                        None,
+                        true,
+                        String::new(),
+                        slot,
+                        format!("CPU-{}", slot + 1),
+                        &settings,
+                    ));
+                    active_player_count += 1;
+                    println!("CPU player {player_id} automatically added for match start");
+                }
+                state.start_requested = true;
+                println!(
+                    "start request accepted from host; {} active human/CPU player(s)",
+                    active_player_count
+                );
             }
         }
     }
@@ -602,7 +661,7 @@ pub(crate) fn broadcast_snapshot(
                     .iter()
                     .filter(|player| player.is_cpu || player.connection_id.is_some())
                     .count()
-                    >= 2,
+                    >= 1,
             max_players: MAX_PLAYERS,
             settings: state.room_settings,
         },

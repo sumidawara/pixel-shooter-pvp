@@ -6,6 +6,8 @@ signal rejected(reason: String)
 signal snapshot_received(snapshot: Dictionary)
 
 const DEFAULT_SERVER_URL := "ws://127.0.0.1:9001"
+const START_RETRY_SECONDS := 0.35
+const START_MAX_ATTEMPTS := 3
 
 var socket := WebSocketPeer.new()
 var server_url := DEFAULT_SERVER_URL
@@ -15,6 +17,9 @@ var reconnect_token := ""
 var connection_requested := false
 var has_joined := false
 var reconnect_left := 0.0
+var start_request_pending := false
+var start_retry_left := 0.0
+var start_attempts := 0
 
 
 func connect_to_server(url: String, requested_name: String) -> void:
@@ -35,6 +40,8 @@ func disconnect_from_server() -> void:
 	connection_requested = false
 	has_joined = false
 	player_id = 0
+	start_request_pending = false
+	start_attempts = 0
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		socket.close()
 	socket = WebSocketPeer.new()
@@ -63,7 +70,12 @@ func update_room_settings(settings: Dictionary) -> void:
 
 
 func start_match() -> void:
-	send_message({"type": "start_match"})
+	if socket.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		status_changed.emit("START FAILED — NOT CONNECTED")
+		return
+	start_request_pending = true
+	start_attempts = 0
+	_send_start_request()
 
 
 func is_open() -> bool:
@@ -86,6 +98,7 @@ func _process(delta: float) -> void:
 			}))
 		while socket.get_available_packet_count() > 0:
 			_receive(socket.get_packet().get_string_from_utf8())
+		_update_start_request(delta)
 	elif state == WebSocketPeer.STATE_CLOSED:
 		has_joined = false
 		player_id = 0
@@ -103,6 +116,26 @@ func _open_socket() -> void:
 		status_changed.emit("CONNECTING...")
 	else:
 		status_changed.emit("CONNECTION COULD NOT START")
+
+
+func _send_start_request() -> void:
+	start_attempts += 1
+	start_retry_left = START_RETRY_SECONDS
+	socket.send_text(JSON.stringify({"type": "start_match"}))
+	status_changed.emit("STARTING MATCH...")
+
+
+func _update_start_request(delta: float) -> void:
+	if not start_request_pending:
+		return
+	start_retry_left -= delta
+	if start_retry_left > 0.0:
+		return
+	if start_attempts >= START_MAX_ATTEMPTS:
+		start_request_pending = false
+		status_changed.emit("START REQUEST WAS NOT ACCEPTED")
+		return
+	_send_start_request()
 
 
 func _receive(text: String) -> void:
@@ -123,4 +156,7 @@ func _receive(text: String) -> void:
 			status_changed.emit(reason)
 			rejected.emit(reason)
 		"snapshot":
+			if start_request_pending and str(message.get("phase", "waiting")) != "waiting":
+				start_request_pending = false
+				status_changed.emit("MATCH STARTING")
 			snapshot_received.emit(message)

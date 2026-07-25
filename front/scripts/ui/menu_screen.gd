@@ -76,7 +76,9 @@ func _bind_buttons() -> void:
 	server_input.text_submitted.connect(func(_value: String): request_connection())
 	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit())
 	remove_cpu_button.pressed.connect(func(): remove_cpu_requested.emit(last_cpu_id))
-	start_button.pressed.connect(func(): start_match_requested.emit())
+	# ロビーSnapshotのUI更新がマウスを離す瞬間と重なると`pressed`が
+	# 発火しないことがあるため、押した瞬間の`button_down`で開始要求を送る。
+	start_button.button_down.connect(_request_start_match)
 
 
 func _bind_room_settings() -> void:
@@ -118,6 +120,13 @@ func _request_create_room() -> void:
 	create_requested.emit(player_name_input.text, port, get_room_settings())
 
 
+func _request_start_match() -> void:
+	if not is_room_host or start_button.disabled:
+		return
+	print("START GAME button down: sending start_match")
+	start_match_requested.emit()
+
+
 func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int) -> void:
 	var host_id := int(room.get("host_player_id", 0))
 	is_room_host = host_id == local_player_id
@@ -128,7 +137,12 @@ func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int)
 	for child in room_players.get_children():
 		child.queue_free()
 	last_cpu_id = 0
-	var sorted := players.duplicate()
+	# 切断済みの人を含む古いSnapshotを受け取ってもロビーには表示しない。
+	# CPUはネットワーク接続を持たないため、is_cpuなら参加中として扱う。
+	var active_players := players.filter(func(player):
+		return bool(player.get("is_cpu", false)) or bool(player.get("connected", false))
+	)
+	var sorted := active_players.duplicate()
 	sorted.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	for index in range(sorted.size()):
 		var player: Dictionary = sorted[index]
@@ -187,6 +201,7 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 	add_cpu_button.disabled = player_count >= 4
 	remove_cpu_button.disabled = last_cpu_id == 0
 	start_button.disabled = not can_start
+	start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	for input in [
 		match_seconds_input,
 		kill_points_input,

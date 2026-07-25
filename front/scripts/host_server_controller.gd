@@ -11,6 +11,13 @@ func start_server(port: int) -> void:
 	if OS.has_feature("web"):
 		server_failed.emit("CREATE ROOM IS NOT AVAILABLE IN WEB BUILDS")
 		return
+	var port_probe := TCPServer.new()
+	if port_probe.listen(port, "127.0.0.1") != OK:
+		server_failed.emit(
+			"PORT %d IS ALREADY IN USE — STOP THE OTHER SERVER OR JOIN IT" % port
+		)
+		return
+	port_probe.stop()
 	var server_path := _find_server_executable()
 	if server_path.is_empty():
 		server_failed.emit("RUST SERVER BINARY WAS NOT FOUND")
