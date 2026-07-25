@@ -109,6 +109,11 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 ## 構成
 
 - `front/`: Godotクライアント
+  - `scenes/main.tscn`: メニューとゲーム画面を配置するルート
+  - `scenes/game/`: Arena、Player、Bullet、GameScreen
+  - `scenes/ui/`: 接続メニュー、HUD、プレイヤー状態表示
+  - `scripts/network_client.gd`: AutoloadのWebSocketクライアント
+  - `themes/pixel_theme.tres`: 共通ピクセルフォントとUIスタイル
 - `back/`: Bevyヘッドレスサーバー
   - `src/main.rs`: 設定とSystemをBevy Appへ登録する起動処理
   - `src/config.rs`: `server.json`と環境変数の読み込み
@@ -120,3 +125,6 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 - `docs/`: プロトコルとゲームルール
 - `server.json`: サーバーの運用・ゲーム設定
 - `scripts/build_release.sh`: サーバーとクライアントの配布ビルド
+
+Godot側のシーン構成とデータの流れは
+[`docs/frontend-architecture.md`](docs/frontend-architecture.md) を参照。
