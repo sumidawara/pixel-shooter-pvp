@@ -192,12 +192,12 @@ text = "JOIN ROOM"
 
 [node name="UrlLabel" type="Label" parent="JoinPage/Panel/Margin/Content" unique_id=682718282]
 layout_mode = 2
-text = "SERVER URL"
+text = "MATCHMAKER OR GAME URL"
 
 [node name="ServerUrlInput" type="LineEdit" parent="JoinPage/Panel/Margin/Content" unique_id=485117564]
 unique_name_in_owner = true
 layout_mode = 2
-placeholder_text = "ws://127.0.0.1:9001"
+placeholder_text = "http://127.0.0.1:8080"
 
 [node name="JoinButton" type="Button" parent="JoinPage/Panel/Margin/Content" unique_id=665995599]
 unique_name_in_owner = true

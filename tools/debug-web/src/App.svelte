@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { drawArena } from "./arena";
-  import type { Player, SnapshotEnvelope } from "./types";
+  import type { GameServer, Player, SnapshotEnvelope } from "./types";
 
   const POLL_INTERVAL_MS = 200;
   const phaseLabels: Record<string, string> = {
@@ -17,12 +17,18 @@
   let errorMessage = $state("");
   let updatedAt = $state<Date | null>(null);
   let canvas = $state<HTMLCanvasElement>();
+  let servers = $state<GameServer[]>([]);
+  let selectedServerId = $state("");
+  let controlBusy = $state(false);
 
   let sortedPlayers = $derived(
     snapshot ? [...snapshot.players].sort((left, right) => left.id - right.id) : [],
   );
   let activePlayers = $derived(
     snapshot?.players.filter((player) => player.is_cpu || player.connected).length ?? 0,
+  );
+  let selectedServer = $derived(
+    servers.find((server) => server.server_id === selectedServerId) ?? null,
   );
 
   $effect(() => {
@@ -33,11 +39,32 @@
     let disposed = false;
     let requestInFlight = false;
 
+    const loadServers = async () => {
+      try {
+        const response = await fetch("/api/servers", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const nextServers = (await response.json()) as GameServer[];
+        if (!disposed) {
+          servers = nextServers;
+          if (!nextServers.some((server) => server.server_id === selectedServerId)) {
+            selectedServerId = nextServers[0]?.server_id ?? "";
+            snapshot = null;
+          }
+        }
+      } catch {
+        if (!disposed) servers = [];
+      }
+    };
+
     const loadSnapshot = async () => {
+      if (!selectedServerId) return;
       if (requestInFlight) return;
       requestInFlight = true;
       try {
-        const response = await fetch("/debug/api/state", { cache: "no-store" });
+        const response = await fetch(
+          `/debug/api/state?server_id=${encodeURIComponent(selectedServerId)}`,
+          { cache: "no-store" },
+        );
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const nextSnapshot = (await response.json()) as SnapshotEnvelope;
         if (!disposed) {
@@ -56,13 +83,33 @@
       }
     };
 
-    loadSnapshot();
+    loadServers();
+    const serverTimer = window.setInterval(loadServers, 1000);
     const timer = window.setInterval(loadSnapshot, POLL_INTERVAL_MS);
     return () => {
       disposed = true;
+      window.clearInterval(serverTimer);
       window.clearInterval(timer);
     };
   });
+
+  const controlSimulation = async (action: "pause" | "step" | "resume") => {
+    if (!selectedServerId || controlBusy) return;
+    controlBusy = true;
+    try {
+      const response = await fetch(`/api/servers/${encodeURIComponent(selectedServerId)}/${action}`, {
+        method: "POST",
+        headers: action === "step" ? { "content-type": "application/json" } : undefined,
+        body: action === "step" ? JSON.stringify({ ticks: 1 }) : undefined,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      errorMessage = "";
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : "Control failed";
+    } finally {
+      controlBusy = false;
+    }
+  };
 
   const playerStatus = (player: Player): string => {
     if (!player.connected && !player.is_cpu) return "DISCONNECTED";
@@ -102,6 +149,31 @@
       </div>
     </div>
   </header>
+
+  <section class="server-controls" aria-label="Game server controls">
+    <label>
+      <span>GAME SERVER</span>
+      <select bind:value={selectedServerId}>
+        {#each servers as server}
+          <option value={server.server_id}>
+            {server.server_id} · {server.status.toUpperCase()} · {server.player_count}/4
+          </option>
+        {/each}
+      </select>
+    </label>
+    <div class="server-meta">
+      <span class:healthy={selectedServer?.healthy}>
+        {selectedServer?.healthy ? "HEALTHY" : "UNAVAILABLE"}
+      </span>
+      <strong>{selectedServer?.room_id ?? "NO ROOM"}</strong>
+      <small>{selectedServer?.simulation_mode.toUpperCase() ?? "—"}</small>
+    </div>
+    <div class="control-buttons">
+      <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("pause")}>PAUSE</button>
+      <button disabled={!selectedServer || controlBusy || selectedServer?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
+      <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("resume")}>RESUME</button>
+    </div>
+  </section>
 
   {#if snapshot}
     <section class="metrics" aria-label="Server metrics">
@@ -253,7 +325,7 @@
   {/if}
 
   <footer>
-    <span>READ ONLY DEBUG SURFACE</span>
-    <span>GET /debug/api/state · {POLL_INTERVAL_MS}ms</span>
+    <span>ADMIN CONTROL SURFACE</span>
+    <span>SNAPSHOT POLL · {POLL_INTERVAL_MS}ms</span>
   </footer>
 </main>

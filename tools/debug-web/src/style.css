@@ -23,6 +23,7 @@ body {
 
 button,
 input,
+select,
 table {
   font: inherit;
 }
@@ -124,6 +125,71 @@ h2 {
 .connection.offline .status-dot {
   background: #ff5b68;
   box-shadow: 0 0 14px rgba(255, 91, 104, 0.6);
+}
+
+.server-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, auto) auto;
+  gap: 18px;
+  align-items: end;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #263340;
+  background: rgba(9, 14, 20, 0.92);
+}
+
+.server-controls label > span,
+.server-meta span,
+.server-meta small {
+  display: block;
+  color: #6f8191;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+
+.server-controls select {
+  width: 100%;
+  margin-top: 7px;
+  padding: 9px 10px;
+  color: #dce7ef;
+  border: 1px solid #344555;
+  border-radius: 0;
+  background: #090e14;
+}
+
+.server-meta strong {
+  display: block;
+  margin: 4px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.server-meta span.healthy {
+  color: #7cff6b;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.control-buttons button {
+  min-width: 92px;
+  padding: 10px 12px;
+  color: #071017;
+  border: 0;
+  background: #27e5ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.control-buttons button:disabled {
+  color: #6f8191;
+  background: #18222c;
+  cursor: not-allowed;
 }
 
 .metrics {
@@ -517,6 +583,11 @@ footer {
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .server-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }
 

@@ -73,3 +73,15 @@ export type Snapshot = {
 export type SnapshotEnvelope = Snapshot & {
   type: "snapshot";
 };
+
+export type GameServer = {
+  server_id: string;
+  public_url: string;
+  control_url: string;
+  status: "available" | "allocated";
+  room_id: string | null;
+  player_count: number;
+  tick: number;
+  simulation_mode: "realtime" | "paused";
+  healthy: boolean;
+};

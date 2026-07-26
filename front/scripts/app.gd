@@ -36,7 +36,10 @@ func _on_join_requested(server_url: String, player_name: String) -> void:
 	hosting_room = false
 	joined_room = false
 	menu_screen.set_connecting(true)
-	NetworkClient.connect_to_server(server_url, player_name)
+	if server_url.begins_with("http://") or server_url.begins_with("https://"):
+		NetworkClient.connect_via_matchmaker(server_url, player_name)
+	else:
+		NetworkClient.connect_to_server(server_url, player_name)
 
 
 func _on_create_requested(player_name: String, port: int, settings: Dictionary) -> void:

@@ -14,6 +14,7 @@ var server_url := DEFAULT_SERVER_URL
 var player_name := "Player"
 var player_id := 0
 var reconnect_token := ""
+var join_ticket := ""
 var connection_requested := false
 var has_joined := false
 var reconnect_left := 0.0
@@ -23,14 +24,61 @@ var start_attempts := 0
 
 
 func connect_to_server(url: String, requested_name: String) -> void:
+	_prepare_player_name(requested_name)
+	join_ticket = ""
+	_connect_websocket(url)
+
+
+func connect_via_matchmaker(url: String, requested_name: String) -> void:
+	_prepare_player_name(requested_name)
+	var matchmaker_url := url.strip_edges().trim_suffix("/")
+	if matchmaker_url.is_empty():
+		matchmaker_url = "http://127.0.0.1:8080"
+	if not matchmaker_url.begins_with("http://") and not matchmaker_url.begins_with("https://"):
+		matchmaker_url = "http://" + matchmaker_url
+	status_changed.emit("FINDING ROOM...")
+	var request := HTTPRequest.new()
+	add_child(request)
+	var headers := PackedStringArray(["Content-Type: application/json"])
+	var error := request.request(
+		matchmaker_url + "/v1/matchmake",
+		headers,
+		HTTPClient.METHOD_POST,
+		JSON.stringify({"player_name": player_name})
+	)
+	if error != OK:
+		request.queue_free()
+		status_changed.emit("MATCHMAKER REQUEST COULD NOT START")
+		rejected.emit("Matchmaker request could not start")
+		return
+	var result: Array = await request.request_completed
+	request.queue_free()
+	var response_code := int(result[1])
+	var body: PackedByteArray = result[3]
+	var response = JSON.parse_string(body.get_string_from_utf8())
+	if response_code < 200 or response_code >= 300 or typeof(response) != TYPE_DICTIONARY:
+		var reason := "No game server is available"
+		if typeof(response) == TYPE_DICTIONARY:
+			reason = str(response.get("error", reason))
+		status_changed.emit(reason)
+		rejected.emit(reason)
+		return
+	join_ticket = str(response.get("join_ticket", ""))
+	_connect_websocket(str(response.get("game_url", "")))
+
+
+func _prepare_player_name(requested_name: String) -> void:
+	player_name = requested_name.strip_edges()
+	if player_name.is_empty():
+		player_name = "Player"
+
+
+func _connect_websocket(url: String) -> void:
 	server_url = url.strip_edges()
 	if server_url.is_empty():
 		server_url = DEFAULT_SERVER_URL
 	if not server_url.begins_with("ws://") and not server_url.begins_with("wss://"):
 		server_url = "ws://" + server_url
-	player_name = requested_name.strip_edges()
-	if player_name.is_empty():
-		player_name = "Player"
 	connection_requested = true
 	reconnect_left = 0.0
 	_open_socket()
@@ -95,6 +143,7 @@ func _process(delta: float) -> void:
 				"type": "join",
 				"name": player_name,
 				"reconnect_token": reconnect_token,
+				"join_ticket": join_ticket,
 			}))
 		while socket.get_available_packet_count() > 0:
 			_receive(socket.get_packet().get_string_from_utf8())
