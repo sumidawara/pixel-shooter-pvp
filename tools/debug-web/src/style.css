@@ -43,6 +43,56 @@ main {
   padding-bottom: 18px;
 }
 
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-top: 18px;
+  border-bottom: 1px solid #263340;
+}
+
+.mode-tabs button {
+  min-width: 190px;
+  padding: 11px 15px 10px;
+  color: #6f8191;
+  border: 1px solid #263340;
+  border-bottom: 0;
+  background: #090e14;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.mode-tabs button + button {
+  border-left: 0;
+}
+
+.mode-tabs button small {
+  display: block;
+  margin-top: 4px;
+  color: #536473;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+}
+
+.mode-tabs button.active {
+  position: relative;
+  color: #27e5ff;
+  background: rgba(39, 229, 255, 0.06);
+}
+
+.mode-tabs button.active::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: #27e5ff;
+  content: "";
+}
+
 .eyebrow,
 .metrics span,
 th,

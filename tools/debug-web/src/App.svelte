@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { drawArena } from "./arena";
+  import MapEditor from "./MapEditor.svelte";
   import type { GameServer, Player, SnapshotEnvelope } from "./types";
 
   const POLL_INTERVAL_MS = 200;
@@ -20,6 +21,7 @@
   let servers = $state<GameServer[]>([]);
   let selectedServerId = $state("");
   let controlBusy = $state(false);
+  let activeView = $state<"observer" | "editor">("observer");
 
   let sortedPlayers = $derived(
     snapshot ? [...snapshot.players].sort((left, right) => left.id - right.id) : [],
@@ -128,21 +130,23 @@
 </script>
 
 <svelte:head>
-  <title>Pixel Shooter // Server Observer</title>
+  <title>Pixel Shooter // Dev Console</title>
 </svelte:head>
 
 <main>
   <header class="topbar">
     <div class="identity">
       <span class="eyebrow">PIXEL SHOOTER PVP</span>
-      <h1>SERVER OBSERVER</h1>
+      <h1>DEV CONSOLE</h1>
     </div>
-    <div class="connection" class:offline={!connected}>
+    <div class="connection" class:offline={activeView === "observer" && !connected}>
       <span class="status-dot"></span>
       <div>
-        <strong>{connected ? "LIVE" : "OFFLINE"}</strong>
+        <strong>{activeView === "editor" ? "LOCAL" : connected ? "LIVE" : "OFFLINE"}</strong>
         <small>
-          {connected && updatedAt
+          {activeView === "editor"
+            ? "BROWSER WORKSPACE"
+            : connected && updatedAt
             ? `SYNC ${updatedAt.toLocaleTimeString()}`
             : errorMessage || "WAITING FOR SERVER"}
         </small>
@@ -150,7 +154,29 @@
     </div>
   </header>
 
-  <section class="server-controls" aria-label="Game server controls">
+  <nav class="mode-tabs" aria-label="Debug tools">
+    <button
+      class:active={activeView === "observer"}
+      aria-pressed={activeView === "observer"}
+      onclick={() => (activeView = "observer")}
+    >
+      SERVER OBSERVER
+      <small>LIVE STATE</small>
+    </button>
+    <button
+      class:active={activeView === "editor"}
+      aria-pressed={activeView === "editor"}
+      onclick={() => (activeView = "editor")}
+    >
+      MAP EDITOR
+      <small>LOCAL DRAFT</small>
+    </button>
+  </nav>
+
+  {#if activeView === "editor"}
+    <MapEditor />
+  {:else}
+    <section class="server-controls" aria-label="Game server controls">
     <label>
       <span>GAME SERVER</span>
       <select bind:value={selectedServerId}>
@@ -322,6 +348,7 @@
       <p>CONNECTING TO DEBUG ENDPOINT</p>
       <small>Start the Rust server and keep this page open.</small>
     </section>
+    {/if}
   {/if}
 
   <footer>

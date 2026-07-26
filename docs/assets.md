@@ -10,7 +10,6 @@
 - `frontend/src/actors/player/player_run.png`
 - `frontend/src/ui/menu/cursor.png`
 - `frontend/src/game_modes/match/sparkle.png`
-- `frontend/src/maps/arena/tilemap.png`
 - `frontend/src/ui/menu/title.png`
 - `frontend/src/ui/hud/gameover.png`
 - `frontend/src/shared/fonts/PixelMplus12-Regular.ttf`

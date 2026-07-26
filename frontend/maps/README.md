@@ -5,25 +5,18 @@ server. Rust validates it and converts every tile to `TileKind` before a match
 starts. On each connection, the server sends the validated definition to Godot
 once; Godot validates it again and uses it for rendering and client prediction.
 
-## Visual editing
+## Web editing
 
-1. Open `res://src/maps/arena/authoring/classic_arena_authoring.tscn`.
-2. Select `ClassicArenaAuthoring`.
-3. Use **Import JSON** in the Inspector.
-4. Paint walls on `TerrainLayer` and spawn markers on `MarkerLayer`.
+1. Run `make web-dev`.
+2. Open the printed local URL and select **MAP EDITOR**.
+3. Paint terrain and place player/item spawn markers.
+4. Resolve any validation errors shown beside the canvas.
 5. Increment `revision` when the map should have a new cache identity.
-6. Select the root again and run **Validate and Export JSON**.
+6. Download the JSON and replace `frontend/maps/classic_arena.json`.
 
-The TileSet custom data named `tile_kind` controls export semantics:
-
-- empty terrain cell: floor (`.`)
-- `solid_wall`: indestructible wall (`#`)
-- `destructible_wall`: destructible wall (`X`)
-- `player_spawn`: player spawn marker
-- `item_spawn`: item candidate marker
-
-Spawn markers are exported to their own arrays and never become terrain tiles.
-The exporter rejects missing markers, unknown tile kinds, and markers placed on
+The editor imports and exports this repository's map schema directly. Spawn
+markers stay in their own arrays and never become terrain tiles. It rejects
+invalid dimensions, missing markers, unknown tiles, and markers placed on
 walls.
 
 Set `PIXEL_SHOOTER_MAP=/absolute/path/to/map.json` to make a game server load an
