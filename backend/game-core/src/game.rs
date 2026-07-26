@@ -212,7 +212,7 @@ fn start_new_match(
 
 fn unique_score_winner(standings: impl Iterator<Item = (u64, i32)>) -> Option<u64> {
     let mut standings: Vec<_> = standings.collect();
-    standings.sort_by(|left, right| right.1.cmp(&left.1));
+    standings.sort_by_key(|standing| std::cmp::Reverse(standing.1));
     match standings.as_slice() {
         [(winner_id, winner_score), (_, second_score), ..] if winner_score > second_score => {
             Some(*winner_id)
