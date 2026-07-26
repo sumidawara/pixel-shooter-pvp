@@ -104,4 +104,4 @@
 `room`には`host_player_id`、`can_start`、`max_players`、現在のルーム設定が
 含まれる。クライアントは`waiting`中、この情報をルーム画面へ表示する。
 
-Rust側の正式な型定義は `protocol/src/lib.rs` を参照すること。
+Rust側の正式な型定義は `backend/protocols/game/src/lib.rs` を参照すること。

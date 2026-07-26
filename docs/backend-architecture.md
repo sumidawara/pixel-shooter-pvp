@@ -19,8 +19,8 @@ AdminServer
 - `backend/game-server`: 1プロセス＝1ルームのBevy権威サーバー
 - `backend/matchmaker`: 割当を要求し、署名済みJoin Ticketを発行する公開API
 - `backend/admin-server`: 固定GameServerプールと内部Control APIを管理する
-- `protocol`: GodotとGameServer間のゲーム通信型
-- `admin-protocol`: サーバー間の管理通信型とJoin Ticket型
+- `backend/protocols/game`: GodotとGameServer間のゲーム通信型
+- `backend/protocols/admin`: サーバー間の管理通信型とJoin Ticket型
 
 ## GameCoreとServerRuntime
 

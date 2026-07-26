@@ -8,9 +8,9 @@ axum = "0.8"
 bevy = { version = "0.18", default-features = false, features = ["std", "multi_threaded"] }
 crossbeam-channel = "0.5"
 futures-util = "0.3"
-pixel-shooter-admin-protocol = { path = "../../admin-protocol" }
+pixel-shooter-admin-protocol = { path = "../protocols/admin" }
 pixel-shooter-game-core = { path = "../game-core" }
-pixel-shooter-protocol = { path = "../../protocol" }
+pixel-shooter-protocol = { path = "../protocols/game" }
 rand = "0.9"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }

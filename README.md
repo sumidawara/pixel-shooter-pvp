@@ -159,8 +159,8 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 - `backend/game-server/`: 1プロセス＝1ルームのWebSocket権威サーバー
 - `backend/matchmaker/`: GameServer割当要求とJoin Ticket発行
 - `backend/admin-server/`: サーバープール管理、Control中継、デバッグ画面
-- `protocol/`: GodotとGameServer間のゲーム通信型
-- `admin-protocol/`: サーバー間の管理通信型とTicket署名
+- `backend/protocols/game/`: GodotとGameServer間のゲーム通信型
+- `backend/protocols/admin/`: サーバー間の管理通信型とTicket署名
 - `docs/`: プロトコル、ゲームルール、バックエンド構成
 - `docker-compose.yml`: 固定数GameServerプールの開発構成
 - `server.json`: サーバーの運用・ゲーム設定
