@@ -1,10 +1,10 @@
 [workspace]
 members = [
     "admin-protocol",
-    "back/admin-server",
-    "back/game-core",
-    "back/game-server",
-    "back/matchmaker",
+    "backend/admin-server",
+    "backend/game-core",
+    "backend/game-server",
+    "backend/matchmaker",
     "protocol",
 ]
 resolver = "2"

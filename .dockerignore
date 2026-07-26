@@ -2,5 +2,5 @@
 .godot
 dist
 target
-front
+frontend
 tools/debug-web/node_modules

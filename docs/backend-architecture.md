@@ -15,10 +15,10 @@ AdminServer
   └─ Svelteデバッグ画面
 ```
 
-- `back/game-core`: 通信や実時間を知らないゲームルールのRustライブラリ
-- `back/game-server`: 1プロセス＝1ルームのBevy権威サーバー
-- `back/matchmaker`: 割当を要求し、署名済みJoin Ticketを発行する公開API
-- `back/admin-server`: 固定GameServerプールと内部Control APIを管理する
+- `backend/game-core`: 通信や実時間を知らないゲームルールのRustライブラリ
+- `backend/game-server`: 1プロセス＝1ルームのBevy権威サーバー
+- `backend/matchmaker`: 割当を要求し、署名済みJoin Ticketを発行する公開API
+- `backend/admin-server`: 固定GameServerプールと内部Control APIを管理する
 - `protocol`: GodotとGameServer間のゲーム通信型
 - `admin-protocol`: サーバー間の管理通信型とJoin Ticket型
 
@@ -43,9 +43,9 @@ ScheduleRunnerPlugin
     └── Control状態とHeartbeatを更新
 ```
 
-- `back/game-core/src/schedule.rs`: `GameTick`とゲームSystemの実行順
-- `back/game-server/src/server_runtime.rs`: 通信・管理と`GameTick`を接続
-- `back/game-server/src/control.rs`: 内部Control APIとデバッグ実行モード
+- `backend/game-core/src/schedule.rs`: `GameTick`とゲームSystemの実行順
+- `backend/game-server/src/server_runtime.rs`: 通信・管理と`GameTick`を接続
+- `backend/game-server/src/control.rs`: 内部Control APIとデバッグ実行モード
 
 通信を`GameTick`の外側へ置くことで、今後ゲーム世界を一時停止しても、
 接続維持、管理コマンド、Heartbeatを処理し続けられる。

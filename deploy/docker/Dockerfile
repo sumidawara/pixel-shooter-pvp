@@ -4,7 +4,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY admin-protocol admin-protocol
 COPY protocol protocol
-COPY back back
+COPY backend backend
 COPY tools/debug-web/dist tools/debug-web/dist
 RUN cargo build --release --locked --bin "${BINARY}" \
     && cp "/app/target/release/${BINARY}" /app/service

@@ -16,7 +16,7 @@ GodotフロントエンドとRust + Bevy権威サーバーで動く、最大4人
 cargo run --release -p pixel-shooter-server
 ```
 
-Godotで `front/project.godot` を開いて実行し、`PLAY`から`JOIN ROOM`を選んで
+Godotで `frontend/project.godot` を開いて実行し、`PLAY`から`JOIN ROOM`を選んで
 `ws://127.0.0.1:9001`へ接続する。最初に入室したプレイヤーがホストになり、
 CPU追加、ルール設定、試合開始を操作できる。2人で確認する場合は、エディター設定の
 「複数インスタンスを実行」を有効にするか、CPUを追加する。
@@ -39,7 +39,7 @@ GameServerを割り当て、Join Ticketを発行し、そのGameServerへ直接�
 詳しくは[`docs/deployment.md`](docs/deployment.md)を参照。
 
 Godotクライアントの接続先は
-[`front/scripts/network_config.gd`](front/scripts/network_config.gd)へ集約している。
+[`frontend/scripts/network_config.gd`](frontend/scripts/network_config.gd)へ集約している。
 Docker Compose利用時の初期接続先はMatchmakerの`http://127.0.0.1:8080`。
 一時的に別の接続先を使う場合は、起動時に`PIXEL_SHOOTER_SERVER_URL`環境変数でも
 上書きできる。
@@ -148,17 +148,17 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 
 ## 構成
 
-- `front/`: Godotクライアント
+- `frontend/`: Godotクライアント
   - `scenes/main.tscn`: メニューとゲーム画面を配置するルート
   - `scripts/host_server_controller.gd`: デスクトップ版のRustサーバー起動・終了
   - `scenes/game/`: Arena、Player、Bullet、GameScreen
   - `scenes/ui/`: 接続メニュー、HUD、プレイヤー状態表示
   - `scripts/network_client.gd`: AutoloadのWebSocketクライアント
   - `themes/pixel_theme.tres`: 共通ピクセルフォントとUIスタイル
-- `back/game-core/`: 実時間と通信から独立した`GameTick`とゲームルール
-- `back/game-server/`: 1プロセス＝1ルームのWebSocket権威サーバー
-- `back/matchmaker/`: GameServer割当要求とJoin Ticket発行
-- `back/admin-server/`: サーバープール管理、Control中継、デバッグ画面
+- `backend/game-core/`: 実時間と通信から独立した`GameTick`とゲームルール
+- `backend/game-server/`: 1プロセス＝1ルームのWebSocket権威サーバー
+- `backend/matchmaker/`: GameServer割当要求とJoin Ticket発行
+- `backend/admin-server/`: サーバープール管理、Control中継、デバッグ画面
 - `protocol/`: GodotとGameServer間のゲーム通信型
 - `admin-protocol/`: サーバー間の管理通信型とTicket署名
 - `docs/`: プロトコル、ゲームルール、バックエンド構成

@@ -55,9 +55,9 @@ fi
 
 echo "[2/3] Exporting the Godot client (${preset})"
 if [[ "${target_name}" == "pck" ]]; then
-  "${godot_binary}" --headless --path "${project_root}/front" --export-pack "${preset}" "${output}"
+  "${godot_binary}" --headless --path "${project_root}/frontend" --export-pack "${preset}" "${output}"
 else
-  "${godot_binary}" --headless --path "${project_root}/front" --export-release "${preset}" "${output}"
+  "${godot_binary}" --headless --path "${project_root}/frontend" --export-release "${preset}" "${output}"
 fi
 
 if [[ "${target_name}" == "macos" ]]; then
