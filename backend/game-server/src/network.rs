@@ -12,8 +12,8 @@ use futures_util::{SinkExt, StreamExt};
 use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{ArenaMap, Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ClientMessage, ItemSnapshot, MapSnapshot, MatchPhase, PlayerSnapshot,
-    RoomSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot,
+    ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -342,6 +342,7 @@ pub(crate) fn process_network(
                             reconnected: true,
                         },
                     );
+                    send_map_definition(&network, connection_id, &map);
                     println!("player {player_id} reconnected");
                     continue;
                 }
@@ -437,6 +438,7 @@ pub(crate) fn process_network(
                         reconnected: false,
                     },
                 );
+                send_map_definition(&network, connection_id, &map);
                 println!("player {player_id} joined in slot {slot}");
             }
             NetworkEvent::Message(
@@ -632,7 +634,6 @@ fn new_player(
 pub(crate) fn broadcast_snapshot(
     state: Res<MatchState>,
     settings: Res<ServerSettings>,
-    map: Res<ArenaMap>,
     mut network: ResMut<Network>,
     players: Query<&Player>,
     bullets: Query<&Bullet>,
@@ -656,13 +657,6 @@ pub(crate) fn broadcast_snapshot(
     // 内部データを直接シリアライズしないことで、通信仕様とゲーム実装を分離できる。
     let snapshot = ServerMessage::Snapshot(Box::new(Snapshot {
         tick: state.tick,
-        map: MapSnapshot {
-            id: map.id().to_string(),
-            revision: map.revision().to_string(),
-            width: map.width(),
-            height: map.height(),
-            tile_size: map.tile_size(),
-        },
         phase: state.phase,
         time_left: state.phase_time_left,
         winner_id: state.match_winner_id,
@@ -778,10 +772,20 @@ fn send_to(network: &Network, id: u64, message: &ServerMessage) {
     if let Some(sender) = network.clients.lock().expect("clients lock").get(&id) {
         let _ = sender.send(OutboundMessage {
             message: Message::Text(text.into()),
-            // welcome/rejectedは試験対象にせず、即時に送る。
+            // 接続時メッセージは試験対象にせず、即時に送る。
             delay: Duration::ZERO,
         });
     }
+}
+
+fn send_map_definition(network: &Network, connection_id: u64, map: &ArenaMap) {
+    send_to(
+        network,
+        connection_id,
+        &ServerMessage::MapDefinition {
+            map: map.definition(),
+        },
+    );
 }
 
 /// 再接続時にPlayer Entityを安全に特定するためのランダムトークンを作る。

@@ -1,6 +1,5 @@
 extends Node2D
 
-const MAP_PATH := "res://maps/classic_arena.json"
 const PANEL := Color("#0d1119")
 const FLOOR_ALT := Color("#101722")
 const GRID := Color("#1a222d")
@@ -12,8 +11,8 @@ const DESTRUCTIBLE_EDGE := Color("#d99a62")
 var arena_map: ArenaMapData
 
 
-func _ready() -> void:
-	arena_map = ArenaMapData.load_from_file(MAP_PATH)
+func set_arena_map(map: ArenaMapData) -> void:
+	arena_map = map
 	queue_redraw()
 
 

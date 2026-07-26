@@ -1,8 +1,9 @@
 # Arena maps
 
-`classic_arena.json` is shared by the authoritative Rust server and the Godot
-client. Rust validates it and converts every tile to `TileKind` before a match
-starts. Godot uses the same file for rendering and client-side prediction.
+`classic_arena.json` is the built-in source map for the authoritative Rust
+server. Rust validates it and converts every tile to `TileKind` before a match
+starts. On each connection, the server sends the validated definition to Godot
+once; Godot validates it again and uses it for rendering and client prediction.
 
 ## Visual editing
 
@@ -10,7 +11,7 @@ starts. Godot uses the same file for rendering and client-side prediction.
 2. Select `ClassicArenaAuthoring`.
 3. Use **Import JSON** in the Inspector.
 4. Paint walls on `TerrainLayer` and spawn markers on `MarkerLayer`.
-5. Increment `revision`.
+5. Increment `revision` when the map should have a new cache identity.
 6. Select the root again and run **Validate and Export JSON**.
 
 The TileSet custom data named `tile_kind` controls export semantics:

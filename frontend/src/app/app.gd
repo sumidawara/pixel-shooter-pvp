@@ -22,6 +22,7 @@ func _ready() -> void:
 	menu_screen.leave_room_requested.connect(_leave_room)
 	menu_screen.quit_requested.connect(_quit_game)
 	game_screen.exit_requested.connect(_leave_room)
+	game_screen.map_load_failed.connect(_on_map_load_failed)
 	host_server.server_started.connect(_on_local_server_started)
 	host_server.server_failed.connect(_on_local_server_failed)
 	NetworkClient.status_changed.connect(_on_status_changed)
@@ -106,6 +107,7 @@ func _on_local_server_failed(reason: String) -> void:
 func _on_welcome_received(player_id: int, reconnected: bool) -> void:
 	local_player_id = player_id
 	joined_room = true
+	game_screen.expect_map()
 	menu_screen.set_connecting(false)
 	menu_screen.show_room(hosting_room, NetworkClient.server_url)
 	if hosting_room and not pending_host_settings.is_empty():
@@ -130,6 +132,8 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 			local_player_id
 		)
 	elif not game_screen.visible:
+		if not game_screen.is_map_ready():
+			return
 		game_screen.start_session(local_player_id)
 		menu_screen.visible = false
 		game_screen.visible = true
@@ -148,6 +152,11 @@ func _on_rejected(reason: String) -> void:
 	# URLを直してすぐ再試行できるよう、タイトルへ戻さずJoin画面を維持する。
 	menu_screen.show_join()
 	menu_screen.set_status(reason)
+
+
+func _on_map_load_failed(reason: String) -> void:
+	NetworkClient.disconnect_from_server()
+	_on_rejected(reason)
 
 
 func _on_status_changed(text: String) -> void:

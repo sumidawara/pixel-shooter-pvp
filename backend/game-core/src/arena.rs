@@ -3,12 +3,16 @@
 use std::{fmt, fs, path::Path};
 
 use bevy::prelude::{Resource, Vec2};
-use pixel_shooter_protocol::PLAYER_RADIUS;
-use serde::{Deserialize, Serialize};
+use pixel_shooter_protocol::{MapDefinition, PLAYER_RADIUS};
+use serde::Serialize;
 
 use crate::model::MAX_PLAYERS;
 
 const CLASSIC_ARENA_JSON: &str = include_str!("../../../frontend/maps/classic_arena.json");
+const MAX_MAP_WIDTH: usize = 256;
+const MAX_MAP_HEIGHT: usize = 256;
+const MIN_TILE_SIZE: u32 = 8;
+const MAX_TILE_SIZE: u32 = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -28,20 +32,6 @@ impl TileKind {
 pub struct GridPosition {
     pub x: usize,
     pub y: usize,
-}
-
-#[derive(Debug, Deserialize)]
-struct MapDefinition {
-    schema_version: u32,
-    id: String,
-    revision: String,
-    name: String,
-    width: usize,
-    height: usize,
-    tile_size: u32,
-    tiles: Vec<String>,
-    spawn_points: Vec<[usize; 2]>,
-    item_spawn_points: Vec<[usize; 2]>,
 }
 
 /// 検証済みのマップ。ゲーム中は文字列ではなくこのResourceだけを参照する。
@@ -101,15 +91,19 @@ impl ArenaMap {
         if definition.revision.trim().is_empty() {
             return Err(MapLoadError::Invalid("revision must not be empty".into()));
         }
-        if definition.width == 0 || definition.height == 0 {
-            return Err(MapLoadError::Invalid(
-                "width and height must be greater than zero".into(),
-            ));
+        if definition.width == 0
+            || definition.width > MAX_MAP_WIDTH
+            || definition.height == 0
+            || definition.height > MAX_MAP_HEIGHT
+        {
+            return Err(MapLoadError::Invalid(format!(
+                "width and height must be within 1..={MAX_MAP_WIDTH} and 1..={MAX_MAP_HEIGHT}"
+            )));
         }
-        if definition.tile_size == 0 {
-            return Err(MapLoadError::Invalid(
-                "tile_size must be greater than zero".into(),
-            ));
+        if !(MIN_TILE_SIZE..=MAX_TILE_SIZE).contains(&definition.tile_size) {
+            return Err(MapLoadError::Invalid(format!(
+                "tile_size must be within {MIN_TILE_SIZE}..={MAX_TILE_SIZE}"
+            )));
         }
         if definition.tiles.len() != definition.height {
             return Err(MapLoadError::Invalid(format!(
@@ -259,6 +253,43 @@ impl ArenaMap {
         self.item_spawn_points.len()
     }
 
+    /// 接続時にGodotへ一度だけ送る、検証済みマップの通信表現。
+    pub fn definition(&self) -> MapDefinition {
+        let tiles = self
+            .tiles
+            .chunks(self.width)
+            .map(|row| {
+                row.iter()
+                    .map(|tile| match tile {
+                        TileKind::Floor => '.',
+                        TileKind::SolidWall => '#',
+                        TileKind::DestructibleWall => 'X',
+                    })
+                    .collect()
+            })
+            .collect();
+        MapDefinition {
+            schema_version: 1,
+            id: self.id.clone(),
+            revision: self.revision.clone(),
+            name: self.name.clone(),
+            width: self.width,
+            height: self.height,
+            tile_size: self.tile_size as u32,
+            tiles,
+            spawn_points: self
+                .spawn_points
+                .iter()
+                .map(|point| [point.x, point.y])
+                .collect(),
+            item_spawn_points: self
+                .item_spawn_points
+                .iter()
+                .map(|point| [point.x, point.y])
+                .collect(),
+        }
+    }
+
     pub fn move_with_collision(&self, position: &mut Vec2, delta: Vec2) {
         let mut next = *position;
         next.x += delta.x;
@@ -387,6 +418,22 @@ mod tests {
         assert_eq!(map.id(), "classic_arena");
         assert_eq!(map.pixel_width(), 640.0);
         assert_eq!(map.pixel_height(), 352.0);
+    }
+
+    #[test]
+    fn network_definition_round_trips_to_the_same_map() {
+        let map = ArenaMap::default();
+        let json = serde_json::to_string(&map.definition()).expect("serialize map definition");
+        let restored = ArenaMap::from_json(&json).expect("deserialize map definition");
+        assert_eq!(restored.id(), map.id());
+        assert_eq!(restored.revision(), map.revision());
+        assert_eq!(restored.width(), map.width());
+        assert_eq!(restored.height(), map.height());
+        assert_eq!(
+            restored.spawn_position(0),
+            map.spawn_position(0),
+            "spawn coordinates must survive transport"
+        );
     }
 
     #[test]

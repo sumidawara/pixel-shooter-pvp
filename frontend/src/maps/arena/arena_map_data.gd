@@ -4,6 +4,10 @@ extends RefCounted
 const FLOOR := 0
 const SOLID_WALL := 1
 const DESTRUCTIBLE_WALL := 2
+const MAX_MAP_WIDTH := 256
+const MAX_MAP_HEIGHT := 256
+const MIN_TILE_SIZE := 8
+const MAX_TILE_SIZE := 128
 
 var schema_version := 0
 var id := ""
@@ -26,8 +30,12 @@ static func load_from_file(path: String) -> ArenaMapData:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("Arena map %s is not a JSON object" % path)
 		return null
+	return from_dictionary(parsed, path)
+
+
+static func from_dictionary(data: Dictionary, source := "server map") -> ArenaMapData:
 	var map := ArenaMapData.new()
-	if not map._load_dictionary(parsed, path):
+	if not map._load_dictionary(data, source):
 		return null
 	return map
 
@@ -43,12 +51,22 @@ func _load_dictionary(data: Dictionary, source: String) -> bool:
 	if schema_version != 1 or id.is_empty() or revision.is_empty():
 		push_error("%s has invalid schema_version, id, or revision" % source)
 		return false
-	if width <= 0 or height <= 0 or tile_size <= 0:
+	if (
+		width <= 0
+		or width > MAX_MAP_WIDTH
+		or height <= 0
+		or height > MAX_MAP_HEIGHT
+		or tile_size < MIN_TILE_SIZE
+		or tile_size > MAX_TILE_SIZE
+	):
 		push_error("%s has invalid map dimensions" % source)
 		return false
 
 	var rows = data.get("tiles", [])
-	if typeof(rows) != TYPE_ARRAY or rows.size() != height:
+	if typeof(rows) != TYPE_ARRAY:
+		push_error("%s tiles must be an array" % source)
+		return false
+	if rows.size() != height:
 		push_error("%s has %d tile rows; expected %d" % [source, rows.size(), height])
 		return false
 	tiles.clear()
@@ -69,10 +87,14 @@ func _load_dictionary(data: Dictionary, source: String) -> bool:
 					push_error("%s has unknown tile '%s' at (%d, %d)" % [source, unknown, x, y])
 					return false
 
-	spawn_points = _read_points(data.get("spawn_points", []), "spawn point", source)
-	item_spawn_points = _read_points(
+	var next_spawn_points = _read_points(data.get("spawn_points", []), "spawn point", source)
+	var next_item_spawn_points = _read_points(
 		data.get("item_spawn_points", []), "item spawn point", source
 	)
+	if next_spawn_points == null or next_item_spawn_points == null:
+		return false
+	spawn_points = next_spawn_points
+	item_spawn_points = next_item_spawn_points
 	if spawn_points.size() < 4 or item_spawn_points.is_empty():
 		push_error("%s needs at least 4 player spawns and 1 item spawn" % source)
 		return false
@@ -83,15 +105,15 @@ func _load_dictionary(data: Dictionary, source: String) -> bool:
 	return true
 
 
-func _read_points(value, label: String, source: String) -> Array[Vector2i]:
+func _read_points(value, label: String, source: String):
 	var result: Array[Vector2i] = []
 	if typeof(value) != TYPE_ARRAY:
 		push_error("%s has invalid %s list" % [source, label])
-		return result
+		return null
 	for entry in value:
 		if typeof(entry) != TYPE_ARRAY or entry.size() != 2:
 			push_error("%s contains an invalid %s" % [source, label])
-			continue
+			return null
 		result.append(Vector2i(int(entry[0]), int(entry[1])))
 	return result
 

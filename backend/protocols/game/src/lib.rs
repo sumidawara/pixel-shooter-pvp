@@ -51,13 +51,15 @@ pub enum ServerMessage {
     Rejected {
         reason: String,
     },
+    MapDefinition {
+        map: MapDefinition,
+    },
     Snapshot(Box<Snapshot>),
 }
 
 #[derive(Debug, Serialize)]
 pub struct Snapshot {
     pub tick: u64,
-    pub map: MapSnapshot,
     pub phase: MatchPhase,
     pub time_left: f32,
     pub winner_id: Option<u64>,
@@ -72,13 +74,18 @@ pub struct Snapshot {
     pub room: RoomSnapshot,
 }
 
-#[derive(Debug, Serialize)]
-pub struct MapSnapshot {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapDefinition {
+    pub schema_version: u32,
     pub id: String,
     pub revision: String,
+    pub name: String,
     pub width: usize,
     pub height: usize,
-    pub tile_size: f32,
+    pub tile_size: u32,
+    pub tiles: Vec<String>,
+    pub spawn_points: Vec<[usize; 2]>,
+    pub item_spawn_points: Vec<[usize; 2]>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -161,4 +168,30 @@ pub struct ItemSnapshot {
     pub id: u64,
     pub position: Vec2,
     pub points: i32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn map_definition_has_a_dedicated_message_type() {
+        let message = ServerMessage::MapDefinition {
+            map: MapDefinition {
+                schema_version: 1,
+                id: "test".into(),
+                revision: "1".into(),
+                name: "Test".into(),
+                width: 2,
+                height: 1,
+                tile_size: 32,
+                tiles: vec![".#".into()],
+                spawn_points: vec![[0, 0]],
+                item_spawn_points: vec![[0, 0]],
+            },
+        };
+        let value = serde_json::to_value(message).expect("serialize map message");
+        assert_eq!(value["type"], "map_definition");
+        assert_eq!(value["map"]["tiles"][0], ".#");
+    }
 }

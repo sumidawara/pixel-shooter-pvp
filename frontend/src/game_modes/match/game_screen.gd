@@ -1,8 +1,8 @@
 extends Node2D
 
 signal exit_requested
+signal map_load_failed(reason: String)
 
-const MAP_PATH := "res://maps/classic_arena.json"
 const PLAYER_RADIUS := 12.0
 const DEFAULT_MOVE_SPEED := 150.0
 const DEFAULT_DASH_SPEED := 520.0
@@ -20,6 +20,7 @@ const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tsc
 const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
 
 @onready var world: Node2D = %World
+@onready var arena_view = $World/Arena
 @onready var item_layer: Node2D = %ItemLayer
 @onready var player_layer: Node2D = %PlayerLayer
 @onready var bullet_layer: Node2D = %BulletLayer
@@ -73,13 +74,23 @@ var bullet_velocities: Dictionary = {}
 # 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
 var item_views: Dictionary = {}
 var arena_map: ArenaMapData
-var map_mismatch_reported := false
+var map_ready := false
 
 
 func _ready() -> void:
-	arena_map = ArenaMapData.load_from_file(MAP_PATH)
+	NetworkClient.map_definition_received.connect(_on_map_definition_received)
 	NetworkClient.snapshot_received.connect(_on_snapshot_received)
 	exit_confirm_modal.exit_confirmed.connect(_confirm_exit)
+
+
+func expect_map() -> void:
+	map_ready = false
+	prediction_ready = false
+	pending_inputs.clear()
+
+
+func is_map_ready() -> bool:
+	return map_ready and arena_map != null
 
 
 func start_session(id: int) -> void:
@@ -167,7 +178,13 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not session_active or player_id == 0 or not NetworkClient.is_open():
+	if (
+		not session_active
+		or not map_ready
+		or arena_map == null
+		or player_id == 0
+		or not NetworkClient.is_open()
+	):
 		return
 	sequence += 1
 	var input_blocked: bool = exit_confirm_modal.is_open()
@@ -212,15 +229,28 @@ func _confirm_exit() -> void:
 	exit_requested.emit()
 
 
+func _on_map_definition_received(definition: Dictionary) -> void:
+	var next_map := ArenaMapData.from_dictionary(definition)
+	if next_map == null:
+		map_ready = false
+		set_connection_status("INVALID MAP DEFINITION")
+		map_load_failed.emit("Server sent an invalid map definition")
+		return
+	arena_map = next_map
+	map_ready = true
+	arena_view.set_arena_map(arena_map)
+	prediction_ready = false
+	pending_inputs.clear()
+
+
 func _on_snapshot_received(snapshot: Dictionary) -> void:
-	if not session_active:
+	if not session_active or not map_ready:
 		return
 	var next_players: Array = snapshot.get("players", [])
 	var next_bullets: Array = snapshot.get("bullets", [])
 	var next_items: Array = snapshot.get("items", [])
 	var next_phase := str(snapshot.get("phase", "waiting"))
 	var next_time := float(snapshot.get("time_left", 0.0))
-	_validate_snapshot_map(snapshot.get("map", {}))
 	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
 	players = next_players
 	players_by_id.clear()
@@ -474,25 +504,6 @@ func _valid_player_position(position: Vector2) -> bool:
 	):
 		return false
 	return not arena_map.obstacle_at(position, PLAYER_RADIUS)
-
-
-func _validate_snapshot_map(map_snapshot: Dictionary) -> void:
-	if arena_map == null or map_snapshot.is_empty() or map_mismatch_reported:
-		return
-	if (
-		str(map_snapshot.get("id", "")) != arena_map.id
-		or str(map_snapshot.get("revision", "")) != arena_map.revision
-	):
-		map_mismatch_reported = true
-		push_error(
-			"Server map %s@%s does not match client map %s@%s"
-			% [
-				map_snapshot.get("id", ""),
-				map_snapshot.get("revision", ""),
-				arena_map.id,
-				arena_map.revision
-			]
-		)
 
 
 func _player_color(id: int) -> Color:
