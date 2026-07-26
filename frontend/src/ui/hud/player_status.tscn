@@ -1,0 +1,58 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/hud/player_status.gd" id="1_script"]
+[ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="2_theme"]
+
+[node name="PlayerStatus" type="Control"]
+custom_minimum_size = Vector2(150, 38)
+layout_mode = 3
+anchors_preset = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="InfoLabel" type="Label" parent="."]
+unique_name_in_owner = true
+offset_right = 150.0
+offset_bottom = 15.0
+theme_override_font_sizes/font_size = 10
+text = "PLAYER 0 PTS 6/6"
+
+[node name="HpContainer" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+offset_top = 17.0
+offset_right = 108.0
+offset_bottom = 29.0
+theme_override_constants/separation = 4
+
+[node name="Hp1" type="ColorRect" parent="HpContainer"]
+custom_minimum_size = Vector2(18, 10)
+layout_mode = 2
+color = Color(0.15, 0.9, 1, 1)
+
+[node name="Hp2" type="ColorRect" parent="HpContainer"]
+custom_minimum_size = Vector2(18, 10)
+layout_mode = 2
+color = Color(0.15, 0.9, 1, 1)
+
+[node name="Hp3" type="ColorRect" parent="HpContainer"]
+custom_minimum_size = Vector2(18, 10)
+layout_mode = 2
+color = Color(0.15, 0.9, 1, 1)
+
+[node name="Hp4" type="ColorRect" parent="HpContainer"]
+custom_minimum_size = Vector2(18, 10)
+layout_mode = 2
+color = Color(0.15, 0.9, 1, 1)
+
+[node name="Hp5" type="ColorRect" parent="HpContainer"]
+custom_minimum_size = Vector2(18, 10)
+layout_mode = 2
+color = Color(0.15, 0.9, 1, 1)
+
+[node name="DashBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+offset_top = 33.0
+offset_right = 106.0
+offset_bottom = 37.0
+value = 100.0
+show_percentage = false

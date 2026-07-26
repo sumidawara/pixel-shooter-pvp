@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const sampleRate = 44_100;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const outputDirectory = resolve(root, "frontend/assets/audio");
+const outputDirectory = resolve(root, "frontend/src/shared/audio");
 
 function noise(index) {
   const value = Math.sin(index * 12.9898 + 78.233) * 43_758.5453;

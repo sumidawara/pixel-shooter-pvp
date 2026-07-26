@@ -1,0 +1,491 @@
+extends Node2D
+
+signal exit_requested
+
+const ARENA_SIZE := Vector2(640.0, 360.0)
+const PLAYER_RADIUS := 12.0
+const DEFAULT_MOVE_SPEED := 150.0
+const DEFAULT_DASH_SPEED := 520.0
+const DEFAULT_DASH_DURATION := 0.13
+const DEFAULT_DASH_COOLDOWN := 1.1
+const INTERPOLATION_SPEED := 14.0
+const CORRECTION_DECAY := 18.0
+const CYAN := Color("#27e5ff")
+const MAGENTA := Color("#ff38c7")
+const YELLOW := Color("#ffe66d")
+const GREEN := Color("#7cff6b")
+const OBSTACLES := [Rect2(250, 85, 140, 28), Rect2(250, 247, 140, 28)]
+
+const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
+const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")
+const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
+
+@onready var world: Node2D = %World
+@onready var item_layer: Node2D = %ItemLayer
+@onready var player_layer: Node2D = %PlayerLayer
+@onready var bullet_layer: Node2D = %BulletLayer
+@onready var effect_layer: Node2D = %EffectLayer
+@onready var hud = %HUD
+@onready var shot_player: AudioStreamPlayer = %ShotPlayer
+@onready var hit_player: AudioStreamPlayer = %HitPlayer
+@onready var dash_player: AudioStreamPlayer = %DashPlayer
+@onready var reload_player: AudioStreamPlayer = %ReloadPlayer
+@onready var countdown_player: AudioStreamPlayer = %CountdownPlayer
+@onready var match_start_player: AudioStreamPlayer = %MatchStartPlayer
+@onready var match_end_player: AudioStreamPlayer = %MatchEndPlayer
+@onready var exit_confirm_modal = %ExitConfirmModal
+
+var session_active := false
+var player_id := 0
+var sequence := 0
+var players: Array = []
+var players_by_id: Dictionary = {}
+var player_views: Dictionary = {}
+var phase := "waiting"
+var time_left := 0.0
+var winner_id = null
+var reconnect_grace_left := 0.0
+var connection_status := "READY"
+var countdown_second := -1
+
+var move_speed := DEFAULT_MOVE_SPEED
+var dash_speed := DEFAULT_DASH_SPEED
+var dash_duration := DEFAULT_DASH_DURATION
+var dash_cooldown := DEFAULT_DASH_COOLDOWN
+
+# ローカルプレイヤーの入力予測。
+var predicted_position := Vector2.ZERO
+var predicted_dash_time := 0.0
+var predicted_dash_cooldown := 0.0
+var predicted_dash_direction := Vector2.ZERO
+var prediction_ready := false
+var pending_inputs: Array = []
+var prediction_visual_offset := Vector2.ZERO
+
+# 他プレイヤーの補間位置。
+var remote_render_positions: Dictionary = {}
+var remote_target_positions: Dictionary = {}
+
+# 弾の外挿位置と表示ノード。
+var bullet_views: Dictionary = {}
+var bullet_positions: Dictionary = {}
+var bullet_velocities: Dictionary = {}
+
+# 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
+var item_views: Dictionary = {}
+
+
+func _ready() -> void:
+	NetworkClient.snapshot_received.connect(_on_snapshot_received)
+	exit_confirm_modal.exit_confirmed.connect(_confirm_exit)
+
+
+func start_session(id: int) -> void:
+	end_session()
+	player_id = id
+	session_active = true
+	visible = true
+	hud.visible = true
+	set_process(true)
+	set_physics_process(true)
+
+
+func resume_session(id: int) -> void:
+	player_id = id
+	session_active = true
+	hud.visible = true
+	prediction_ready = false
+	pending_inputs.clear()
+
+
+func end_session() -> void:
+	session_active = false
+	if is_instance_valid(hud):
+		hud.visible = false
+	if is_instance_valid(exit_confirm_modal):
+		exit_confirm_modal.close_modal()
+	player_id = 0
+	sequence = 0
+	players.clear()
+	players_by_id.clear()
+	phase = "waiting"
+	prediction_ready = false
+	pending_inputs.clear()
+	prediction_visual_offset = Vector2.ZERO
+	remote_render_positions.clear()
+	remote_target_positions.clear()
+	for view in player_views.values():
+		view.queue_free()
+	player_views.clear()
+	for view in bullet_views.values():
+		view.queue_free()
+	bullet_views.clear()
+	bullet_positions.clear()
+	bullet_velocities.clear()
+	for view in item_views.values():
+		view.queue_free()
+	item_views.clear()
+	effect_layer.clear()
+	world.position = Vector2.ZERO
+
+
+func set_connection_status(text: String) -> void:
+	connection_status = text
+	if is_instance_valid(hud):
+		hud.set_connection_status(text)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or not session_active or not event.is_action_pressed("ui_cancel"):
+		return
+	if exit_confirm_modal.is_open():
+		exit_confirm_modal.close_modal()
+	else:
+		exit_confirm_modal.open_modal()
+	get_viewport().set_input_as_handled()
+
+
+func _process(delta: float) -> void:
+	if not session_active:
+		return
+	var interpolation_weight := 1.0 - exp(-INTERPOLATION_SPEED * delta)
+	for id in remote_target_positions:
+		var current: Vector2 = remote_render_positions.get(id, remote_target_positions[id])
+		remote_render_positions[id] = current.lerp(remote_target_positions[id], interpolation_weight)
+	for id in bullet_positions:
+		bullet_positions[id] += bullet_velocities.get(id, Vector2.ZERO) * delta
+		if bullet_views.has(id):
+			bullet_views[id].position = bullet_positions[id]
+	prediction_visual_offset = prediction_visual_offset.lerp(
+		Vector2.ZERO,
+		1.0 - exp(-CORRECTION_DECAY * delta)
+	)
+	world.position = effect_layer.current_shake_offset()
+	_update_player_views()
+
+
+func _physics_process(delta: float) -> void:
+	if not session_active or player_id == 0 or not NetworkClient.is_open():
+		return
+	sequence += 1
+	var input_blocked: bool = exit_confirm_modal.is_open()
+	var movement := (
+		Vector2.ZERO
+		if input_blocked
+		else Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	)
+	var origin := predicted_position if prediction_ready else ARENA_SIZE * 0.5
+	var aim := (get_viewport().get_mouse_position() - origin).normalized()
+	if aim == Vector2.ZERO:
+		aim = Vector2.RIGHT
+	var input_record := {
+		"sequence": sequence,
+		"delta": delta,
+		"movement": movement,
+		"dash_pressed": not input_blocked and Input.is_action_just_pressed("dash"),
+	}
+	if _is_playing_phase() and not input_blocked:
+		pending_inputs.append(input_record)
+		_simulate_predicted_input(input_record)
+	else:
+		pending_inputs.clear()
+	NetworkClient.send_input({
+		"type": "input",
+		"sequence": sequence,
+		"move_x": movement.x,
+		"move_y": movement.y,
+		"aim_x": aim.x,
+		"aim_y": aim.y,
+		"shooting": not input_blocked and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT),
+		"reload_pressed": not input_blocked and Input.is_action_just_pressed("reload"),
+		"dash_pressed": bool(input_record.dash_pressed),
+	})
+
+
+func _confirm_exit() -> void:
+	exit_requested.emit()
+
+
+func _on_snapshot_received(snapshot: Dictionary) -> void:
+	if not session_active:
+		return
+	var next_players: Array = snapshot.get("players", [])
+	var next_bullets: Array = snapshot.get("bullets", [])
+	var next_items: Array = snapshot.get("items", [])
+	var next_phase := str(snapshot.get("phase", "waiting"))
+	var next_time := float(snapshot.get("time_left", 0.0))
+	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
+	players = next_players
+	players_by_id.clear()
+	for player in players:
+		players_by_id[int(player.get("id", 0))] = player
+	phase = next_phase
+	time_left = next_time
+	winner_id = snapshot.get("winner_id")
+	reconnect_grace_left = float(snapshot.get("reconnect_grace_left", 0.0))
+	move_speed = float(snapshot.get("move_speed", DEFAULT_MOVE_SPEED))
+	dash_speed = float(snapshot.get("dash_speed", DEFAULT_DASH_SPEED))
+	dash_duration = float(snapshot.get("dash_duration", DEFAULT_DASH_DURATION))
+	dash_cooldown = float(snapshot.get("dash_cooldown", DEFAULT_DASH_COOLDOWN))
+	_sync_players()
+	_sync_bullets(next_bullets)
+	_sync_items(next_items)
+	hud.apply_snapshot(
+		players,
+		phase,
+		time_left,
+		winner_id,
+		reconnect_grace_left,
+		dash_cooldown
+	)
+
+
+func _sync_items(next_items: Array) -> void:
+	var active_ids: Dictionary = {}
+	for item in next_items:
+		var id := int(item.get("id", 0))
+		active_ids[id] = true
+		if not item_views.has(id):
+			var view = ITEM_VIEW_SCENE.instantiate()
+			item_layer.add_child(view)
+			view.configure(int(item.get("points", 0)))
+			item_views[id] = view
+		item_views[id].position = _to_vector(item.get("position", {}))
+	for id in item_views.keys():
+		if not active_ids.has(id):
+			item_views[id].queue_free()
+			item_views.erase(id)
+
+
+func _sync_players() -> void:
+	var active_ids: Dictionary = {}
+	for player in players:
+		var id := int(player.get("id", 0))
+		active_ids[id] = true
+		var server_position := _to_vector(player.get("position", {}))
+		if not player_views.has(id):
+			var view = PLAYER_VIEW_SCENE.instantiate()
+			player_layer.add_child(view)
+			player_views[id] = view
+		if id == player_id:
+			_reconcile_local_player(player, server_position)
+		else:
+			remote_target_positions[id] = server_position
+			if not remote_render_positions.has(id):
+				remote_render_positions[id] = server_position
+	for id in player_views.keys():
+		if not active_ids.has(id):
+			player_views[id].queue_free()
+			player_views.erase(id)
+			remote_target_positions.erase(id)
+			remote_render_positions.erase(id)
+	_update_player_views()
+
+
+func _sync_bullets(next_bullets: Array) -> void:
+	var active_ids: Dictionary = {}
+	for bullet in next_bullets:
+		var id := int(bullet.get("id", 0))
+		var server_position := _to_vector(bullet.get("position", {}))
+		var velocity := _to_vector(bullet.get("velocity", {}))
+		active_ids[id] = true
+		bullet_velocities[id] = velocity
+		if bullet_positions.has(id):
+			var current: Vector2 = bullet_positions[id]
+			var error := current.distance_to(server_position)
+			bullet_positions[id] = (
+				server_position if error > 32.0 else current.lerp(server_position, 0.5)
+			)
+		else:
+			bullet_positions[id] = server_position
+		if not bullet_views.has(id):
+			var view = BULLET_VIEW_SCENE.instantiate()
+			bullet_layer.add_child(view)
+			bullet_views[id] = view
+		bullet_views[id].configure(_player_color(int(bullet.get("owner_id", 0))), velocity)
+		bullet_views[id].position = bullet_positions[id]
+	for id in bullet_views.keys():
+		if not active_ids.has(id):
+			bullet_views[id].queue_free()
+			bullet_views.erase(id)
+			bullet_positions.erase(id)
+			bullet_velocities.erase(id)
+
+
+func _update_player_views() -> void:
+	for id in player_views:
+		if not players_by_id.has(id):
+			continue
+		var player: Dictionary = players_by_id[id]
+		var moving := bool(player.get("dashing", false))
+		if id == player_id:
+			moving = moving or Input.get_vector(
+				"move_left", "move_right", "move_up", "move_down"
+			).length_squared() > 0.01
+			player_views[id].position = (
+				predicted_position + prediction_visual_offset
+				if prediction_ready
+				else _to_vector(player.get("position", {}))
+			)
+		else:
+			moving = moving or (
+				remote_target_positions.has(id)
+				and remote_render_positions.has(id)
+				and Vector2(remote_target_positions[id]).distance_to(remote_render_positions[id]) > 0.8
+			)
+			player_views[id].position = remote_render_positions.get(
+				id,
+				_to_vector(player.get("position", {}))
+			)
+		player_views[id].apply_state(player, _player_color(id), moving)
+
+
+func _capture_snapshot_effects(
+	next_players: Array,
+	next_bullets: Array,
+	next_items: Array,
+	next_phase: String,
+	next_time: float
+) -> void:
+	for player in next_players:
+		var id := int(player.get("id", 0))
+		if not players_by_id.has(id):
+			continue
+		var old: Dictionary = players_by_id[id]
+		var position := _to_vector(player.get("position", {}))
+		var color := _player_color_for_list(id, next_players)
+		if int(player.get("hp", 0)) < int(old.get("hp", 0)):
+			effect_layer.spawn_burst(position, color, 14, 120.0)
+			effect_layer.flash(0.45)
+			effect_layer.shake(5.0)
+			hit_player.play()
+		if bool(old.get("alive", true)) and not bool(player.get("alive", true)):
+			effect_layer.spawn_burst(position, Color.WHITE, 26, 180.0)
+			effect_layer.shake(8.0)
+		if not bool(old.get("reloading", false)) and bool(player.get("reloading", false)):
+			reload_player.play()
+		if not bool(old.get("dashing", false)) and bool(player.get("dashing", false)):
+			effect_layer.spawn_burst(position, color, 8, 80.0)
+			dash_player.play()
+
+	var next_bullet_ids: Dictionary = {}
+	for bullet in next_bullets:
+		var id := int(bullet.get("id", 0))
+		next_bullet_ids[id] = true
+		if not bullet_positions.has(id):
+			var position := _to_vector(bullet.get("position", {}))
+			var velocity := _to_vector(bullet.get("velocity", {}))
+			var color := _player_color_for_list(int(bullet.get("owner_id", 0)), next_players)
+			effect_layer.spawn_sparkle(position - velocity.normalized() * 9.0, color)
+			shot_player.play()
+	for id in bullet_positions.keys():
+		if not next_bullet_ids.has(id):
+			effect_layer.spawn_burst(bullet_positions[id], Color.WHITE, 5, 65.0)
+
+	var next_item_ids: Dictionary = {}
+	for item in next_items:
+		next_item_ids[int(item.get("id", 0))] = true
+	if next_phase == "running":
+		for id in item_views:
+			if not next_item_ids.has(id):
+				effect_layer.spawn_burst(item_views[id].position, Color.WHITE, 16, 105.0)
+
+	var next_second := int(ceil(next_time))
+	if next_phase == "countdown" and next_second != countdown_second:
+		countdown_second = next_second
+		countdown_player.play()
+	if next_phase != phase:
+		if next_phase == "running":
+			match_start_player.play()
+			effect_layer.flash(0.28)
+		elif next_phase == "match_finished":
+			match_end_player.play()
+		if next_phase != "countdown":
+			countdown_second = -1
+
+
+func _reconcile_local_player(player: Dictionary, server_position: Vector2) -> void:
+	var old_visual_position := predicted_position + prediction_visual_offset
+	var acknowledged_sequence := int(player.get("last_input_sequence", 0))
+	var remaining_inputs: Array = []
+	for input_record in pending_inputs:
+		if int(input_record.get("sequence", 0)) > acknowledged_sequence:
+			remaining_inputs.append(input_record)
+	pending_inputs = remaining_inputs
+	predicted_position = server_position
+	predicted_dash_time = float(player.get("dash_time_left", 0.0))
+	predicted_dash_cooldown = float(player.get("dash_cooldown_left", 0.0))
+	prediction_ready = true
+	for input_record in pending_inputs:
+		_simulate_predicted_input(input_record)
+	prediction_visual_offset = old_visual_position - predicted_position
+
+
+func _simulate_predicted_input(input_record: Dictionary) -> void:
+	if not prediction_ready:
+		return
+	var delta := float(input_record.get("delta", 0.0))
+	var movement: Vector2 = input_record.get("movement", Vector2.ZERO)
+	predicted_dash_cooldown = maxf(predicted_dash_cooldown - delta, 0.0)
+	if (
+		bool(input_record.get("dash_pressed", false))
+		and predicted_dash_cooldown <= 0.0
+		and movement.length_squared() > 0.001
+	):
+		predicted_dash_direction = movement.normalized()
+		predicted_dash_time = dash_duration
+		predicted_dash_cooldown = dash_cooldown
+	var direction := movement
+	var speed := move_speed
+	if predicted_dash_time > 0.0:
+		predicted_dash_time = maxf(predicted_dash_time - delta, 0.0)
+		direction = predicted_dash_direction
+		speed = dash_speed
+	_move_predicted_with_collision(direction * speed * delta)
+
+
+func _move_predicted_with_collision(delta: Vector2) -> void:
+	var next := predicted_position
+	next.x += delta.x
+	if _valid_player_position(next):
+		predicted_position.x = next.x
+	next = predicted_position
+	next.y += delta.y
+	if _valid_player_position(next):
+		predicted_position.y = next.y
+
+
+func _valid_player_position(position: Vector2) -> bool:
+	if (
+		position.x < PLAYER_RADIUS
+		or position.x > ARENA_SIZE.x - PLAYER_RADIUS
+		or position.y < PLAYER_RADIUS
+		or position.y > ARENA_SIZE.y - PLAYER_RADIUS
+	):
+		return false
+	for obstacle in OBSTACLES:
+		if obstacle.grow(PLAYER_RADIUS).has_point(position):
+			return false
+	return true
+
+
+func _player_color(id: int) -> Color:
+	return _player_color_for_list(id, players)
+
+
+func _player_color_for_list(id: int, player_list: Array) -> Color:
+	var sorted_ids: Array[int] = []
+	for player in player_list:
+		sorted_ids.append(int(player.get("id", 0)))
+	sorted_ids.sort()
+	var index := sorted_ids.find(id)
+	var colors := [CYAN, MAGENTA, YELLOW, GREEN]
+	return colors[maxi(index, 0) % colors.size()]
+
+
+func _to_vector(value: Dictionary) -> Vector2:
+	return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+
+
+func _is_playing_phase() -> bool:
+	return phase == "running"

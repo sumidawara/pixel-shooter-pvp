@@ -34,12 +34,12 @@ Main
 
 ## 主なシーン
 
-- `scenes/ui/menu_screen.tscn`: タイトル、Play、ルーム、設定画面
-- `scenes/game/game_screen.tscn`: 対戦画面全体
-- `scenes/game/player_view.tscn`: プレイヤー1体の表示
-- `scenes/game/bullet_view.tscn`: 弾1発の表示
-- `scenes/game/item_view.tscn`: 得点アイテム1個の表示
-- `scenes/ui/hud.tscn`: 対戦HUDとオーバーレイ
-- `scenes/ui/player_status.tscn`: 1人分のHP、弾数、ダッシュ表示
+- `src/ui/menu/menu_screen.tscn`: タイトル、Play、ルーム、設定画面
+- `src/game_modes/match/game_screen.tscn`: 対戦画面全体
+- `src/actors/player/player_view.tscn`: プレイヤー1体の表示
+- `src/combat/projectiles/bullet_view.tscn`: 弾1発の表示
+- `src/combat/items/item_view.tscn`: 得点アイテム1個の表示
+- `src/ui/hud/hud.tscn`: 対戦HUDとオーバーレイ
+- `src/ui/hud/player_status.tscn`: 1人分のHP、弾数、ダッシュ表示
 
-色やフォントなどの共通UI設定は `themes/pixel_theme.tres` にまとめています。
+色やフォントなどの共通UI設定は `src/shared/themes/pixel_theme.tres` にまとめています。

@@ -65,7 +65,7 @@ Pause、1 tick Step、Resumeを操作できる。詳しくは
 [`docs/deployment.md`](docs/deployment.md)を参照。
 
 Godotクライアントの接続先は
-[`frontend/scripts/network_config.gd`](frontend/scripts/network_config.gd)へ集約している。
+[`frontend/src/networking/network_config.gd`](frontend/src/networking/network_config.gd)へ集約している。
 一時的に別の接続先を使う場合は、起動時に`PIXEL_SHOOTER_SERVER_URL`環境変数でも
 上書きできる。
 
@@ -188,12 +188,15 @@ make release RELEASE_TARGET=pck
 ## 構成
 
 - `frontend/`: Godotクライアント
-  - `scenes/main.tscn`: メニューとゲーム画面を配置するルート
-  - `scripts/host_server_controller.gd`: デスクトップ版のRustサーバー起動・終了
-  - `scenes/game/`: Arena、Player、Bullet、GameScreen
-  - `scenes/ui/`: 接続メニュー、HUD、プレイヤー状態表示
-  - `scripts/network_client.gd`: AutoloadのWebSocketクライアント
-  - `themes/pixel_theme.tres`: 共通ピクセルフォントとUIスタイル
+  - `src/app/`: メニューとゲーム画面を配置するルート
+  - `src/actors/`: プレイヤーなどのActor
+  - `src/combat/`: 弾やアイテムなどの戦闘要素
+  - `src/game_modes/`: 対戦進行とエフェクト
+  - `src/maps/`: Arenaなどのマップ
+  - `src/networking/`: 接続設定とデスクトップ版Rustサーバーの制御
+  - `src/autoload/`: AutoloadのWebSocketクライアント
+  - `src/ui/`: 接続メニュー、HUD、プレイヤー状態表示
+  - `src/shared/`: 共通の音声、フォント、テーマ
 - `backend/game-core/`: 実時間と通信から独立した`GameTick`とゲームルール
 - `backend/game-server/`: 1プロセス＝1ルームのWebSocket権威サーバー
 - `backend/matchmaker/`: GameServer割当要求とJoin Ticket発行

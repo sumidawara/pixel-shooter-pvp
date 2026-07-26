@@ -1,0 +1,62 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/actors/player/player_view.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://src/actors/player/player_stand.png" id="2_sprite"]
+[ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
+
+[node name="PlayerView" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="DashTrail" type="Line2D" parent="."]
+unique_name_in_owner = true
+width = 8.0
+default_color = Color(0.15, 0.9, 1, 0.35)
+
+[node name="OutlineSprite" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+texture = ExtResource("2_sprite")
+scale = Vector2(1.16, 1.16)
+
+[node name="CharacterSprite" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+texture = ExtResource("2_sprite")
+
+[node name="AimLine" type="Line2D" parent="."]
+unique_name_in_owner = true
+width = 4.0
+default_color = Color(0.15, 0.9, 1, 1)
+
+[node name="NameLabel" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = -35.0
+offset_top = -27.0
+offset_right = 35.0
+offset_bottom = -10.0
+theme = ExtResource("3_theme")
+theme_override_font_sizes/font_size = 10
+text = "Player"
+horizontal_alignment = 1
+
+[node name="DisconnectedLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_left = -42.0
+offset_top = -42.0
+offset_right = 42.0
+offset_bottom = -27.0
+theme = ExtResource("3_theme")
+theme_override_font_sizes/font_size = 9
+text = "DISCONNECTED"
+horizontal_alignment = 1
+
+[node name="RespawnLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_left = -42.0
+offset_top = -8.0
+offset_right = 42.0
+offset_bottom = 8.0
+theme = ExtResource("3_theme")
+theme_override_font_sizes/font_size = 10
+text = "RESPAWN 2.0"
+horizontal_alignment = 1

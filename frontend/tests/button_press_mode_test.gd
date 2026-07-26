@@ -6,7 +6,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var main_scene: PackedScene = load("res://scenes/main.tscn")
+	var main_scene: PackedScene = load("res://src/app/main.tscn")
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
