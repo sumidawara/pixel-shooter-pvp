@@ -7,53 +7,92 @@ GodotフロントエンドとRust + Bevy権威サーバーで動く、最大4人
 
 - Rust 1.92以降（Bevy 0.18を使用）
 - Godot 4.7以降
+- DockerとDocker Compose
+- Node.jsとnpm（Adminデバッグ画面と統合試験）
+- Make
 
-## 起動
+## 開発クイックスタート
 
-最初にサーバーを起動する。
+利用できるコマンドは`make help`で確認できる。
 
 ```sh
-cargo run --release -p pixel-shooter-server
+make help
+make doctor
+make setup
 ```
 
-Godotで `frontend/project.godot` を開いて実行し、`PLAY`から`JOIN ROOM`を選んで
-`ws://127.0.0.1:9001`へ接続する。最初に入室したプレイヤーがホストになり、
-CPU追加、ルール設定、試合開始を操作できる。2人で確認する場合は、エディター設定の
-「複数インスタンスを実行」を有効にするか、CPUを追加する。
-ホスト1人のままSTART GAMEを押した場合は、対戦相手のCPUが1体自動追加される。
-
-デスクトップ版の`CREATE ROOM`は同梱したRustサーバーを子プロセスとして起動する。
-Godotエディターでは`target/debug/pixel-shooter-server`を自動検出するため、
-先に一度`cargo build -p pixel-shooter-server`を実行しておく。
-ターミナルでサーバーを先に起動した場合は`CREATE ROOM`ではなく`JOIN ROOM`を使う。
-同じポートで`CREATE ROOM`を選ぶと、ポート使用中のエラーを表示する。
-
-複数サーバー構成はDocker Composeで起動できる。
+通常の開発では、Admin Server、Matchmaker、Game Server 2台をまとめて起動する。
 
 ```sh
-docker compose up --build
+make dev
+```
+
+`make dev`はComposeイメージを再ビルドしてバックエンド全体を起動し、Game Serverの
+登録完了まで待って接続先を表示する。ビルド済みイメージをそのまま起動する場合は
+`make up`、バックエンド変更を反映する場合は`make rebuild`を使う。
+
+```sh
+make ps
+make logs
+make logs SERVICE=matchmaker
+make integration
+make down
+```
+
+GodotがPATHにある場合は、次のコマンドでプロジェクトを開ける。
+
+```sh
+make godot
+```
+
+macOSでGodotをPATHへ追加していない場合:
+
+```sh
+make godot GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot
+```
+
+Macとバックエンドが別マシンの場合は、Mac側のリポジトリでSSHトンネルを起動する。
+
+```sh
+make tunnel SSH_HOST=backend-host
 ```
 
 Godotの`JOIN ROOM`へ`http://127.0.0.1:8080`を入力すると、Matchmakerが
-GameServerを割り当て、Join Ticketを発行し、そのGameServerへ直接接続する。
-詳しくは[`docs/deployment.md`](docs/deployment.md)を参照。
+Game Serverを割り当て、Join Ticketを発行し、そのGame Serverへ直接接続する。
+Admin Serverのデバッグ画面は`http://127.0.0.1:8081/debug/`で確認できる。
+対象GameServerの選択、マップ・Entity・Snapshotの表示に加え、
+Pause、1 tick Step、Resumeを操作できる。詳しくは
+[`docs/deployment.md`](docs/deployment.md)を参照。
 
 Godotクライアントの接続先は
 [`frontend/scripts/network_config.gd`](frontend/scripts/network_config.gd)へ集約している。
-Docker Compose利用時の初期接続先はMatchmakerの`http://127.0.0.1:8080`。
 一時的に別の接続先を使う場合は、起動時に`PIXEL_SHOOTER_SERVER_URL`環境変数でも
 上書きできる。
 
-AdminServerのデバッグ画面は`http://127.0.0.1:8081/debug/`で確認できる。
-対象GameServerの選択、マップ・Entity・Snapshotの表示に加え、
-Pause、1 tick Step、Resumeを操作できる。Svelte画面を変更した場合は、
-Rustをビルドする前に次を実行して埋め込み用ファイルを更新する。
+Adminデバッグ画面を変更した場合:
 
 ```sh
-cd tools/debug-web
-npm ci
-npm run build
+make web-install
+make web-build
 ```
+
+## Game Server単体での開発
+
+ゲームルールやWebSocket通信だけを素早く確認する場合は、Dockerを介さず直接起動できる。
+Compose環境が起動中なら9001番ポートが競合するため、先に`make down`で停止する。
+
+```sh
+make run-game-server
+```
+
+Godotの`JOIN ROOM`へ`ws://127.0.0.1:9001`を入力する。最初に入室したプレイヤーが
+ホストになり、CPU追加、ルール設定、試合開始を操作できる。2人で確認する場合は、
+エディター設定の「複数インスタンスを実行」を有効にするか、CPUを追加する。
+ホスト1人のままSTART GAMEを押した場合は、対戦相手のCPUが1体自動追加される。
+
+デスクトップ版の`CREATE ROOM`はRustサーバーを子プロセスとして起動する。
+Godotエディターでは`target/debug/pixel-shooter-server`を自動検出するため、先に
+`make build-game-server`を実行しておく。
 
 操作:
 
@@ -83,7 +122,7 @@ Control APIは外部へ直接公開せず、AdminServerを介して操作する�
 ```sh
 PIXEL_SHOOTER_LATENCY_MS=120 \
 PIXEL_SHOOTER_PACKET_LOSS_PERCENT=20 \
-cargo run -p pixel-shooter-server
+make run-game-server
 ```
 
 9001番ポートを別のサーバーが使用中なら、試験用ポートも変更できる。
@@ -92,7 +131,7 @@ cargo run -p pixel-shooter-server
 PIXEL_SHOOTER_BIND_ADDR=127.0.0.1:9002 \
 PIXEL_SHOOTER_LATENCY_MS=120 \
 PIXEL_SHOOTER_PACKET_LOSS_PERCENT=20 \
-cargo run -p pixel-shooter-server
+make run-game-server
 ```
 
 別のターミナルで自動試験クライアントを実行する。
@@ -110,7 +149,7 @@ node scripts/reconnect_test.mjs
 途中離脱の短縮試験では、再接続猶予だけを1秒にできる。
 
 ```sh
-PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS=1 cargo run -p pixel-shooter-server
+PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS=1 make run-game-server
 node scripts/forfeit_test.mjs
 node scripts/cpu_orphan_test.mjs
 ```
@@ -131,16 +170,16 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 インストールした後、macOS版とサーバーを次のコマンドで作成する。
 
 ```sh
-./scripts/build_release.sh macos
+make release RELEASE_TARGET=macos
 ```
 
-`windows`、`linux`、`server` も指定できる。Godot本体が標準の場所にない場合は
-`GODOT_BIN` で実行ファイルを指定する。出力はGit管理外の `dist/` に作られる。
+`windows`、`linux`、`server`も指定できる。GodotがPATHにない場合は`GODOT_BIN`で
+実行ファイルを指定する。出力はGit管理外の`dist/`に作られる。
 
 エクスポートテンプレートなしでクライアントのパックだけを検証する場合:
 
 ```sh
-./scripts/build_release.sh pck
+make release RELEASE_TARGET=pck
 ```
 
 画像・フォントの出典と効果音の再生成方法は
@@ -163,6 +202,7 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 - `backend/protocols/admin/`: サーバー間の管理通信型とTicket署名
 - `docs/`: プロトコル、ゲームルール、バックエンド構成
 - `docker-compose.yml`: 固定数GameServerプールの開発構成
+- `Makefile`: 開発、検査、Compose操作、リリースの共通コマンド
 - `server.json`: サーバーの運用・ゲーム設定
 - `scripts/build_release.sh`: サーバーとクライアントの配布ビルド
 

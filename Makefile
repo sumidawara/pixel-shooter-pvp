@@ -1,0 +1,175 @@
+SHELL := /bin/sh
+
+CARGO ?= cargo
+COMPOSE ?= docker compose
+CURL ?= curl
+GODOT_BIN ?= godot
+NODE ?= node
+NPM ?= npm
+SSH ?= ssh
+
+SERVICE ?=
+RELEASE_TARGET ?= macos
+SSH_HOST ?=
+WAIT_SECONDS ?= 30
+
+.PHONY: help doctor setup \
+	dev up rebuild build-images config stop down restart ps logs wait integration urls tunnel \
+	build build-game-server check test fmt fmt-check lint verify \
+	run-game-server run-matchmaker run-admin-server \
+	web-install web-build web-check web-dev godot sfx release
+
+help: ## 利用できる開発コマンドを表示
+	@awk 'BEGIN {FS = ":.*## "; printf "Pixel Shooter PvP development commands\n\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '\nExamples:\n'
+	@printf '  make dev\n'
+	@printf '  make logs SERVICE=matchmaker\n'
+	@printf '  make tunnel SSH_HOST=backend-host\n'
+	@printf '  make release RELEASE_TARGET=macos\n'
+
+doctor: ## 必要な開発ツールとバージョンを確認
+	@missing=0; \
+	for command in "$(CARGO)" docker "$(NODE)" "$(NPM)" "$(CURL)" "$(SSH)"; do \
+		if ! command -v "$$command" >/dev/null 2>&1; then \
+			printf 'missing: %s\n' "$$command"; \
+			missing=1; \
+		fi; \
+	done; \
+	if [ "$$missing" -ne 0 ]; then exit 1; fi
+	@$(CARGO) --version
+	@$(COMPOSE) version
+	@$(NODE) --version
+	@$(NPM) --version
+
+setup: ## Rust依存とデバッグWeb依存を取得
+	$(CARGO) fetch --locked
+	$(NPM) --prefix tools/debug-web ci
+
+dev: ## Compose全体を再ビルド・起動し、利用可能になるまで待機
+	$(COMPOSE) up --detach --build
+	@$(MAKE) wait
+	@$(MAKE) urls
+
+up: ## ビルド済みComposeイメージを起動
+	$(COMPOSE) up --detach --no-build $(SERVICE)
+
+rebuild: ## Composeイメージを再ビルドして起動
+	$(COMPOSE) up --detach --build $(SERVICE)
+
+build-images: ## Composeイメージだけをビルド
+	$(COMPOSE) build $(SERVICE)
+
+config: ## Compose設定を検証
+	$(COMPOSE) config --quiet
+
+stop: ## Composeサービスを停止（SERVICEで対象を限定可能）
+	$(COMPOSE) stop $(SERVICE)
+
+down: ## Composeサービスを停止してコンテナを削除
+	$(COMPOSE) down
+
+restart: ## Composeサービスを再起動（イメージは再ビルドしない）
+	$(COMPOSE) restart $(SERVICE)
+
+ps: ## Composeサービスの状態を表示
+	$(COMPOSE) ps
+
+logs: ## Composeログを追跡（例: make logs SERVICE=matchmaker）
+	$(COMPOSE) logs --follow --tail=100 $(SERVICE)
+
+wait: ## Matchmaker、Admin Server、Game Serverの準備完了を待機
+	@printf 'Waiting for the backend'
+	@remaining="$(WAIT_SECONDS)"; \
+	until \
+		$(CURL) --silent --fail http://127.0.0.1:8080/health >/dev/null 2>&1 && \
+		$(CURL) --silent --fail http://127.0.0.1:8081/internal/health >/dev/null 2>&1 && \
+		$(CURL) --silent --fail http://127.0.0.1:8081/api/servers 2>/dev/null | grep -q game-server-1 && \
+		$(CURL) --silent --fail http://127.0.0.1:8081/api/servers 2>/dev/null | grep -q game-server-2; \
+	do \
+		remaining=$$((remaining - 1)); \
+		if [ "$$remaining" -le 0 ]; then \
+			printf '\nBackend did not become ready within %s seconds.\n' "$(WAIT_SECONDS)" >&2; \
+			$(COMPOSE) ps >&2; \
+			exit 1; \
+		fi; \
+		printf '.'; \
+		sleep 1; \
+	done
+	@printf ' ready\n'
+
+integration: wait ## 起動中のCompose環境に対して制御面の統合試験を実行
+	$(NODE) scripts/control_plane_test.mjs
+
+urls: ## ローカル開発用URLを表示
+	@printf 'Matchmaker:  http://127.0.0.1:8080\n'
+	@printf 'Admin debug: http://127.0.0.1:8081/debug/\n'
+	@printf 'GameServer 1: ws://127.0.0.1:9001\n'
+	@printf 'GameServer 2: ws://127.0.0.1:9002\n'
+
+tunnel: ## MacからバックエンドへSSHトンネルを作成（SSH_HOST必須）
+	@if [ -z "$(SSH_HOST)" ]; then \
+		printf 'Usage: make tunnel SSH_HOST=backend-host\n' >&2; \
+		exit 2; \
+	fi
+	$(SSH) -N \
+		-o ExitOnForwardFailure=yes \
+		-o ServerAliveInterval=30 \
+		-o ServerAliveCountMax=3 \
+		-L 8080:127.0.0.1:8080 \
+		-L 8081:127.0.0.1:8081 \
+		-L 9001:127.0.0.1:9001 \
+		-L 9002:127.0.0.1:9002 \
+		"$(SSH_HOST)"
+
+check: ## Rust Workspaceを高速チェック
+	$(CARGO) check --workspace --locked
+
+build: ## Rust Workspace全体を開発プロファイルでビルド
+	$(CARGO) build --workspace --locked
+
+build-game-server: ## CREATE ROOM用のGame Serverをビルド
+	$(CARGO) build --locked -p pixel-shooter-server
+
+test: ## Rust Workspaceの全テストを実行
+	$(CARGO) test --workspace --locked
+
+fmt: ## Rustコードを整形
+	$(CARGO) fmt --all
+
+fmt-check: ## Rustコードの整形を変更せず検査
+	$(CARGO) fmt --all -- --check
+
+lint: ## Clippyを警告エラー扱いで実行
+	$(CARGO) clippy --workspace --all-targets --locked -- -D warnings
+
+verify: fmt-check lint test web-check ## コミット前の全検査を実行
+
+run-game-server: ## Game Server単体を直接起動
+	$(CARGO) run -p pixel-shooter-server
+
+run-matchmaker: ## Matchmaker単体を直接起動
+	$(CARGO) run -p pixel-shooter-matchmaker
+
+run-admin-server: ## Admin Server単体を直接起動
+	$(CARGO) run -p pixel-shooter-admin-server
+
+web-install: ## Adminデバッグ画面のnpm依存を取得
+	$(NPM) --prefix tools/debug-web ci
+
+web-build: ## Adminデバッグ画面をビルド
+	$(NPM) --prefix tools/debug-web run build
+
+web-check: ## Adminデバッグ画面を型検査
+	$(NPM) --prefix tools/debug-web run check
+
+web-dev: ## Adminデバッグ画面のVite開発サーバーを起動
+	$(NPM) --prefix tools/debug-web run dev
+
+godot: ## Godotエディターでfrontendを開く
+	"$(GODOT_BIN)" --editor --path frontend
+
+sfx: ## 効果音を再生成
+	$(NODE) scripts/generate_sfx.mjs
+
+release: ## 配布物を作成（RELEASE_TARGET=macos|windows|linux|pck|server）
+	GODOT_BIN="$(GODOT_BIN)" ./scripts/build_release.sh "$(RELEASE_TARGET)"
