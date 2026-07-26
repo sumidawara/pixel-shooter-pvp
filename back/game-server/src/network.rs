@@ -1,4 +1,4 @@
-//! WebSocketの送受信と、通信イベントからPlayer Entityへの反映。
+//! GameServerのWebSocket送受信とPlayer Entityへの反映。
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -9,6 +9,7 @@ use std::{
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
+use pixel_shooter_game_core::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem, spawn_position};
 use pixel_shooter_protocol::{
     BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot,
     ServerMessage, Snapshot, Vec2 as NetVec2,
@@ -20,10 +21,8 @@ use tokio::{
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 use crate::{
-    arena::spawn_position,
     config::ServerSettings,
     debug_web::{self, SharedDebugSnapshot},
-    model::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem},
 };
 
 // 接続IDから、そのクライアントへメッセージを送るチャンネルを検索する表。
@@ -491,7 +490,7 @@ pub(crate) fn process_network(
                 if is_host_connection(connection_id, &state, &players)
                     && state.phase == MatchPhase::Waiting
                 {
-                    state.room_settings = settings.sanitize_room_settings(room_settings);
+                    state.room_settings = settings.game.sanitize_room_settings(room_settings);
                 }
             }
             NetworkEvent::Message(connection_id, ClientMessage::StartMatch) => {
@@ -577,15 +576,15 @@ fn new_player(
         },
         movement: Vec2::ZERO,
         shooting: false,
-        hp: settings.gameplay.max_hp,
+        hp: settings.game.gameplay.max_hp,
         score: 0,
         alive: true,
         respawn_left: 0.0,
         shot_cooldown: 0.0,
-        ammo: settings.gameplay.max_ammo,
+        ammo: settings.game.gameplay.max_ammo,
         reload_left: 0.0,
         reload_requested: false,
-        invulnerable_left: settings.gameplay.respawn_invulnerable_seconds,
+        invulnerable_left: settings.game.gameplay.respawn_invulnerable_seconds,
         dash_cooldown_left: 0.0,
         dash_time_left: 0.0,
         dash_direction: Vec2::ZERO,
@@ -625,10 +624,10 @@ pub(crate) fn broadcast_snapshot(
         time_left: state.phase_time_left,
         winner_id: state.match_winner_id,
         reconnect_grace_left,
-        move_speed: settings.gameplay.move_speed,
-        dash_speed: settings.gameplay.dash_speed,
-        dash_duration: settings.gameplay.dash_duration,
-        dash_cooldown: settings.gameplay.dash_cooldown,
+        move_speed: settings.game.gameplay.move_speed,
+        dash_speed: settings.game.gameplay.dash_speed,
+        dash_duration: settings.game.gameplay.dash_duration,
+        dash_cooldown: settings.game.gameplay.dash_cooldown,
         players: players
             .iter()
             .map(|player| PlayerSnapshot {
@@ -637,7 +636,7 @@ pub(crate) fn broadcast_snapshot(
                 position: net_vec(player.position),
                 aim: net_vec(player.aim),
                 hp: player.hp.max(0),
-                max_hp: settings.gameplay.max_hp,
+                max_hp: settings.game.gameplay.max_hp,
                 score: player.score,
                 is_cpu: player.is_cpu,
                 connected: player.is_cpu || player.connection_id.is_some(),
@@ -646,7 +645,7 @@ pub(crate) fn broadcast_snapshot(
                 respawn_left: player.respawn_left,
                 invulnerable_left: player.invulnerable_left,
                 ammo: player.ammo,
-                max_ammo: settings.gameplay.max_ammo,
+                max_ammo: settings.game.gameplay.max_ammo,
                 reloading: player.reload_left > 0.0,
                 reload_left: player.reload_left,
                 dash_cooldown_left: player.dash_cooldown_left,

@@ -1,4 +1,4 @@
-//! 読み取り専用のWebデバッグ画面と状態API。
+//! 移行前の読み取り専用デバッグAPI。管理画面はAdminServerへ移す。
 
 use std::sync::{Arc, RwLock};
 
@@ -12,9 +12,9 @@ use axum::{
 };
 use tokio::net::TcpListener;
 
-const INDEX_HTML: &str = include_str!("../../tools/debug-web/dist/index.html");
-const APP_JS: &[u8] = include_bytes!("../../tools/debug-web/dist/assets/app.js");
-const APP_CSS: &[u8] = include_bytes!("../../tools/debug-web/dist/assets/app.css");
+const INDEX_HTML: &str = include_str!("../../../tools/debug-web/dist/index.html");
+const APP_JS: &[u8] = include_bytes!("../../../tools/debug-web/dist/assets/app.js");
+const APP_CSS: &[u8] = include_bytes!("../../../tools/debug-web/dist/assets/app.css");
 
 /// Bevyが作った最新SnapshotのJSONをHTTPタスクと共有する。
 pub(crate) type SharedDebugSnapshot = Arc<RwLock<Option<String>>>;

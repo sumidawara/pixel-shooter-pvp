@@ -1,4 +1,4 @@
-//! 実時間ループから独立した、ゲーム世界を1tick進めるBevy Schedule。
+//! ゲーム世界を1tick進める、実時間ループから独立したBevy Schedule。
 //!
 //! WebSocket、OSスレッド、待受ポートなどのサービス都合をここへ入れないことで、
 //! 通常運転、1tickデバッグ、リプレイのどれからでも同じゲーム計算を呼び出せる。
@@ -9,7 +9,7 @@ use crate::game;
 
 /// 実時間とは無関係な、ゲーム内の1tickの長さ。
 #[derive(Resource, Clone, Copy, Debug)]
-pub(crate) struct GameClock {
+pub struct GameClock {
     delta_seconds: f32,
 }
 
@@ -20,22 +20,22 @@ impl GameClock {
         }
     }
 
-    pub(crate) fn delta_seconds(&self) -> f32 {
+    pub fn delta_seconds(&self) -> f32 {
         self.delta_seconds
     }
 }
 
 /// 1回実行するとゲーム世界がちょうど1tick進むSchedule。
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct GameTick;
+pub struct GameTick;
 
 /// ゲーム計算だけをAppへ登録するPlugin。
-pub(crate) struct GameCorePlugin {
+pub struct GameCorePlugin {
     tick_rate: f64,
 }
 
 impl GameCorePlugin {
-    pub(crate) fn new(tick_rate: f64) -> Self {
+    pub fn new(tick_rate: f64) -> Self {
         Self { tick_rate }
     }
 }
@@ -62,7 +62,7 @@ impl Plugin for GameCorePlugin {
 }
 
 /// 実時間ランナーや将来のデバッグ操作からGameTickを1回だけ呼び出す。
-pub(crate) fn advance_one_tick(world: &mut World) {
+pub fn advance_one_tick(world: &mut World) {
     world.run_schedule(GameTick);
 }
 
@@ -71,11 +71,11 @@ mod tests {
     use pixel_shooter_protocol::MatchPhase;
 
     use super::*;
-    use crate::{config::ServerSettings, model::MatchState};
+    use crate::{model::MatchState, settings::GameSettings};
 
     #[test]
     fn game_tick_can_advance_without_realtime_runner() {
-        let settings = ServerSettings::default();
+        let settings = GameSettings::default();
         let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;
         let room_settings = settings.room_settings();
         let mut app = App::new();
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn manual_ticks_advance_game_time_without_waiting_for_wall_clock() {
-        let settings = ServerSettings::default();
+        let settings = GameSettings::default();
         let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;
         let room_settings = settings.room_settings();
         let mut app = App::new();

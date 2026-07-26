@@ -1,4 +1,4 @@
-//! Pixel Shooter PvP の権威サーバー。
+//! Pixel Shooter PvP の権威GameServer。
 //!
 //! このプログラムでは、Godotクライアントは「キーやマウスの入力」だけを送り、
 //! プレイヤーの位置・弾・HP・得点などの正しい状態はすべてサーバーが決める。
@@ -12,31 +12,21 @@
 //! - Commands: Entityの作成・削除を予約する仕組み。
 //!
 //! モジュール構成:
-//! - `arena`: マップ形状、衝突、スポーン地点
 //! - `config`: server.jsonと環境変数
-//! - `model`: ComponentとResource
 //! - `network`: WebSocket通信
-//! - `game`: 試合ルールとゲーム計算
-//! - `game_core`: 実時間から独立した1tick分のSchedule
 //! - `server_runtime`: 通信と実時間ランナーをGameTickへ接続
 
-mod arena;
 mod config;
 mod debug_web;
-mod game;
-mod game_core;
-mod model;
 mod network;
 mod server_runtime;
 
 use std::time::Duration;
 
 use bevy::{app::ScheduleRunnerPlugin, prelude::*, time::Fixed};
+use pixel_shooter_game_core::{GameCorePlugin, MatchState};
 
-use crate::{
-    config::ServerSettings, game_core::GameCorePlugin, model::MatchState,
-    server_runtime::ServerRuntimePlugin,
-};
+use crate::{config::ServerSettings, server_runtime::ServerRuntimePlugin};
 
 fn main() {
     let mut settings = ServerSettings::load();
@@ -47,8 +37,9 @@ fn main() {
         settings.debug.bind_address = debug_bind_address;
     }
     let tick_rate = settings.network.tick_rate;
-    let reconnect_grace_seconds = settings.match_rules.reconnect_grace_seconds;
-    let room_settings = settings.room_settings();
+    let game_settings = settings.game.clone();
+    let reconnect_grace_seconds = game_settings.match_rules.reconnect_grace_seconds;
+    let room_settings = game_settings.room_settings();
     let network = network::start(&settings);
 
     println!(
@@ -57,12 +48,12 @@ fn main() {
     );
     println!(
         "Rules: {} second score match, kill +{}, death -{}, item +{}, {} HP, {} ammo",
-        settings.match_rules.match_seconds,
-        settings.match_rules.kill_points,
-        settings.match_rules.death_penalty,
-        settings.match_rules.item_points,
-        settings.gameplay.max_hp,
-        settings.gameplay.max_ammo
+        game_settings.match_rules.match_seconds,
+        game_settings.match_rules.kill_points,
+        game_settings.match_rules.death_penalty,
+        game_settings.match_rules.item_points,
+        game_settings.gameplay.max_hp,
+        game_settings.gameplay.max_ammo
     );
     if settings.network.simulated_latency_ms > 0 || settings.network.simulated_loss_percent > 0 {
         println!(
@@ -82,6 +73,7 @@ fn main() {
         )
         // FixedUpdateが設定したtick rateで進むよう、固定時間を登録する。
         .insert_resource(Time::<Fixed>::from_hz(tick_rate))
+        .insert_resource(game_settings)
         .insert_resource(settings)
         .insert_resource(network)
         .insert_resource(MatchState {

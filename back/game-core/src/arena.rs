@@ -1,4 +1,4 @@
-//! アリーナの形、衝突判定、スポーン地点の選択。
+//! GameCoreのアリーナ形状、衝突判定、スポーン地点。
 
 use bevy::prelude::Vec2;
 use pixel_shooter_protocol::{ARENA_HEIGHT, ARENA_WIDTH, PLAYER_RADIUS};
@@ -6,7 +6,7 @@ use pixel_shooter_protocol::{ARENA_HEIGHT, ARENA_WIDTH, PLAYER_RADIUS};
 use crate::model::MAX_PLAYERS;
 
 /// 参加順に応じた左右の初期位置を返す。
-pub(crate) fn spawn_position(index: usize) -> Vec2 {
+pub fn spawn_position(index: usize) -> Vec2 {
     match index % MAX_PLAYERS {
         0 => Vec2::new(80.0, 70.0),
         1 => Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT - 70.0),

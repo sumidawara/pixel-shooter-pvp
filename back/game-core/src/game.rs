@@ -1,4 +1,4 @@
-//! 試合進行、移動、射撃、当たり判定、リスポーンを処理するBevy System。
+//! GameCoreの試合進行、移動、射撃、当たり判定、リスポーンを処理するBevy System。
 
 use bevy::prelude::*;
 use pixel_shooter_protocol::{BULLET_RADIUS, ITEM_RADIUS, MatchPhase, PLAYER_RADIUS};
@@ -7,9 +7,9 @@ use crate::{
     arena::{
         bullet_in_bounds, choose_respawn_position, move_with_collision, obstacle_at, spawn_position,
     },
-    config::{GameplaySettings, ServerSettings},
-    game_core::GameClock,
     model::{Bullet, MatchState, Player, ScoreItem},
+    schedule::GameClock,
+    settings::{GameSettings, GameplaySettings},
 };
 
 /// 待機から時間制ポイントマッチ終了までの状態遷移を管理するSystem。
@@ -18,7 +18,7 @@ use crate::{
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
 pub(crate) fn update_match(
     clock: Res<GameClock>,
-    settings: Res<ServerSettings>,
+    settings: Res<GameSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
@@ -195,7 +195,7 @@ pub(crate) fn update_match(
 fn start_new_match(
     state: &mut MatchState,
     players: &mut Query<(Entity, &mut Player)>,
-    settings: &ServerSettings,
+    settings: &GameSettings,
 ) {
     state.match_winner_id = None;
     state.resume_phase = None;
@@ -222,7 +222,7 @@ fn unique_score_winner(standings: impl Iterator<Item = (u64, i32)>) -> Option<u6
     }
 }
 
-fn finish_match(state: &mut MatchState, winner_id: Option<u64>, settings: &ServerSettings) {
+fn finish_match(state: &mut MatchState, winner_id: Option<u64>, settings: &GameSettings) {
     state.phase = MatchPhase::MatchFinished;
     state.phase_time_left = settings.match_rules.match_finished_seconds;
     state.match_winner_id = winner_id;
@@ -260,7 +260,7 @@ fn is_playing_phase(phase: MatchPhase) -> bool {
 /// クライアントから受け取った移動入力でプレイヤーを動かすSystem。
 pub(crate) fn move_players(
     clock: Res<GameClock>,
-    settings: Res<ServerSettings>,
+    settings: Res<GameSettings>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
 ) {
@@ -374,7 +374,7 @@ pub(crate) fn update_cpu_players(
 /// 射撃入力とクールダウンを確認し、Bullet Entityを生成するSystem。
 pub(crate) fn fire_bullets(
     mut commands: Commands,
-    settings: Res<ServerSettings>,
+    settings: Res<GameSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
 ) {
@@ -425,7 +425,7 @@ pub(crate) fn fire_bullets(
 pub(crate) fn move_and_hit_bullets(
     mut commands: Commands,
     clock: Res<GameClock>,
-    settings: Res<ServerSettings>,
+    settings: Res<GameSettings>,
     state: Res<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
     mut players: Query<&mut Player>,
@@ -582,7 +582,7 @@ fn subtract_points(score: i32, penalty: i32) -> i32 {
 /// 死亡したプレイヤーの復活カウントを進めるSystem。
 pub(crate) fn update_respawns(
     clock: Res<GameClock>,
-    settings: Res<ServerSettings>,
+    settings: Res<GameSettings>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
     bullets: Query<&Bullet>,
@@ -663,7 +663,7 @@ mod tests {
 
     #[test]
     fn score_events_include_kill_death_and_item_values() {
-        let rules = crate::config::MatchRules::default();
+        let rules = crate::settings::MatchRules::default();
         assert_eq!(add_points(0, rules.kill_points), 100);
         assert_eq!(subtract_points(0, rules.death_penalty), -25);
         assert_eq!(add_points(-25, rules.item_points), -5);

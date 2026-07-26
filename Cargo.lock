@@ -2321,6 +2321,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pixel-shooter-game-core"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "pixel-shooter-protocol",
+ "serde",
+]
+
+[[package]]
 name = "pixel-shooter-protocol"
 version = "0.1.0"
 dependencies = [
@@ -2335,6 +2344,7 @@ dependencies = [
  "bevy",
  "crossbeam-channel",
  "futures-util",
+ "pixel-shooter-game-core",
  "pixel-shooter-protocol",
  "rand",
  "serde",
