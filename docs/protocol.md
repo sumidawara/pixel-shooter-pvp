@@ -11,12 +11,15 @@
 {
   "type":"join",
   "name":"Player",
-  "reconnect_token":""
+  "reconnect_token":"",
+  "join_ticket":"..."
 }
 ```
 
 初回接続の`reconnect_token`は空文字列にする。`welcome`で受け取ったトークンを
 保持し、WebSocket切断後のJoinで再送すると同じPlayer Entityへ復帰できる。
+マッチング構成では、Matchmakerが返した`game_url`へ直接接続し、同時に返された
+`join_ticket`を送る。単体ローカルサーバーでは`join_ticket`を省略できる。
 
 入力（毎フレーム）:
 

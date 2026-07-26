@@ -28,10 +28,20 @@ Godotエディターでは`target/debug/pixel-shooter-server`を自動検出す�
 ターミナルでサーバーを先に起動した場合は`CREATE ROOM`ではなく`JOIN ROOM`を使う。
 同じポートで`CREATE ROOM`を選ぶと、ポート使用中のエラーを表示する。
 
-サーバー起動後、読み取り専用のデバッグ画面を
-`http://127.0.0.1:9101/debug/`で確認できる。現在のマップ、プレイヤー状態、
-ルーム設定、入力ACK、Snapshot JSONを200ms間隔で表示する。Svelte画面を変更した
-場合は、Rustをビルドする前に次を実行して埋め込み用ファイルを更新する。
+複数サーバー構成はDocker Composeで起動できる。
+
+```sh
+docker compose up --build
+```
+
+Godotの`JOIN ROOM`へ`http://127.0.0.1:8080`を入力すると、Matchmakerが
+GameServerを割り当て、Join Ticketを発行し、そのGameServerへ直接接続する。
+詳しくは[`docs/deployment.md`](docs/deployment.md)を参照。
+
+AdminServerのデバッグ画面は`http://127.0.0.1:8081/debug/`で確認できる。
+対象GameServerの選択、マップ・Entity・Snapshotの表示に加え、
+Pause、1 tick Step、Resumeを操作できる。Svelte画面を変更した場合は、
+Rustをビルドする前に次を実行して埋め込み用ファイルを更新する。
 
 ```sh
 cd tools/debug-web
@@ -57,10 +67,8 @@ npm run build
 設定ファイルの全項目と環境変数による上書きは
 [`docs/server-settings.md`](docs/server-settings.md) を参照。
 
-デバッグ画面は`server.json`の`debug.enabled`で無効化できる。待受先は
-`PIXEL_SHOOTER_DEBUG_BIND_ADDR`、有効・無効は
-`PIXEL_SHOOTER_DEBUG_ENABLED`でも上書きできる。外部公開を前提とした認証機能は
-ないため、通常は`127.0.0.1`のまま使用する。
+GameServerの`control`設定はAdminServerへの登録、内部API、Join Ticket検証に使う。
+Control APIは外部へ直接公開せず、AdminServerを介して操作する。
 
 ## 遅延・パケット欠落試験
 
@@ -141,17 +149,14 @@ Godotの「エディター → エクスポートテンプレートの管理」�
   - `scenes/ui/`: 接続メニュー、HUD、プレイヤー状態表示
   - `scripts/network_client.gd`: AutoloadのWebSocketクライアント
   - `themes/pixel_theme.tres`: 共通ピクセルフォントとUIスタイル
-- `back/`: Bevyヘッドレスサーバー
-  - `src/main.rs`: 設定とSystemをBevy Appへ登録する起動処理
-  - `src/game_core.rs`: 実時間から独立した1tick分のゲームSchedule
-  - `src/server_runtime.rs`: 通信と実時間ループをGameTickへ接続
-  - `src/config.rs`: `server.json`と環境変数の読み込み
-  - `src/model.rs`: Player、Bullet、MatchState
-  - `src/arena.rs`: マップ形状、衝突判定、スポーン地点
-  - `src/game.rs`: 試合進行、移動、射撃、リスポーン
-  - `src/network.rs`: WebSocket、接続管理、スナップショット配信
-- `protocol/`: Rustの通信メッセージ型
+- `back/game-core/`: 実時間と通信から独立した`GameTick`とゲームルール
+- `back/game-server/`: 1プロセス＝1ルームのWebSocket権威サーバー
+- `back/matchmaker/`: GameServer割当要求とJoin Ticket発行
+- `back/admin-server/`: サーバープール管理、Control中継、デバッグ画面
+- `protocol/`: GodotとGameServer間のゲーム通信型
+- `admin-protocol/`: サーバー間の管理通信型とTicket署名
 - `docs/`: プロトコル、ゲームルール、バックエンド構成
+- `docker-compose.yml`: 固定数GameServerプールの開発構成
 - `server.json`: サーバーの運用・ゲーム設定
 - `scripts/build_release.sh`: サーバーとクライアントの配布ビルド
 

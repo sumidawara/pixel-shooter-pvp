@@ -1,0 +1,70 @@
+services:
+  admin-server:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-admin-server
+    environment:
+      PIXEL_SHOOTER_ADMIN_BIND_ADDR: 0.0.0.0:8081
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  matchmaker:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-matchmaker
+    environment:
+      PIXEL_SHOOTER_MATCHMAKER_BIND_ADDR: 0.0.0.0:8080
+      PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
+      PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - admin-server
+    restart: unless-stopped
+
+  game-server-1:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-server
+    environment:
+      PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
+      PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
+      PIXEL_SHOOTER_CONTROL_URL: http://game-server-1:9101
+      PIXEL_SHOOTER_PUBLIC_URL: ws://127.0.0.1:9001
+      PIXEL_SHOOTER_SERVER_ID: game-server-1
+      PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
+      PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
+      PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
+    ports:
+      - "9001:9001"
+    depends_on:
+      - admin-server
+    restart: unless-stopped
+
+  game-server-2:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-server
+    environment:
+      PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
+      PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
+      PIXEL_SHOOTER_CONTROL_URL: http://game-server-2:9101
+      PIXEL_SHOOTER_PUBLIC_URL: ws://127.0.0.1:9002
+      PIXEL_SHOOTER_SERVER_ID: game-server-2
+      PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
+      PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
+      PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
+    ports:
+      - "9002:9001"
+    depends_on:
+      - admin-server
+    restart: unless-stopped

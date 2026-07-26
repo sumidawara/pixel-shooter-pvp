@@ -1,0 +1,6 @@
+.git
+.godot
+dist
+target
+front
+tools/debug-web/node_modules
