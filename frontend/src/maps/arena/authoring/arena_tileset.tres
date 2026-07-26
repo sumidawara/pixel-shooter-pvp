@@ -1,0 +1,21 @@
+[gd_resource type="TileSet" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://src/maps/arena/tilemap.png" id="1_texture"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_arena"]
+texture = ExtResource("1_texture")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = "solid_wall"
+4:0/0 = 0
+4:0/0/custom_data_0 = "destructible_wall"
+0:1/0 = 0
+0:1/0/custom_data_0 = "player_spawn"
+2:1/0 = 0
+2:1/0/custom_data_0 = "item_spawn"
+
+[resource]
+tile_size = Vector2i(32, 32)
+custom_data_layer_0/name = "tile_kind"
+custom_data_layer_0/type = 4
+sources/0 = SubResource("TileSetAtlasSource_arena")

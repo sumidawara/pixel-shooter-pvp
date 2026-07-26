@@ -1,132 +1,380 @@
-//! GameCoreのアリーナ形状、衝突判定、スポーン地点。
+//! GameCoreのデータ駆動アリーナ、衝突判定、スポーン地点。
 
-use bevy::prelude::Vec2;
-use pixel_shooter_protocol::{ARENA_HEIGHT, ARENA_WIDTH, PLAYER_RADIUS};
+use std::{fmt, fs, path::Path};
+
+use bevy::prelude::{Resource, Vec2};
+use pixel_shooter_protocol::PLAYER_RADIUS;
+use serde::{Deserialize, Serialize};
 
 use crate::model::MAX_PLAYERS;
 
-/// 参加順に応じた左右の初期位置を返す。
-pub fn spawn_position(index: usize) -> Vec2 {
-    match index % MAX_PLAYERS {
-        0 => Vec2::new(80.0, 70.0),
-        1 => Vec2::new(ARENA_WIDTH - 80.0, ARENA_HEIGHT - 70.0),
-        2 => Vec2::new(ARENA_WIDTH - 80.0, 70.0),
-        _ => Vec2::new(80.0, ARENA_HEIGHT - 70.0),
+const CLASSIC_ARENA_JSON: &str = include_str!("../../../frontend/maps/classic_arena.json");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TileKind {
+    Floor,
+    SolidWall,
+    DestructibleWall,
+}
+
+impl TileKind {
+    pub fn is_obstacle(self) -> bool {
+        matches!(self, Self::SolidWall | Self::DestructibleWall)
     }
 }
 
-/// 相手との距離を主に、近くの弾と小さな揺らぎも考慮して復活地点を選ぶ。
-pub(crate) fn choose_respawn_position(
-    player_id: u64,
-    player_positions: &[(u64, Vec2)],
-    bullet_positions: &[Vec2],
-    tick: u64,
-) -> Vec2 {
-    let candidates = [
-        Vec2::new(64.0, 60.0),
-        Vec2::new(64.0, ARENA_HEIGHT - 60.0),
-        Vec2::new(ARENA_WIDTH - 64.0, 60.0),
-        Vec2::new(ARENA_WIDTH - 64.0, ARENA_HEIGHT - 60.0),
-        Vec2::new(92.0, ARENA_HEIGHT * 0.5),
-        Vec2::new(ARENA_WIDTH - 92.0, ARENA_HEIGHT * 0.5),
-    ];
-
-    candidates
-        .iter()
-        .enumerate()
-        .filter(|(_, candidate)| valid_player_position(**candidate))
-        .max_by(|(left_index, left), (right_index, right)| {
-            let left_score = respawn_safety_score(
-                player_id,
-                **left,
-                *left_index,
-                player_positions,
-                bullet_positions,
-                tick,
-            );
-            let right_score = respawn_safety_score(
-                player_id,
-                **right,
-                *right_index,
-                player_positions,
-                bullet_positions,
-                tick,
-            );
-            left_score.total_cmp(&right_score)
-        })
-        .map(|(_, position)| *position)
-        .unwrap_or_else(|| spawn_position((player_id as usize) % MAX_PLAYERS))
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GridPosition {
+    pub x: usize,
+    pub y: usize,
 }
 
-fn respawn_safety_score(
-    player_id: u64,
-    candidate: Vec2,
-    candidate_index: usize,
-    player_positions: &[(u64, Vec2)],
-    bullet_positions: &[Vec2],
-    tick: u64,
-) -> f32 {
-    let opponent_distance = player_positions
-        .iter()
-        .filter(|(id, _)| *id != player_id)
-        .map(|(_, position)| candidate.distance(*position))
-        .fold(ARENA_WIDTH, f32::min);
-    let bullet_distance = bullet_positions
-        .iter()
-        .map(|position| candidate.distance(*position))
-        .fold(ARENA_WIDTH, f32::min);
-
-    // 毎回完全に同じ地点にならないよう、距離評価を壊さない範囲で決定的な揺らぎを加える。
-    let variation = ((tick + player_id * 31 + candidate_index as u64 * 17) % 11) as f32;
-    opponent_distance + bullet_distance * 0.25 + variation
+#[derive(Debug, Deserialize)]
+struct MapDefinition {
+    schema_version: u32,
+    id: String,
+    revision: String,
+    name: String,
+    width: usize,
+    height: usize,
+    tile_size: u32,
+    tiles: Vec<String>,
+    spawn_points: Vec<[usize; 2]>,
+    item_spawn_points: Vec<[usize; 2]>,
 }
 
-/// X・Y軸を分けて、衝突しない分だけ位置を更新する。
-pub(crate) fn move_with_collision(position: &mut Vec2, delta: Vec2) {
-    let mut next = *position;
-    next.x += delta.x;
-    if valid_player_position(next) {
-        position.x = next.x;
-    }
-    next = *position;
-    next.y += delta.y;
-    if valid_player_position(next) {
-        position.y = next.y;
+/// 検証済みのマップ。ゲーム中は文字列ではなくこのResourceだけを参照する。
+#[derive(Resource, Clone, Debug)]
+pub struct ArenaMap {
+    id: String,
+    revision: String,
+    name: String,
+    width: usize,
+    height: usize,
+    tile_size: f32,
+    tiles: Vec<TileKind>,
+    spawn_points: Vec<GridPosition>,
+    item_spawn_points: Vec<GridPosition>,
+}
+
+#[derive(Debug)]
+pub enum MapLoadError {
+    Read(std::io::Error),
+    Json(serde_json::Error),
+    Invalid(String),
+}
+
+impl fmt::Display for MapLoadError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Read(error) => write!(formatter, "could not read map: {error}"),
+            Self::Json(error) => write!(formatter, "could not parse map JSON: {error}"),
+            Self::Invalid(error) => write!(formatter, "invalid map: {error}"),
+        }
     }
 }
 
-/// プレイヤーが移動できる位置かを、外周と障害物から判定する。
-fn valid_player_position(position: Vec2) -> bool {
-    position.x >= PLAYER_RADIUS
-        && position.x <= ARENA_WIDTH - PLAYER_RADIUS
-        && position.y >= PLAYER_RADIUS
-        && position.y <= ARENA_HEIGHT - PLAYER_RADIUS
-        && !obstacle_at(position, PLAYER_RADIUS)
+impl std::error::Error for MapLoadError {}
+
+impl ArenaMap {
+    pub fn from_json(json: &str) -> Result<Self, MapLoadError> {
+        let definition: MapDefinition = serde_json::from_str(json).map_err(MapLoadError::Json)?;
+        Self::validate(definition)
+    }
+
+    pub fn load(path: impl AsRef<Path>) -> Result<Self, MapLoadError> {
+        let json = fs::read_to_string(path).map_err(MapLoadError::Read)?;
+        Self::from_json(&json)
+    }
+
+    fn validate(definition: MapDefinition) -> Result<Self, MapLoadError> {
+        if definition.schema_version != 1 {
+            return Err(MapLoadError::Invalid(format!(
+                "unsupported schema_version {}; expected 1",
+                definition.schema_version
+            )));
+        }
+        if definition.id.trim().is_empty() {
+            return Err(MapLoadError::Invalid("id must not be empty".into()));
+        }
+        if definition.revision.trim().is_empty() {
+            return Err(MapLoadError::Invalid("revision must not be empty".into()));
+        }
+        if definition.width == 0 || definition.height == 0 {
+            return Err(MapLoadError::Invalid(
+                "width and height must be greater than zero".into(),
+            ));
+        }
+        if definition.tile_size == 0 {
+            return Err(MapLoadError::Invalid(
+                "tile_size must be greater than zero".into(),
+            ));
+        }
+        if definition.tiles.len() != definition.height {
+            return Err(MapLoadError::Invalid(format!(
+                "tiles has {} rows; expected {}",
+                definition.tiles.len(),
+                definition.height
+            )));
+        }
+
+        let mut tiles = Vec::with_capacity(definition.width * definition.height);
+        for (y, row) in definition.tiles.iter().enumerate() {
+            let characters: Vec<char> = row.chars().collect();
+            if characters.len() != definition.width {
+                return Err(MapLoadError::Invalid(format!(
+                    "row {y} has {} tiles; expected {}",
+                    characters.len(),
+                    definition.width
+                )));
+            }
+            for (x, character) in characters.into_iter().enumerate() {
+                tiles.push(match character {
+                    '.' => TileKind::Floor,
+                    '#' => TileKind::SolidWall,
+                    'X' => TileKind::DestructibleWall,
+                    _ => {
+                        return Err(MapLoadError::Invalid(format!(
+                            "unknown tile '{character}' at ({x}, {y})"
+                        )));
+                    }
+                });
+            }
+        }
+
+        let spawn_points = definition
+            .spawn_points
+            .into_iter()
+            .map(|[x, y]| GridPosition { x, y })
+            .collect();
+        let item_spawn_points = definition
+            .item_spawn_points
+            .into_iter()
+            .map(|[x, y]| GridPosition { x, y })
+            .collect();
+        let map = Self {
+            id: definition.id,
+            revision: definition.revision,
+            name: definition.name,
+            width: definition.width,
+            height: definition.height,
+            tile_size: definition.tile_size as f32,
+            tiles,
+            spawn_points,
+            item_spawn_points,
+        };
+        map.validate_points("spawn point", &map.spawn_points, PLAYER_RADIUS)?;
+        map.validate_points("item spawn point", &map.item_spawn_points, 0.0)?;
+        if map.spawn_points.len() < MAX_PLAYERS {
+            return Err(MapLoadError::Invalid(format!(
+                "map has {} spawn points; at least {MAX_PLAYERS} are required",
+                map.spawn_points.len()
+            )));
+        }
+        if map.item_spawn_points.is_empty() {
+            return Err(MapLoadError::Invalid(
+                "at least one item spawn point is required".into(),
+            ));
+        }
+        Ok(map)
+    }
+
+    fn validate_points(
+        &self,
+        label: &str,
+        points: &[GridPosition],
+        margin: f32,
+    ) -> Result<(), MapLoadError> {
+        for point in points {
+            if point.x >= self.width || point.y >= self.height {
+                return Err(MapLoadError::Invalid(format!(
+                    "{label} ({}, {}) is outside the map",
+                    point.x, point.y
+                )));
+            }
+            if self.obstacle_at(self.tile_center(*point), margin) {
+                return Err(MapLoadError::Invalid(format!(
+                    "{label} ({}, {}) overlaps a wall",
+                    point.x, point.y
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn revision(&self) -> &str {
+        &self.revision
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn tile_size(&self) -> f32 {
+        self.tile_size
+    }
+
+    pub fn pixel_width(&self) -> f32 {
+        self.width as f32 * self.tile_size
+    }
+
+    pub fn pixel_height(&self) -> f32 {
+        self.height as f32 * self.tile_size
+    }
+
+    pub fn tile(&self, position: GridPosition) -> Option<TileKind> {
+        (position.x < self.width && position.y < self.height)
+            .then(|| self.tiles[position.y * self.width + position.x])
+    }
+
+    pub fn tile_center(&self, position: GridPosition) -> Vec2 {
+        Vec2::new(
+            (position.x as f32 + 0.5) * self.tile_size,
+            (position.y as f32 + 0.5) * self.tile_size,
+        )
+    }
+
+    pub fn spawn_position(&self, index: usize) -> Vec2 {
+        self.tile_center(self.spawn_points[index % self.spawn_points.len()])
+    }
+
+    pub fn item_spawn_position(&self, index: usize) -> Vec2 {
+        self.tile_center(self.item_spawn_points[index % self.item_spawn_points.len()])
+    }
+
+    pub fn item_spawn_count(&self) -> usize {
+        self.item_spawn_points.len()
+    }
+
+    pub fn move_with_collision(&self, position: &mut Vec2, delta: Vec2) {
+        let mut next = *position;
+        next.x += delta.x;
+        if self.valid_player_position(next) {
+            position.x = next.x;
+        }
+        next = *position;
+        next.y += delta.y;
+        if self.valid_player_position(next) {
+            position.y = next.y;
+        }
+    }
+
+    pub fn valid_player_position(&self, position: Vec2) -> bool {
+        position.x >= PLAYER_RADIUS
+            && position.x <= self.pixel_width() - PLAYER_RADIUS
+            && position.y >= PLAYER_RADIUS
+            && position.y <= self.pixel_height() - PLAYER_RADIUS
+            && !self.obstacle_at(position, PLAYER_RADIUS)
+    }
+
+    pub fn bullet_in_bounds(&self, position: Vec2) -> bool {
+        position.x >= 0.0
+            && position.x <= self.pixel_width()
+            && position.y >= 0.0
+            && position.y <= self.pixel_height()
+    }
+
+    /// 点の周囲をmarginだけ広げた矩形が、壁タイルと交差するか判定する。
+    pub fn obstacle_at(&self, position: Vec2, margin: f32) -> bool {
+        if position.x + margin < 0.0
+            || position.y + margin < 0.0
+            || position.x - margin > self.pixel_width()
+            || position.y - margin > self.pixel_height()
+        {
+            return false;
+        }
+        let min_x = ((position.x - margin).max(0.0) / self.tile_size).floor() as usize;
+        let min_y = ((position.y - margin).max(0.0) / self.tile_size).floor() as usize;
+        let max_x = ((position.x + margin).max(0.0) / self.tile_size).floor() as usize;
+        let max_y = ((position.y + margin).max(0.0) / self.tile_size).floor() as usize;
+        for y in min_y..=max_y.min(self.height.saturating_sub(1)) {
+            for x in min_x..=max_x.min(self.width.saturating_sub(1)) {
+                if self
+                    .tile(GridPosition { x, y })
+                    .is_some_and(TileKind::is_obstacle)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub(crate) fn choose_respawn_position(
+        &self,
+        player_id: u64,
+        player_positions: &[(u64, Vec2)],
+        bullet_positions: &[Vec2],
+        tick: u64,
+    ) -> Vec2 {
+        self.spawn_points
+            .iter()
+            .enumerate()
+            .map(|(index, point)| (index, self.tile_center(*point)))
+            .filter(|(_, candidate)| self.valid_player_position(*candidate))
+            .max_by(|(left_index, left), (right_index, right)| {
+                let left_score = self.respawn_safety_score(
+                    player_id,
+                    *left,
+                    *left_index,
+                    player_positions,
+                    bullet_positions,
+                    tick,
+                );
+                let right_score = self.respawn_safety_score(
+                    player_id,
+                    *right,
+                    *right_index,
+                    player_positions,
+                    bullet_positions,
+                    tick,
+                );
+                left_score.total_cmp(&right_score)
+            })
+            .map(|(_, position)| position)
+            .unwrap_or_else(|| self.spawn_position((player_id as usize) % MAX_PLAYERS))
+    }
+
+    fn respawn_safety_score(
+        &self,
+        player_id: u64,
+        candidate: Vec2,
+        candidate_index: usize,
+        player_positions: &[(u64, Vec2)],
+        bullet_positions: &[Vec2],
+        tick: u64,
+    ) -> f32 {
+        let opponent_distance = player_positions
+            .iter()
+            .filter(|(id, _)| *id != player_id)
+            .map(|(_, position)| candidate.distance(*position))
+            .fold(self.pixel_width(), f32::min);
+        let bullet_distance = bullet_positions
+            .iter()
+            .map(|position| candidate.distance(*position))
+            .fold(self.pixel_width(), f32::min);
+        let variation = ((tick + player_id * 31 + candidate_index as u64 * 17) % 11) as f32;
+        opponent_distance + bullet_distance * 0.25 + variation
+    }
 }
 
-/// 弾の中心がアリーナ内に残っているかを判定する。
-pub(crate) fn bullet_in_bounds(position: Vec2) -> bool {
-    position.x >= 0.0
-        && position.x <= ARENA_WIDTH
-        && position.y >= 0.0
-        && position.y <= ARENA_HEIGHT
-}
-
-/// 点が中央の長方形障害物内にあるかを判定する。
-///
-/// プレイヤーでは `margin = PLAYER_RADIUS` として長方形を外側へ広げ、
-/// 円の中心が壁へめり込まないようにする。弾ではmarginを0にする。
-pub(crate) fn obstacle_at(position: Vec2, margin: f32) -> bool {
-    let obstacles = [
-        (Vec2::new(250.0, 85.0), Vec2::new(140.0, 28.0)),
-        (Vec2::new(250.0, 247.0), Vec2::new(140.0, 28.0)),
-    ];
-    obstacles.iter().any(|(origin, size)| {
-        position.x >= origin.x - margin
-            && position.x <= origin.x + size.x + margin
-            && position.y >= origin.y - margin
-            && position.y <= origin.y + size.y + margin
-    })
+impl Default for ArenaMap {
+    fn default() -> Self {
+        Self::from_json(CLASSIC_ARENA_JSON).expect("embedded classic arena must be valid")
+    }
 }
 
 #[cfg(test)]
@@ -134,15 +382,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn collision_keeps_player_outside_obstacle() {
-        let mut position = Vec2::new(235.0, 99.0);
-        move_with_collision(&mut position, Vec2::new(10.0, 0.0));
-        assert_eq!(position, Vec2::new(235.0, 99.0));
+    fn embedded_map_is_valid() {
+        let map = ArenaMap::default();
+        assert_eq!(map.id(), "classic_arena");
+        assert_eq!(map.pixel_width(), 640.0);
+        assert_eq!(map.pixel_height(), 352.0);
+    }
+
+    #[test]
+    fn invalid_row_width_is_rejected() {
+        let json =
+            CLASSIC_ARENA_JSON.replacen("\"####################\"", "\"###################\"", 1);
+        assert!(matches!(
+            ArenaMap::from_json(&json),
+            Err(MapLoadError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn collision_keeps_player_outside_wall_tile() {
+        let map = ArenaMap::default();
+        let mut position = Vec2::new(143.0, 80.0);
+        map.move_with_collision(&mut position, Vec2::new(10.0, 0.0));
+        assert_eq!(position, Vec2::new(143.0, 80.0));
     }
 
     #[test]
     fn respawn_prefers_the_side_away_from_opponent() {
-        let position = choose_respawn_position(1, &[(2, Vec2::new(60.0, 180.0))], &[], 100);
-        assert!(position.x > ARENA_WIDTH * 0.5);
+        let map = ArenaMap::default();
+        let position = map.choose_respawn_position(1, &[(2, Vec2::new(60.0, 180.0))], &[], 100);
+        assert!(position.x > map.pixel_width() * 0.5);
     }
 }

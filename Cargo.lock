@@ -2550,6 +2550,7 @@ dependencies = [
  "bevy",
  "pixel-shooter-protocol",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,23 +1,49 @@
 extends Node2D
 
-const ARENA_SIZE := Vector2(640, 360)
+const MAP_PATH := "res://maps/classic_arena.json"
 const PANEL := Color("#0d1119")
-const WHITE := Color("#e9f1f7")
-const TILEMAP_TEXTURE: Texture2D = preload("res://src/maps/arena/tilemap.png")
-const OBSTACLES := [Rect2(250, 85, 140, 28), Rect2(250, 247, 140, 28)]
+const FLOOR_ALT := Color("#101722")
+const GRID := Color("#1a222d")
+const SOLID := Color("#202834")
+const SOLID_EDGE := Color("#e9f1f7")
+const DESTRUCTIBLE := Color("#70452f")
+const DESTRUCTIBLE_EDGE := Color("#d99a62")
+
+var arena_map: ArenaMapData
+
+
+func _ready() -> void:
+	arena_map = ArenaMapData.load_from_file(MAP_PATH)
+	queue_redraw()
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, ARENA_SIZE), PANEL)
-	for y in range(0, 360, 32):
-		for x in range(0, 640, 32):
-			if int(x / 32 + y / 32) % 2 == 0:
-				draw_rect(Rect2(x, y, 32, 32), Color("#101722"))
-	for x in range(0, 641, 32):
-		draw_line(Vector2(x, 0), Vector2(x, 360), Color("#1a222d"), 1.0)
-	for y in range(0, 361, 32):
-		draw_line(Vector2(0, y), Vector2(640, y), Color("#1a222d"), 1.0)
-	draw_rect(Rect2(Vector2(1, 1), ARENA_SIZE - Vector2(2, 2)), WHITE, false, 2.0)
-	for obstacle in OBSTACLES:
-		draw_texture_rect_region(TILEMAP_TEXTURE, obstacle, Rect2(0, 0, 32, 32))
-		draw_rect(obstacle.grow(-4), Color("#202834"))
+	if arena_map == null:
+		return
+	var map_size := arena_map.size_pixels()
+	var cell_size := float(arena_map.tile_size)
+	draw_rect(Rect2(Vector2.ZERO, map_size), PANEL)
+	for y in range(arena_map.height):
+		for x in range(arena_map.width):
+			var cell := Vector2i(x, y)
+			var rect := Rect2(Vector2(x, y) * cell_size, Vector2.ONE * cell_size)
+			if (x + y) % 2 == 0:
+				draw_rect(rect, FLOOR_ALT)
+			match arena_map.tile_at(cell):
+				ArenaMapData.SOLID_WALL:
+					draw_rect(rect, SOLID_EDGE)
+					draw_rect(rect.grow(-3.0), SOLID)
+				ArenaMapData.DESTRUCTIBLE_WALL:
+					draw_rect(rect, DESTRUCTIBLE_EDGE)
+					draw_rect(rect.grow(-3.0), DESTRUCTIBLE)
+					draw_line(rect.position + Vector2(7, 7), rect.end - Vector2(7, 7), DESTRUCTIBLE_EDGE, 2)
+					draw_line(
+						Vector2(rect.end.x - 7, rect.position.y + 7),
+						Vector2(rect.position.x + 7, rect.end.y - 7),
+						DESTRUCTIBLE_EDGE,
+						2
+					)
+	for x in range(arena_map.width + 1):
+		draw_line(Vector2(x * cell_size, 0), Vector2(x * cell_size, map_size.y), GRID)
+	for y in range(arena_map.height + 1):
+		draw_line(Vector2(0, y * cell_size), Vector2(map_size.x, y * cell_size), GRID)

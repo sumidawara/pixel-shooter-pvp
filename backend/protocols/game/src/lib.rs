@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-pub const ARENA_WIDTH: f32 = 640.0;
-pub const ARENA_HEIGHT: f32 = 360.0;
 pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
 pub const ITEM_RADIUS: f32 = 10.0;
@@ -53,12 +51,13 @@ pub enum ServerMessage {
     Rejected {
         reason: String,
     },
-    Snapshot(Snapshot),
+    Snapshot(Box<Snapshot>),
 }
 
 #[derive(Debug, Serialize)]
 pub struct Snapshot {
     pub tick: u64,
+    pub map: MapSnapshot,
     pub phase: MatchPhase,
     pub time_left: f32,
     pub winner_id: Option<u64>,
@@ -71,6 +70,15 @@ pub struct Snapshot {
     pub bullets: Vec<BulletSnapshot>,
     pub items: Vec<ItemSnapshot>,
     pub room: RoomSnapshot,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MapSnapshot {
+    pub id: String,
+    pub revision: String,
+    pub width: usize,
+    pub height: usize,
+    pub tile_size: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

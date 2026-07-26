@@ -4,9 +4,7 @@ use bevy::prelude::*;
 use pixel_shooter_protocol::{BULLET_RADIUS, ITEM_RADIUS, MatchPhase, PLAYER_RADIUS};
 
 use crate::{
-    arena::{
-        bullet_in_bounds, choose_respawn_position, move_with_collision, obstacle_at, spawn_position,
-    },
+    arena::ArenaMap,
     model::{Bullet, MatchState, Player, ScoreItem},
     schedule::GameClock,
     settings::{GameSettings, GameplaySettings},
@@ -16,9 +14,11 @@ use crate::{
 ///
 /// `ResMut<MatchState>` はResourceを変更可能で借りる指定。
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn update_match(
     clock: Res<GameClock>,
     settings: Res<GameSettings>,
+    map: Res<ArenaMap>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
@@ -149,7 +149,7 @@ pub(crate) fn update_match(
     match state.phase {
         MatchPhase::Waiting => {
             if state.start_requested && active_player_count >= 2 {
-                start_new_match(&mut state, &mut players, &settings);
+                start_new_match(&mut state, &mut players, &settings, &map);
                 despawn_all_bullets(&mut commands, &bullets);
                 despawn_all_items(&mut commands, &items);
             }
@@ -179,7 +179,7 @@ pub(crate) fn update_match(
                 state.match_winner_id = None;
                 for (_, mut player) in &mut players {
                     player.score = 0;
-                    reset_player(&mut player, &settings.gameplay);
+                    reset_player(&mut player, &settings.gameplay, &map);
                 }
                 state.phase = MatchPhase::Waiting;
                 state.phase_time_left = 0.0;
@@ -196,6 +196,7 @@ fn start_new_match(
     state: &mut MatchState,
     players: &mut Query<(Entity, &mut Player)>,
     settings: &GameSettings,
+    map: &ArenaMap,
 ) {
     state.match_winner_id = None;
     state.resume_phase = None;
@@ -205,7 +206,7 @@ fn start_new_match(
     state.phase_time_left = settings.match_rules.countdown_seconds;
     for (_, mut player) in players.iter_mut() {
         player.score = 0;
-        reset_player(&mut player, &settings.gameplay);
+        reset_player(&mut player, &settings.gameplay, map);
     }
     println!("new timed score match is ready");
 }
@@ -261,6 +262,7 @@ fn is_playing_phase(phase: MatchPhase) -> bool {
 pub(crate) fn move_players(
     clock: Res<GameClock>,
     settings: Res<GameSettings>,
+    map: Res<ArenaMap>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
 ) {
@@ -318,7 +320,7 @@ pub(crate) fn move_players(
 
         // X軸とY軸を別々に判定する。
         // まとめて移動すると、片方の軸が壁に当たっただけで両方向とも止まってしまう。
-        move_with_collision(&mut player.position, delta);
+        map.move_with_collision(&mut player.position, delta);
     }
 }
 
@@ -375,6 +377,7 @@ pub(crate) fn update_cpu_players(
 pub(crate) fn fire_bullets(
     mut commands: Commands,
     settings: Res<GameSettings>,
+    map: Res<ArenaMap>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
 ) {
@@ -409,7 +412,7 @@ pub(crate) fn fire_bullets(
         });
 
         // 射撃方向と反対へ少し押し戻す。サーバーで計算するので全員に同じ結果になる。
-        move_with_collision(
+        map.move_with_collision(
             &mut player.position,
             -aim * settings.gameplay.recoil_distance,
         );
@@ -426,6 +429,7 @@ pub(crate) fn move_and_hit_bullets(
     mut commands: Commands,
     clock: Res<GameClock>,
     settings: Res<GameSettings>,
+    map: Res<ArenaMap>,
     state: Res<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
     mut players: Query<&mut Player>,
@@ -440,8 +444,8 @@ pub(crate) fn move_and_hit_bullets(
         bullet.position += velocity * dt;
         bullet.life_left -= dt;
         if bullet.life_left <= 0.0
-            || !bullet_in_bounds(bullet.position)
-            || obstacle_at(bullet.position, 0.0)
+            || !map.bullet_in_bounds(bullet.position)
+            || map.obstacle_at(bullet.position, 0.0)
         {
             // 寿命切れ、画面外、障害物への衝突のどれかなら弾を削除する。
             commands.entity(entity).despawn();
@@ -493,6 +497,7 @@ pub(crate) fn move_and_hit_bullets(
 pub(crate) fn update_score_items(
     mut commands: Commands,
     clock: Res<GameClock>,
+    map: Res<ArenaMap>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
     items: Query<(Entity, &ScoreItem)>,
@@ -511,9 +516,12 @@ pub(crate) fn update_score_items(
                 .map(|player| player.position)
                 .collect();
             let item_positions: Vec<_> = items.iter().map(|(_, item)| item.position).collect();
-            if let Some((id, position)) =
-                choose_score_item_spawn(state.next_item_id, &player_positions, &item_positions)
-            {
+            if let Some((id, position)) = choose_score_item_spawn(
+                &map,
+                state.next_item_id,
+                &player_positions,
+                &item_positions,
+            ) {
                 state.next_item_id = id;
                 commands.spawn(ScoreItem { id, position });
             }
@@ -537,30 +545,15 @@ pub(crate) fn update_score_items(
     }
 }
 
-/// 障害物と初期スポーンを避けた固定候補を順番に使う。
-fn score_item_spawn_position(item_id: u64) -> Vec2 {
-    const POSITIONS: [Vec2; 9] = [
-        Vec2::new(320.0, 180.0),
-        Vec2::new(120.0, 80.0),
-        Vec2::new(520.0, 280.0),
-        Vec2::new(520.0, 80.0),
-        Vec2::new(120.0, 280.0),
-        Vec2::new(320.0, 40.0),
-        Vec2::new(320.0, 320.0),
-        Vec2::new(200.0, 180.0),
-        Vec2::new(440.0, 180.0),
-    ];
-    POSITIONS[(item_id.saturating_sub(1) as usize) % POSITIONS.len()]
-}
-
 fn choose_score_item_spawn(
+    map: &ArenaMap,
     current_id: u64,
     player_positions: &[Vec2],
     item_positions: &[Vec2],
 ) -> Option<(u64, Vec2)> {
-    (1..=9).find_map(|offset| {
-        let id = current_id.saturating_add(offset);
-        let position = score_item_spawn_position(id);
+    (1..=map.item_spawn_count()).find_map(|offset| {
+        let id = current_id.saturating_add(offset as u64);
+        let position = map.item_spawn_position(id.saturating_sub(1) as usize);
         let away_from_players = player_positions
             .iter()
             .all(|other| other.distance_squared(position) > 48.0 * 48.0);
@@ -583,6 +576,7 @@ fn subtract_points(score: i32, penalty: i32) -> i32 {
 pub(crate) fn update_respawns(
     clock: Res<GameClock>,
     settings: Res<GameSettings>,
+    map: Res<ArenaMap>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
     bullets: Query<&Bullet>,
@@ -602,7 +596,7 @@ pub(crate) fn update_respawns(
         if player.respawn_left <= 0.0 {
             // 複数候補から相手と弾に最も近づきにくい地点を選ぶ。
             player.position =
-                choose_respawn_position(player.id, &positions, &bullet_positions, state.tick);
+                map.choose_respawn_position(player.id, &positions, &bullet_positions, state.tick);
             player.hp = settings.gameplay.max_hp;
             player.alive = true;
             player.shot_cooldown = 0.3;
@@ -615,8 +609,8 @@ pub(crate) fn update_respawns(
 }
 
 /// 新しい試合の開始時にプレイヤー状態を初期化する。
-fn reset_player(player: &mut Player, gameplay: &GameplaySettings) {
-    player.position = spawn_position(player.slot);
+fn reset_player(player: &mut Player, gameplay: &GameplaySettings, map: &ArenaMap) {
+    player.position = map.spawn_position(player.slot);
     player.hp = gameplay.max_hp;
     player.alive = true;
     player.respawn_left = 0.0;
@@ -645,19 +639,18 @@ mod tests {
 
     #[test]
     fn score_item_positions_do_not_overlap_obstacles() {
-        for item_id in 1..=9 {
-            assert!(!obstacle_at(
-                score_item_spawn_position(item_id),
-                ITEM_RADIUS
-            ));
+        let map = ArenaMap::default();
+        for index in 0..map.item_spawn_count() {
+            assert!(!map.obstacle_at(map.item_spawn_position(index), ITEM_RADIUS));
         }
     }
 
     #[test]
     fn score_item_spawn_avoids_occupied_candidate() {
-        let occupied = score_item_spawn_position(1);
+        let map = ArenaMap::default();
+        let occupied = map.item_spawn_position(0);
         let (_, position) =
-            choose_score_item_spawn(0, &[occupied], &[]).expect("another candidate");
+            choose_score_item_spawn(&map, 0, &[occupied], &[]).expect("another candidate");
         assert_ne!(position, occupied);
     }
 

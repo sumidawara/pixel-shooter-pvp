@@ -24,7 +24,7 @@ mod server_runtime;
 use std::time::Duration;
 
 use bevy::{app::ScheduleRunnerPlugin, prelude::*, time::Fixed};
-use pixel_shooter_game_core::{GameCorePlugin, MatchState};
+use pixel_shooter_game_core::{ArenaMap, GameCorePlugin, MatchState};
 
 use crate::{config::ServerSettings, server_runtime::ServerRuntimePlugin};
 
@@ -37,6 +37,11 @@ fn main() {
         settings.control.bind_address = debug_bind_address;
     }
     let tick_rate = settings.network.tick_rate;
+    let arena_map = match std::env::var("PIXEL_SHOOTER_MAP") {
+        Ok(path) => ArenaMap::load(&path)
+            .unwrap_or_else(|error| panic!("Could not load PIXEL_SHOOTER_MAP {path}: {error}")),
+        Err(_) => ArenaMap::default(),
+    };
     let game_settings = settings.game.clone();
     let reconnect_grace_seconds = game_settings.match_rules.reconnect_grace_seconds;
     let room_settings = game_settings.room_settings();
@@ -56,6 +61,14 @@ fn main() {
         game_settings.gameplay.max_hp,
         game_settings.gameplay.max_ammo
     );
+    println!(
+        "Map: {} ({}, {}x{} tiles at {} px)",
+        arena_map.name(),
+        arena_map.id(),
+        arena_map.width(),
+        arena_map.height(),
+        arena_map.tile_size()
+    );
     if settings.network.simulated_latency_ms > 0 || settings.network.simulated_loss_percent > 0 {
         println!(
             "Network simulation: {} ms latency, {}% snapshot loss",
@@ -74,6 +87,7 @@ fn main() {
         )
         // FixedUpdateが設定したtick rateで進むよう、固定時間を登録する。
         .insert_resource(Time::<Fixed>::from_hz(tick_rate))
+        .insert_resource(arena_map)
         .insert_resource(game_settings)
         .insert_resource(settings)
         .insert_resource(network)

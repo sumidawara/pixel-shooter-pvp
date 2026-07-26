@@ -2,7 +2,7 @@ extends Node2D
 
 signal exit_requested
 
-const ARENA_SIZE := Vector2(640.0, 360.0)
+const MAP_PATH := "res://maps/classic_arena.json"
 const PLAYER_RADIUS := 12.0
 const DEFAULT_MOVE_SPEED := 150.0
 const DEFAULT_DASH_SPEED := 520.0
@@ -14,7 +14,6 @@ const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
 const YELLOW := Color("#ffe66d")
 const GREEN := Color("#7cff6b")
-const OBSTACLES := [Rect2(250, 85, 140, 28), Rect2(250, 247, 140, 28)]
 
 const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")
@@ -73,9 +72,12 @@ var bullet_velocities: Dictionary = {}
 
 # 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
 var item_views: Dictionary = {}
+var arena_map: ArenaMapData
+var map_mismatch_reported := false
 
 
 func _ready() -> void:
+	arena_map = ArenaMapData.load_from_file(MAP_PATH)
 	NetworkClient.snapshot_received.connect(_on_snapshot_received)
 	exit_confirm_modal.exit_confirmed.connect(_confirm_exit)
 
@@ -174,7 +176,11 @@ func _physics_process(delta: float) -> void:
 		if input_blocked
 		else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	)
-	var origin := predicted_position if prediction_ready else ARENA_SIZE * 0.5
+	var origin := (
+		predicted_position
+		if prediction_ready
+		else arena_map.size_pixels() * 0.5
+	)
 	var aim := (get_viewport().get_mouse_position() - origin).normalized()
 	if aim == Vector2.ZERO:
 		aim = Vector2.RIGHT
@@ -214,6 +220,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	var next_items: Array = snapshot.get("items", [])
 	var next_phase := str(snapshot.get("phase", "waiting"))
 	var next_time := float(snapshot.get("time_left", 0.0))
+	_validate_snapshot_map(snapshot.get("map", {}))
 	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
 	players = next_players
 	players_by_id.clear()
@@ -456,17 +463,36 @@ func _move_predicted_with_collision(delta: Vector2) -> void:
 
 
 func _valid_player_position(position: Vector2) -> bool:
+	if arena_map == null:
+		return false
+	var arena_size := arena_map.size_pixels()
 	if (
 		position.x < PLAYER_RADIUS
-		or position.x > ARENA_SIZE.x - PLAYER_RADIUS
+		or position.x > arena_size.x - PLAYER_RADIUS
 		or position.y < PLAYER_RADIUS
-		or position.y > ARENA_SIZE.y - PLAYER_RADIUS
+		or position.y > arena_size.y - PLAYER_RADIUS
 	):
 		return false
-	for obstacle in OBSTACLES:
-		if obstacle.grow(PLAYER_RADIUS).has_point(position):
-			return false
-	return true
+	return not arena_map.obstacle_at(position, PLAYER_RADIUS)
+
+
+func _validate_snapshot_map(map_snapshot: Dictionary) -> void:
+	if arena_map == null or map_snapshot.is_empty() or map_mismatch_reported:
+		return
+	if (
+		str(map_snapshot.get("id", "")) != arena_map.id
+		or str(map_snapshot.get("revision", "")) != arena_map.revision
+	):
+		map_mismatch_reported = true
+		push_error(
+			"Server map %s@%s does not match client map %s@%s"
+			% [
+				map_snapshot.get("id", ""),
+				map_snapshot.get("revision", ""),
+				arena_map.id,
+				arena_map.revision
+			]
+		)
 
 
 func _player_color(id: int) -> Color:

@@ -5,7 +5,7 @@
 
 use bevy::{ecs::schedule::ScheduleLabel, prelude::*};
 
-use crate::game;
+use crate::{arena::ArenaMap, game};
 
 /// 実時間とは無関係な、ゲーム内の1tickの長さ。
 #[derive(Resource, Clone, Copy, Debug)]
@@ -43,6 +43,7 @@ impl GameCorePlugin {
 impl Plugin for GameCorePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GameClock::from_hz(self.tick_rate))
+            .init_resource::<ArenaMap>()
             .init_schedule(GameTick)
             .add_systems(
                 GameTick,

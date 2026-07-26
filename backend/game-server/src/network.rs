@@ -10,10 +10,10 @@ use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
 use pixel_shooter_admin_protocol::decode_join_ticket;
-use pixel_shooter_game_core::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem, spawn_position};
+use pixel_shooter_game_core::{ArenaMap, Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot,
-    ServerMessage, Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, ClientMessage, ItemSnapshot, MapSnapshot, MatchPhase, PlayerSnapshot,
+    RoomSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -250,6 +250,7 @@ pub(crate) fn process_network(
     mut commands: Commands,
     network: Res<Network>,
     settings: Res<ServerSettings>,
+    map: Res<ArenaMap>,
     allocation: Res<AllocationState>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
@@ -422,6 +423,7 @@ pub(crate) fn process_network(
                     slot,
                     sanitize_name(&name, player_id),
                     &settings,
+                    &map,
                 ));
                 if state.host_player_id.is_none() {
                     state.host_player_id = Some(player_id);
@@ -491,6 +493,7 @@ pub(crate) fn process_network(
                     slot,
                     format!("CPU-{}", slot + 1),
                     &settings,
+                    &map,
                 ));
                 println!("CPU player {player_id} added in slot {slot}");
             }
@@ -554,6 +557,7 @@ pub(crate) fn process_network(
                         slot,
                         format!("CPU-{}", slot + 1),
                         &settings,
+                        &map,
                     ));
                     active_player_count += 1;
                     println!("CPU player {player_id} automatically added for match start");
@@ -580,6 +584,7 @@ fn is_host_connection(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn new_player(
     id: u64,
     connection_id: Option<u64>,
@@ -588,6 +593,7 @@ fn new_player(
     slot: usize,
     name: String,
     settings: &ServerSettings,
+    map: &ArenaMap,
 ) -> Player {
     Player {
         id,
@@ -597,7 +603,7 @@ fn new_player(
         reconnect_grace_left: 0.0,
         slot,
         name,
-        position: spawn_position(slot),
+        position: map.spawn_position(slot),
         aim: if slot.is_multiple_of(2) {
             Vec2::X
         } else {
@@ -626,6 +632,7 @@ fn new_player(
 pub(crate) fn broadcast_snapshot(
     state: Res<MatchState>,
     settings: Res<ServerSettings>,
+    map: Res<ArenaMap>,
     mut network: ResMut<Network>,
     players: Query<&Player>,
     bullets: Query<&Bullet>,
@@ -647,8 +654,15 @@ pub(crate) fn broadcast_snapshot(
 
     // Bevy内部のComponentを、通信専用のSnapshot型へ詰め替える。
     // 内部データを直接シリアライズしないことで、通信仕様とゲーム実装を分離できる。
-    let snapshot = ServerMessage::Snapshot(Snapshot {
+    let snapshot = ServerMessage::Snapshot(Box::new(Snapshot {
         tick: state.tick,
+        map: MapSnapshot {
+            id: map.id().to_string(),
+            revision: map.revision().to_string(),
+            width: map.width(),
+            height: map.height(),
+            tile_size: map.tile_size(),
+        },
         phase: state.phase,
         time_left: state.phase_time_left,
         winner_id: state.match_winner_id,
@@ -721,7 +735,7 @@ pub(crate) fn broadcast_snapshot(
             max_players: MAX_PLAYERS,
             settings: state.room_settings,
         },
-    });
+    }));
     broadcast(&mut network, &snapshot);
 }
 
