@@ -14,7 +14,7 @@ use serde::Deserialize;
 #[serde(default)]
 pub(crate) struct ServerSettings {
     pub(crate) network: NetworkSettings,
-    pub(crate) debug: DebugSettings,
+    pub(crate) control: ControlSettings,
     #[serde(flatten)]
     pub(crate) game: GameSettings,
 }
@@ -31,9 +31,14 @@ pub(crate) struct NetworkSettings {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
-pub(crate) struct DebugSettings {
-    pub(crate) enabled: bool,
+pub(crate) struct ControlSettings {
     pub(crate) bind_address: String,
+    pub(crate) control_url: String,
+    pub(crate) server_id: String,
+    pub(crate) public_url: String,
+    pub(crate) admin_url: String,
+    pub(crate) require_join_ticket: bool,
+    pub(crate) join_secret: String,
 }
 
 impl ServerSettings {
@@ -79,9 +84,23 @@ impl ServerSettings {
             u64::from(self.network.simulated_loss_percent),
         )
         .min(100) as u32;
-        self.debug.enabled = env_bool("PIXEL_SHOOTER_DEBUG_ENABLED", self.debug.enabled);
-        self.debug.bind_address = std::env::var("PIXEL_SHOOTER_DEBUG_BIND_ADDR")
-            .unwrap_or_else(|_| self.debug.bind_address.clone());
+        self.control.bind_address = std::env::var("PIXEL_SHOOTER_CONTROL_BIND_ADDR")
+            .or_else(|_| std::env::var("PIXEL_SHOOTER_DEBUG_BIND_ADDR"))
+            .unwrap_or_else(|_| self.control.bind_address.clone());
+        self.control.control_url = std::env::var("PIXEL_SHOOTER_CONTROL_URL")
+            .unwrap_or_else(|_| self.control.control_url.clone());
+        self.control.server_id = std::env::var("PIXEL_SHOOTER_SERVER_ID")
+            .unwrap_or_else(|_| self.control.server_id.clone());
+        self.control.public_url = std::env::var("PIXEL_SHOOTER_PUBLIC_URL")
+            .unwrap_or_else(|_| self.control.public_url.clone());
+        self.control.admin_url = std::env::var("PIXEL_SHOOTER_ADMIN_URL")
+            .unwrap_or_else(|_| self.control.admin_url.clone());
+        self.control.require_join_ticket = env_bool(
+            "PIXEL_SHOOTER_REQUIRE_JOIN_TICKET",
+            self.control.require_join_ticket,
+        );
+        self.control.join_secret = std::env::var("PIXEL_SHOOTER_JOIN_SECRET")
+            .unwrap_or_else(|_| self.control.join_secret.clone());
         self.game.match_rules.reconnect_grace_seconds = env_f32(
             "PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS",
             self.game.match_rules.reconnect_grace_seconds,
@@ -110,11 +129,16 @@ impl Default for NetworkSettings {
     }
 }
 
-impl Default for DebugSettings {
+impl Default for ControlSettings {
     fn default() -> Self {
         Self {
-            enabled: true,
             bind_address: "127.0.0.1:9101".into(),
+            control_url: "http://127.0.0.1:9101".into(),
+            server_id: "local-game-1".into(),
+            public_url: "ws://127.0.0.1:9001".into(),
+            admin_url: String::new(),
+            require_join_ticket: false,
+            join_secret: "development-only-secret".into(),
         }
     }
 }

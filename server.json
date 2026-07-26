@@ -6,9 +6,14 @@
     "simulated_latency_ms": 0,
     "simulated_loss_percent": 0
   },
-  "debug": {
-    "enabled": true,
-    "bind_address": "127.0.0.1:9101"
+  "control": {
+    "bind_address": "127.0.0.1:9101",
+    "control_url": "http://127.0.0.1:9101",
+    "server_id": "local-game-1",
+    "public_url": "ws://127.0.0.1:9001",
+    "admin_url": "",
+    "require_join_ticket": false,
+    "join_secret": "development-only-secret"
   },
   "match": {
     "match_seconds": 120.0,

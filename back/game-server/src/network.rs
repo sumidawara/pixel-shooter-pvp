@@ -3,12 +3,13 @@
 use std::{
     collections::{HashMap, VecDeque},
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
+use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem, spawn_position};
 use pixel_shooter_protocol::{
     BulletSnapshot, ClientMessage, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot,
@@ -22,7 +23,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 use crate::{
     config::ServerSettings,
-    debug_web::{self, SharedDebugSnapshot},
+    control::{AllocationState, SharedGameSnapshot},
 };
 
 // 接続IDから、そのクライアントへメッセージを送るチャンネルを検索する表。
@@ -51,8 +52,8 @@ pub(crate) struct Network {
     simulated_loss_percent: u32,
     /// 欠落判定を再現可能にするための連番。
     outbound_sequence: u64,
-    /// Webデバッグ画面へ公開する最新の読み取り専用Snapshot。
-    debug_snapshot: SharedDebugSnapshot,
+    /// AdminServerが取得する最新の読み取り専用Snapshot。
+    game_snapshot: SharedGameSnapshot,
 }
 
 /// 通信スレッドで起きた出来事をBevyのメインスレッドへ渡すための値。
@@ -66,26 +67,20 @@ struct NetworkThreadSettings {
     bind_address: String,
     simulated_latency: Duration,
     simulated_loss_percent: u32,
-    debug_enabled: bool,
-    debug_bind_address: String,
 }
 
 /// WebSocket用スレッドを開始し、Bevyへ登録するNetwork Resourceを返す。
-pub(crate) fn start(settings: &ServerSettings) -> Network {
+pub(crate) fn start(settings: &ServerSettings, game_snapshot: SharedGameSnapshot) -> Network {
     let (event_tx, event_rx) = unbounded();
     let clients = Arc::new(Mutex::new(HashMap::new()));
-    let debug_snapshot = debug_web::empty_snapshot();
     let simulated_latency = Duration::from_millis(settings.network.simulated_latency_ms);
     start_network_thread(
         event_tx,
         clients.clone(),
-        debug_snapshot.clone(),
         NetworkThreadSettings {
             bind_address: settings.network.bind_address.clone(),
             simulated_latency,
             simulated_loss_percent: settings.network.simulated_loss_percent,
-            debug_enabled: settings.debug.enabled,
-            debug_bind_address: settings.debug.bind_address.clone(),
         },
     );
     Network {
@@ -94,7 +89,7 @@ pub(crate) fn start(settings: &ServerSettings) -> Network {
         simulated_latency,
         simulated_loss_percent: settings.network.simulated_loss_percent,
         outbound_sequence: 0,
-        debug_snapshot,
+        game_snapshot,
     }
 }
 
@@ -105,18 +100,11 @@ pub(crate) fn start(settings: &ServerSettings) -> Network {
 fn start_network_thread(
     events: Sender<NetworkEvent>,
     clients: ClientSenders,
-    debug_snapshot: SharedDebugSnapshot,
     settings: NetworkThreadSettings,
 ) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
         runtime.block_on(async move {
-            if settings.debug_enabled {
-                tokio::spawn(debug_web::serve(
-                    settings.debug_bind_address,
-                    debug_snapshot,
-                ));
-            }
             let listener = match TcpListener::bind(&settings.bind_address).await {
                 Ok(listener) => listener,
                 Err(error) => {
@@ -262,6 +250,7 @@ pub(crate) fn process_network(
     mut commands: Commands,
     network: Res<Network>,
     settings: Res<ServerSettings>,
+    allocation: Res<AllocationState>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
 ) {
@@ -316,8 +305,9 @@ pub(crate) fn process_network(
             NetworkEvent::Message(
                 connection_id,
                 ClientMessage::Join {
-                    name,
+                    mut name,
                     reconnect_token,
+                    join_ticket,
                 },
             ) => {
                 // 同じ接続からJoinが再送されてもPlayerを重複作成しない。
@@ -353,6 +343,45 @@ pub(crate) fn process_network(
                     );
                     println!("player {player_id} reconnected");
                     continue;
+                }
+
+                if settings.control.require_join_ticket {
+                    let Some(allocated_room_id) = allocation.room_id.as_deref() else {
+                        reject_join(
+                            &network,
+                            connection_id,
+                            "This game server has no allocated room.",
+                        );
+                        continue;
+                    };
+                    let Some(ticket) = join_ticket.as_deref() else {
+                        reject_join(&network, connection_id, "A join ticket is required.");
+                        continue;
+                    };
+                    let claims = match decode_join_ticket(
+                        settings.control.join_secret.as_bytes(),
+                        ticket,
+                        unix_time(),
+                    ) {
+                        Ok(claims) => claims,
+                        Err(error) => {
+                            reject_join(
+                                &network,
+                                connection_id,
+                                &format!("Invalid join ticket: {error}."),
+                            );
+                            continue;
+                        }
+                    };
+                    if claims.room_id != allocated_room_id {
+                        reject_join(
+                            &network,
+                            connection_id,
+                            "The join ticket belongs to another room.",
+                        );
+                        continue;
+                    }
+                    name = claims.player_name;
                 }
 
                 if occupied_slots.len() >= MAX_PLAYERS {
@@ -701,7 +730,7 @@ fn broadcast(network: &mut Network, message: &ServerMessage) {
     let Ok(text) = serde_json::to_string(message) else {
         return;
     };
-    if let Ok(mut snapshot) = network.debug_snapshot.write() {
+    if let Ok(mut snapshot) = network.game_snapshot.write() {
         *snapshot = Some(text.clone());
     }
     let message = Message::Text(text.into());
@@ -715,6 +744,16 @@ fn broadcast(network: &mut Network, message: &ServerMessage) {
             delay: network.simulated_latency,
         });
     }
+}
+
+fn reject_join(network: &Network, connection_id: u64, reason: &str) {
+    send_to(
+        network,
+        connection_id,
+        &ServerMessage::Rejected {
+            reason: reason.into(),
+        },
+    );
 }
 
 /// 指定した接続IDのクライアント1台だけへJSONを送る。
@@ -734,6 +773,13 @@ fn send_to(network: &Network, id: u64, message: &ServerMessage) {
 /// 再接続時にPlayer Entityを安全に特定するためのランダムトークンを作る。
 fn generate_reconnect_token() -> String {
     format!("{:032x}", rand::random::<u128>())
+}
+
+fn unix_time() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }
 
 /// 空の名前を補い、長すぎる名前は16文字までに制限する。

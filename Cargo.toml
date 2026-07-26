@@ -1,3 +1,10 @@
 [workspace]
-members = ["back/game-core", "back/game-server", "protocol"]
+members = [
+    "admin-protocol",
+    "back/admin-server",
+    "back/game-core",
+    "back/game-server",
+    "back/matchmaker",
+    "protocol",
+]
 resolver = "2"

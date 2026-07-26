@@ -17,7 +17,7 @@
 //! - `server_runtime`: 通信と実時間ランナーをGameTickへ接続
 
 mod config;
-mod debug_web;
+mod control;
 mod network;
 mod server_runtime;
 
@@ -34,13 +34,14 @@ fn main() {
         settings.network.bind_address = bind_address;
     }
     if let Some(debug_bind_address) = command_line_value("--debug-bind") {
-        settings.debug.bind_address = debug_bind_address;
+        settings.control.bind_address = debug_bind_address;
     }
     let tick_rate = settings.network.tick_rate;
     let game_settings = settings.game.clone();
     let reconnect_grace_seconds = game_settings.match_rules.reconnect_grace_seconds;
     let room_settings = game_settings.room_settings();
-    let network = network::start(&settings);
+    let control_plane = control::start(&settings);
+    let network = network::start(&settings, control_plane.snapshot());
 
     println!(
         "Pixel Shooter server listening on ws://{}",
@@ -76,6 +77,9 @@ fn main() {
         .insert_resource(game_settings)
         .insert_resource(settings)
         .insert_resource(network)
+        .insert_resource(control_plane)
+        .insert_resource(control::SimulationControl::default())
+        .insert_resource(control::AllocationState::default())
         .insert_resource(MatchState {
             reconnect_grace_seconds,
             room_settings,

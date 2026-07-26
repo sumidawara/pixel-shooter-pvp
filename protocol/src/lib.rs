@@ -19,6 +19,8 @@ pub enum ClientMessage {
         name: String,
         #[serde(default)]
         reconnect_token: Option<String>,
+        #[serde(default)]
+        join_ticket: Option<String>,
     },
     Input {
         sequence: u32,
