@@ -1,6 +1,6 @@
 //! 試合進行、移動、射撃、当たり判定、リスポーンを処理するBevy System。
 
-use bevy::{prelude::*, time::Fixed};
+use bevy::prelude::*;
 use pixel_shooter_protocol::{BULLET_RADIUS, ITEM_RADIUS, MatchPhase, PLAYER_RADIUS};
 
 use crate::{
@@ -8,6 +8,7 @@ use crate::{
         bullet_in_bounds, choose_respawn_position, move_with_collision, obstacle_at, spawn_position,
     },
     config::{GameplaySettings, ServerSettings},
+    game_core::GameClock,
     model::{Bullet, MatchState, Player, ScoreItem},
 };
 
@@ -16,7 +17,7 @@ use crate::{
 /// `ResMut<MatchState>` はResourceを変更可能で借りる指定。
 /// `Query<Entity, With<Bullet>>` はBulletを持つEntity番号だけを取得するフィルター。
 pub(crate) fn update_match(
-    time: Res<Time<Fixed>>,
+    clock: Res<GameClock>,
     settings: Res<ServerSettings>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
@@ -24,7 +25,7 @@ pub(crate) fn update_match(
     items: Query<Entity, With<ScoreItem>>,
     mut commands: Commands,
 ) {
-    let dt = time.delta_secs();
+    let dt = clock.delta_seconds();
 
     // ロビーまたは結果画面で最後の人間が退出した場合、CPUだけのルームを残さない。
     // CPUは接続を持たないため、この状態を放置するとホスト不在のまま開始不能になる。
@@ -258,7 +259,7 @@ fn is_playing_phase(phase: MatchPhase) -> bool {
 
 /// クライアントから受け取った移動入力でプレイヤーを動かすSystem。
 pub(crate) fn move_players(
-    time: Res<Time<Fixed>>,
+    clock: Res<GameClock>,
     settings: Res<ServerSettings>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
@@ -266,7 +267,7 @@ pub(crate) fn move_players(
     if !is_playing_phase(state.phase) {
         return;
     }
-    let dt = time.delta_secs();
+    let dt = clock.delta_seconds();
     for mut player in &mut players {
         if !player.alive {
             player.reload_requested = false;
@@ -423,7 +424,7 @@ pub(crate) fn fire_bullets(
 /// 弾の移動、壁との衝突、プレイヤーへのダメージを処理するSystem。
 pub(crate) fn move_and_hit_bullets(
     mut commands: Commands,
-    time: Res<Time<Fixed>>,
+    clock: Res<GameClock>,
     settings: Res<ServerSettings>,
     state: Res<MatchState>,
     mut bullets: Query<(Entity, &mut Bullet)>,
@@ -432,7 +433,7 @@ pub(crate) fn move_and_hit_bullets(
     if !is_playing_phase(state.phase) {
         return;
     }
-    let dt = time.delta_secs();
+    let dt = clock.delta_seconds();
     for (entity, mut bullet) in &mut bullets {
         // Rustの借用規則上、positionを変更しながらvelocityを読む式を分けている。
         let velocity = bullet.velocity;
@@ -491,7 +492,7 @@ pub(crate) fn move_and_hit_bullets(
 /// 得点アイテムの生成と取得判定を処理するSystem。
 pub(crate) fn update_score_items(
     mut commands: Commands,
-    time: Res<Time<Fixed>>,
+    clock: Res<GameClock>,
     mut state: ResMut<MatchState>,
     mut players: Query<&mut Player>,
     items: Query<(Entity, &ScoreItem)>,
@@ -501,7 +502,7 @@ pub(crate) fn update_score_items(
     }
 
     // 一定間隔で候補地点を巡回し、マップ上の個数が上限未満なら1個生成する。
-    state.item_spawn_left = (state.item_spawn_left - time.delta_secs()).max(0.0);
+    state.item_spawn_left = (state.item_spawn_left - clock.delta_seconds()).max(0.0);
     if state.item_spawn_left <= 0.0 {
         if items.iter().len() < state.room_settings.max_items as usize {
             let player_positions: Vec<_> = players
@@ -580,7 +581,7 @@ fn subtract_points(score: i32, penalty: i32) -> i32 {
 
 /// 死亡したプレイヤーの復活カウントを進めるSystem。
 pub(crate) fn update_respawns(
-    time: Res<Time<Fixed>>,
+    clock: Res<GameClock>,
     settings: Res<ServerSettings>,
     state: Res<MatchState>,
     mut players: Query<&mut Player>,
@@ -589,7 +590,7 @@ pub(crate) fn update_respawns(
     if !is_playing_phase(state.phase) {
         return;
     }
-    let dt = time.delta_secs();
+    let dt = clock.delta_seconds();
     // 下のループではPlayerを変更可能で借りるため、先に全員の位置だけコピーしておく。
     let positions: Vec<(u64, Vec2)> = players.iter().map(|p| (p.id, p.position)).collect();
     let bullet_positions: Vec<Vec2> = bullets.iter().map(|bullet| bullet.position).collect();

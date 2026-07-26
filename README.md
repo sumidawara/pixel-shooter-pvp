@@ -143,15 +143,19 @@ Godotの「エディター → エクスポートテンプレートの管理」�
   - `themes/pixel_theme.tres`: 共通ピクセルフォントとUIスタイル
 - `back/`: Bevyヘッドレスサーバー
   - `src/main.rs`: 設定とSystemをBevy Appへ登録する起動処理
+  - `src/game_core.rs`: 実時間から独立した1tick分のゲームSchedule
+  - `src/server_runtime.rs`: 通信と実時間ループをGameTickへ接続
   - `src/config.rs`: `server.json`と環境変数の読み込み
   - `src/model.rs`: Player、Bullet、MatchState
   - `src/arena.rs`: マップ形状、衝突判定、スポーン地点
   - `src/game.rs`: 試合進行、移動、射撃、リスポーン
   - `src/network.rs`: WebSocket、接続管理、スナップショット配信
 - `protocol/`: Rustの通信メッセージ型
-- `docs/`: プロトコルとゲームルール
+- `docs/`: プロトコル、ゲームルール、バックエンド構成
 - `server.json`: サーバーの運用・ゲーム設定
 - `scripts/build_release.sh`: サーバーとクライアントの配布ビルド
 
 Godot側のシーン構成とデータの流れは
 [`docs/frontend-architecture.md`](docs/frontend-architecture.md) を参照。
+バックエンドのtick実行フローは
+[`docs/backend-architecture.md`](docs/backend-architecture.md) を参照。

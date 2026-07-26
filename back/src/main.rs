@@ -17,19 +17,26 @@
 //! - `model`: ComponentとResource
 //! - `network`: WebSocket通信
 //! - `game`: 試合ルールとゲーム計算
+//! - `game_core`: 実時間から独立した1tick分のSchedule
+//! - `server_runtime`: 通信と実時間ランナーをGameTickへ接続
 
 mod arena;
 mod config;
 mod debug_web;
 mod game;
+mod game_core;
 mod model;
 mod network;
+mod server_runtime;
 
 use std::time::Duration;
 
 use bevy::{app::ScheduleRunnerPlugin, prelude::*, time::Fixed};
 
-use crate::{config::ServerSettings, model::MatchState};
+use crate::{
+    config::ServerSettings, game_core::GameCorePlugin, model::MatchState,
+    server_runtime::ServerRuntimePlugin,
+};
 
 fn main() {
     let mut settings = ServerSettings::load();
@@ -82,22 +89,8 @@ fn main() {
             room_settings,
             ..default()
         })
-        .add_systems(
-            FixedUpdate,
-            (
-                network::process_network,
-                game::update_match,
-                game::update_cpu_players,
-                game::move_players,
-                game::fire_bullets,
-                game::move_and_hit_bullets,
-                game::update_score_items,
-                game::update_respawns,
-                network::broadcast_snapshot,
-            )
-                // chain()により、入力→移動→射撃→判定→配信の順番を固定する。
-                .chain(),
-        )
+        // GameCoreは「1tick分の計算」、ServerRuntimeは「いつ呼ぶか」を担当する。
+        .add_plugins((GameCorePlugin::new(tick_rate), ServerRuntimePlugin))
         // サーバーを終了するまでBevyの更新ループを実行する。
         .run();
 }
