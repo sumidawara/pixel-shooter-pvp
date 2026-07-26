@@ -21,15 +21,20 @@ var reconnect_left := 0.0
 var start_request_pending := false
 var start_retry_left := 0.0
 var start_attempts := 0
+var matchmaking_request: HTTPRequest
+var connection_generation := 0
 
 
 func connect_to_server(url: String, requested_name: String) -> void:
+	_begin_connection_attempt()
 	_prepare_player_name(requested_name)
 	join_ticket = ""
 	_connect_websocket(url)
 
 
 func connect_via_matchmaker(url: String, requested_name: String) -> void:
+	_begin_connection_attempt()
+	var generation := connection_generation
 	_prepare_player_name(requested_name)
 	var matchmaker_url := url.strip_edges().trim_suffix("/")
 	if matchmaker_url.is_empty():
@@ -37,22 +42,29 @@ func connect_via_matchmaker(url: String, requested_name: String) -> void:
 	if not matchmaker_url.begins_with("http://") and not matchmaker_url.begins_with("https://"):
 		matchmaker_url = "http://" + matchmaker_url
 	status_changed.emit("FINDING ROOM...")
-	var request := HTTPRequest.new()
-	add_child(request)
+	matchmaking_request = HTTPRequest.new()
+	add_child(matchmaking_request)
 	var headers := PackedStringArray(["Content-Type: application/json"])
-	var error := request.request(
+	var error := matchmaking_request.request(
 		matchmaker_url + "/v1/matchmake",
 		headers,
 		HTTPClient.METHOD_POST,
 		JSON.stringify({"player_name": player_name})
 	)
 	if error != OK:
-		request.queue_free()
+		matchmaking_request.queue_free()
+		matchmaking_request = null
 		status_changed.emit("MATCHMAKER REQUEST COULD NOT START")
 		rejected.emit("Matchmaker request could not start")
 		return
+	var request := matchmaking_request
 	var result: Array = await request.request_completed
+	if generation != connection_generation:
+		if is_instance_valid(request):
+			request.queue_free()
+		return
 	request.queue_free()
+	matchmaking_request = null
 	var response_code := int(result[1])
 	var body: PackedByteArray = result[3]
 	var response = JSON.parse_string(body.get_string_from_utf8())
@@ -85,15 +97,32 @@ func _connect_websocket(url: String) -> void:
 
 
 func disconnect_from_server() -> void:
+	connection_generation += 1
 	connection_requested = false
 	has_joined = false
 	player_id = 0
+	join_ticket = ""
 	start_request_pending = false
 	start_attempts = 0
+	if is_instance_valid(matchmaking_request):
+		matchmaking_request.cancel_request()
+		matchmaking_request.queue_free()
+	matchmaking_request = null
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		socket.close()
 	socket = WebSocketPeer.new()
 	status_changed.emit("READY")
+
+
+func _begin_connection_attempt() -> void:
+	connection_generation += 1
+	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		socket.close()
+	socket = WebSocketPeer.new()
+	if is_instance_valid(matchmaking_request):
+		matchmaking_request.cancel_request()
+		matchmaking_request.queue_free()
+	matchmaking_request = null
 
 
 func send_input(input_message: Dictionary) -> void:

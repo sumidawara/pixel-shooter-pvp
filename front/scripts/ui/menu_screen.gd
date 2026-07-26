@@ -1,6 +1,7 @@
 extends Control
 
 signal join_requested(server_url: String, player_name: String)
+signal cancel_connection_requested
 signal create_requested(player_name: String, port: int, settings: Dictionary)
 signal add_cpu_requested
 signal remove_cpu_requested(player_id: int)
@@ -46,6 +47,7 @@ var is_web := false
 var is_room_host := false
 var applying_room_snapshot := false
 var last_cpu_id := 0
+var is_connecting := false
 
 
 func _ready() -> void:
@@ -67,11 +69,11 @@ func _bind_buttons() -> void:
 	%SettingsButton.pressed.connect(func(): _show_page(settings_page))
 	%QuitButton.pressed.connect(func(): quit_requested.emit())
 	%TitleBackButton.pressed.connect(show_title)
-	%JoinBackButton.pressed.connect(func(): _show_page(play_page))
+	%JoinBackButton.pressed.connect(_leave_join_page)
 	%CreateBackButton.pressed.connect(_leave_room_to_play)
 	%SettingsBackButton.pressed.connect(_save_settings_and_return)
 	create_room_button.pressed.connect(_request_create_room)
-	join_button.pressed.connect(request_connection)
+	join_button.pressed.connect(_on_join_button_pressed)
 	%OpenJoinButton.pressed.connect(func(): _show_page(join_page))
 	server_input.text_submitted.connect(func(_value: String): request_connection())
 	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit())
@@ -95,6 +97,10 @@ func show_title() -> void:
 	status_label.text = "READY"
 
 
+func show_join() -> void:
+	_show_page(join_page)
+
+
 func show_room(hosting: bool, address: String) -> void:
 	is_room_host = hosting
 	_show_page(create_page)
@@ -106,6 +112,23 @@ func show_room(hosting: bool, address: String) -> void:
 func request_connection() -> void:
 	set_connecting(true)
 	join_requested.emit(server_input.text, player_name_input.text)
+
+
+func _on_join_button_pressed() -> void:
+	if is_connecting:
+		cancel_connection_requested.emit()
+		set_connecting(false)
+		set_status("CONNECTION CANCELLED")
+	else:
+		request_connection()
+
+
+func _leave_join_page() -> void:
+	if is_connecting:
+		cancel_connection_requested.emit()
+		set_connecting(false)
+	_show_page(play_page)
+	set_status("READY")
 
 
 func _request_create_room() -> void:
@@ -174,8 +197,10 @@ func get_room_settings() -> Dictionary:
 
 
 func set_connecting(connecting: bool) -> void:
-	join_button.disabled = connecting
-	join_button.text = "CONNECTING..." if connecting else "JOIN ROOM"
+	is_connecting = connecting
+	# 接続中もボタンを無効化せず、同じ場所から即座に中止できるようにする。
+	join_button.disabled = false
+	join_button.text = "CANCEL" if connecting else "JOIN ROOM"
 
 
 func set_status(text: String) -> void:

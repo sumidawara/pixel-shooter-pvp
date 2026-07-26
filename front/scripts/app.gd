@@ -13,6 +13,7 @@ var pending_host_settings: Dictionary = {}
 func _ready() -> void:
 	get_window().title = "Pixel Shooter PvP"
 	menu_screen.join_requested.connect(_on_join_requested)
+	menu_screen.cancel_connection_requested.connect(_cancel_join_attempt)
 	menu_screen.create_requested.connect(_on_create_requested)
 	menu_screen.add_cpu_requested.connect(NetworkClient.add_cpu)
 	menu_screen.remove_cpu_requested.connect(NetworkClient.remove_cpu)
@@ -36,10 +37,51 @@ func _on_join_requested(server_url: String, player_name: String) -> void:
 	hosting_room = false
 	joined_room = false
 	menu_screen.set_connecting(true)
-	if server_url.begins_with("http://") or server_url.begins_with("https://"):
-		NetworkClient.connect_via_matchmaker(server_url, player_name)
+	var normalized_url := server_url.strip_edges()
+	if _is_matchmaker_url(normalized_url):
+		NetworkClient.connect_via_matchmaker(_as_http_url(normalized_url), player_name)
 	else:
-		NetworkClient.connect_to_server(server_url, player_name)
+		NetworkClient.connect_to_server(normalized_url, player_name)
+
+
+func _cancel_join_attempt() -> void:
+	NetworkClient.disconnect_from_server()
+	joined_room = false
+	local_player_id = 0
+
+
+# Docker Composeの標準Matchmakerポートへ誤ってws://を付けても、
+# HTTPのマッチングAPIとして扱い、WebSocketの無限再試行を避ける。
+func _is_matchmaker_url(url: String) -> bool:
+	var lower := url.to_lower()
+	return (
+		lower.begins_with("http://")
+		or lower.begins_with("https://")
+		or _url_uses_port(lower, 8080)
+	)
+
+
+func _as_http_url(url: String) -> String:
+	var lower := url.to_lower()
+	if lower.begins_with("ws://"):
+		return "http://" + url.substr(5)
+	if lower.begins_with("wss://"):
+		return "https://" + url.substr(6)
+	if not lower.begins_with("http://") and not lower.begins_with("https://"):
+		return "http://" + url
+	return url
+
+
+func _url_uses_port(url: String, port: int) -> bool:
+	var authority_start := url.find("://")
+	authority_start = authority_start + 3 if authority_start >= 0 else 0
+	var path_start := url.find("/", authority_start)
+	var authority := (
+		url.substr(authority_start)
+		if path_start < 0
+		else url.substr(authority_start, path_start - authority_start)
+	)
+	return authority.ends_with(":%d" % port)
 
 
 func _on_create_requested(player_name: String, port: int, settings: Dictionary) -> void:
@@ -98,7 +140,13 @@ func _on_rejected(reason: String) -> void:
 		host_server.stop_server()
 	hosting_room = false
 	joined_room = false
-	_show_menu()
+	local_player_id = 0
+	game_screen.end_session()
+	game_screen.visible = false
+	menu_screen.visible = true
+	menu_screen.set_connecting(false)
+	# URLを直してすぐ再試行できるよう、タイトルへ戻さずJoin画面を維持する。
+	menu_screen.show_join()
 	menu_screen.set_status(reason)
 
 
