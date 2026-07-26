@@ -57,7 +57,7 @@ func _is_matchmaker_url(url: String) -> bool:
 	return (
 		lower.begins_with("http://")
 		or lower.begins_with("https://")
-		or _url_uses_port(lower, 8080)
+		or _url_uses_port(lower, NetworkConfig.MATCHMAKER_PORT)
 	)
 
 

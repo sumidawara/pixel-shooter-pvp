@@ -197,7 +197,7 @@ text = "MATCHMAKER OR GAME URL"
 [node name="ServerUrlInput" type="LineEdit" parent="JoinPage/Panel/Margin/Content" unique_id=485117564]
 unique_name_in_owner = true
 layout_mode = 2
-placeholder_text = "http://127.0.0.1:8080"
+placeholder_text = "MATCHMAKER OR GAME SERVER URL"
 
 [node name="JoinButton" type="Button" parent="JoinPage/Panel/Margin/Content" unique_id=665995599]
 unique_name_in_owner = true
@@ -249,7 +249,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.153, 0.898, 1, 1)
 theme_override_font_sizes/font_size = 10
-text = "ws://127.0.0.1:9001"
+text = "NOT CONNECTED"
 
 [node name="RoomWaitingLabel" type="Label" parent="CreatePage/LobbyPanel/Margin/Content" unique_id=633846810]
 unique_name_in_owner = true

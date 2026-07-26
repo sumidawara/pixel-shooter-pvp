@@ -10,7 +10,6 @@ signal room_settings_changed(settings: Dictionary)
 signal leave_room_requested
 signal quit_requested
 
-const DEFAULT_SERVER_URL := "ws://127.0.0.1:9001"
 const CURSOR_TEXTURE: Texture2D = preload("res://assets/art/cursor.png")
 const PLAYER_COLORS := [
 	Color("#27e5ff"),
@@ -54,8 +53,7 @@ func _ready() -> void:
 	Input.set_custom_mouse_cursor(CURSOR_TEXTURE, Input.CURSOR_ARROW, Vector2(12, 12))
 	is_web = OS.has_feature("web")
 	_load_local_settings()
-	var environment_url := OS.get_environment("PIXEL_SHOOTER_SERVER_URL")
-	server_input.text = environment_url if not environment_url.is_empty() else DEFAULT_SERVER_URL
+	server_input.text = NetworkConfig.initial_connection_url()
 	create_room_button.disabled = is_web
 	create_room_button.tooltip_text = "Desktop app only" if is_web else ""
 	%CreateRoomHint.text = "DESKTOP APP ONLY" if is_web else "START A LOCAL SERVER"
@@ -137,7 +135,7 @@ func _request_create_room() -> void:
 		return
 	set_connecting(true)
 	var port := int(port_input.value)
-	show_room(true, "ws://127.0.0.1:%d" % port)
+	show_room(true, NetworkConfig.local_game_server_url(port))
 	create_requested.emit(player_name_input.text, port, get_room_settings())
 
 

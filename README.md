@@ -38,6 +38,12 @@ Godotの`JOIN ROOM`へ`http://127.0.0.1:8080`を入力すると、Matchmakerが
 GameServerを割り当て、Join Ticketを発行し、そのGameServerへ直接接続する。
 詳しくは[`docs/deployment.md`](docs/deployment.md)を参照。
 
+Godotクライアントの接続先は
+[`front/scripts/network_config.gd`](front/scripts/network_config.gd)へ集約している。
+Docker Compose利用時の初期接続先はMatchmakerの`http://127.0.0.1:8080`。
+一時的に別の接続先を使う場合は、起動時に`PIXEL_SHOOTER_SERVER_URL`環境変数でも
+上書きできる。
+
 AdminServerのデバッグ画面は`http://127.0.0.1:8081/debug/`で確認できる。
 対象GameServerの選択、マップ・Entity・Snapshotの表示に加え、
 Pause、1 tick Step、Resumeを操作できる。Svelte画面を変更した場合は、

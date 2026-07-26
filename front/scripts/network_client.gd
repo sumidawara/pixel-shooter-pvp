@@ -5,12 +5,11 @@ signal welcome_received(player_id: int, reconnected: bool)
 signal rejected(reason: String)
 signal snapshot_received(snapshot: Dictionary)
 
-const DEFAULT_SERVER_URL := "ws://127.0.0.1:9001"
 const START_RETRY_SECONDS := 0.35
 const START_MAX_ATTEMPTS := 3
 
 var socket := WebSocketPeer.new()
-var server_url := DEFAULT_SERVER_URL
+var server_url := NetworkConfig.DEFAULT_GAME_SERVER_URL
 var player_name := "Player"
 var player_id := 0
 var reconnect_token := ""
@@ -38,7 +37,7 @@ func connect_via_matchmaker(url: String, requested_name: String) -> void:
 	_prepare_player_name(requested_name)
 	var matchmaker_url := url.strip_edges().trim_suffix("/")
 	if matchmaker_url.is_empty():
-		matchmaker_url = "http://127.0.0.1:8080"
+		matchmaker_url = NetworkConfig.DEFAULT_MATCHMAKER_URL
 	if not matchmaker_url.begins_with("http://") and not matchmaker_url.begins_with("https://"):
 		matchmaker_url = "http://" + matchmaker_url
 	status_changed.emit("FINDING ROOM...")
@@ -88,7 +87,7 @@ func _prepare_player_name(requested_name: String) -> void:
 func _connect_websocket(url: String) -> void:
 	server_url = url.strip_edges()
 	if server_url.is_empty():
-		server_url = DEFAULT_SERVER_URL
+		server_url = NetworkConfig.DEFAULT_GAME_SERVER_URL
 	if not server_url.begins_with("ws://") and not server_url.begins_with("wss://"):
 		server_url = "ws://" + server_url
 	connection_requested = true

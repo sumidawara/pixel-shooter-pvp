@@ -12,7 +12,7 @@ func start_server(port: int) -> void:
 		server_failed.emit("CREATE ROOM IS NOT AVAILABLE IN WEB BUILDS")
 		return
 	var port_probe := TCPServer.new()
-	if port_probe.listen(port, "127.0.0.1") != OK:
+	if port_probe.listen(port, NetworkConfig.LOCAL_SERVER_HOST) != OK:
 		server_failed.emit(
 			"PORT %d IS ALREADY IN USE — STOP THE OTHER SERVER OR JOIN IT" % port
 		)
@@ -24,14 +24,14 @@ func start_server(port: int) -> void:
 		return
 	server_pid = OS.create_process(
 		server_path,
-		["--bind", "127.0.0.1:%d" % port],
+		["--bind", NetworkConfig.local_server_bind_address(port)],
 		false
 	)
 	if server_pid <= 0:
 		server_pid = -1
 		server_failed.emit("COULD NOT START THE RUST SERVER")
 		return
-	server_started.emit("ws://127.0.0.1:%d" % port)
+	server_started.emit(NetworkConfig.local_game_server_url(port))
 
 
 func stop_server() -> void:
