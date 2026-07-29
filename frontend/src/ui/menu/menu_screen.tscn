@@ -10,35 +10,21 @@ content_margin_top = 12.0
 content_margin_right = 18.0
 content_margin_bottom = 12.0
 bg_color = Color(0.153, 0.898, 1, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.75, 0.97, 1, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-shadow_color = Color(0.153, 0.898, 1, 0.28)
-shadow_size = 7
 
 [sub_resource type="StyleBoxFlat" id="StylePlayHover"]
 content_margin_left = 18.0
 content_margin_top = 12.0
 content_margin_right = 18.0
 content_margin_bottom = 12.0
-bg_color = Color(0.78, 0.97, 1, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 1, 1, 1)
+bg_color = Color(0.42, 0.95, 1, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-shadow_color = Color(0.153, 0.898, 1, 0.45)
-shadow_size = 9
 
 [sub_resource type="StyleBoxFlat" id="StylePlayPressed"]
 content_margin_left = 18.0
@@ -46,11 +32,6 @@ content_margin_top = 12.0
 content_margin_right = 18.0
 content_margin_bottom = 12.0
 bg_color = Color(1, 0.22, 0.78, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.72, 0.93, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -101,48 +82,35 @@ script = ExtResource("1_script")
 
 [node name="Background" type="ColorRect" parent="." unique_id=1801522756]
 layout_mode = 1
-anchors_preset = -1
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.9
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.018, 0.024, 0.037, 1)
 
-[node name="RightAtmosphere" type="ColorRect" parent="." unique_id=1766751963]
+[node name="BackgroundImage" type="TextureRect" parent="."]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.48
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.9
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.055, 0.035, 0.09, 0.72)
+texture = ExtResource("2_title")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="HorizonLine" type="ColorRect" parent="."]
+[node name="BackgroundScrim" type="ColorRect" parent="."]
 layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.57
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.57
-offset_bottom = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.153, 0.898, 1, 0.12)
-
-[node name="VerticalLine" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.9
-offset_right = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(1, 0.22, 0.78, 0.1)
+color = Color(0.018, 0.024, 0.037, 0.12)
 
 [node name="TitlePage" type="Control" parent="." unique_id=1752854923]
 unique_name_in_owner = true
@@ -154,50 +122,13 @@ grow_vertical = 2
 
 [node name="OnlineStatus" type="Label" parent="TitlePage"]
 layout_mode = 0
-offset_left = 456.0
-offset_top = 18.0
-offset_right = 616.0
-offset_bottom = 36.0
+offset_left = 42.0
+offset_top = 330.0
+offset_right = 300.0
+offset_bottom = 346.0
 theme_override_colors/font_color = Color(0.49, 1, 0.42, 1)
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 10
 text = "●  MATCHMAKING ONLINE"
-horizontal_alignment = 2
-
-[node name="ArtFrame" type="ColorRect" parent="TitlePage"]
-layout_mode = 0
-offset_left = 364.0
-offset_top = 45.0
-offset_right = 612.0
-offset_bottom = 328.0
-mouse_filter = 2
-color = Color(0.153, 0.898, 1, 0.035)
-
-[node name="ArtAccentTop" type="ColorRect" parent="TitlePage/ArtFrame"]
-layout_mode = 0
-offset_right = 74.0
-offset_bottom = 2.0
-mouse_filter = 2
-color = Color(0.153, 0.898, 1, 0.9)
-
-[node name="ArtAccentRight" type="ColorRect" parent="TitlePage/ArtFrame"]
-layout_mode = 0
-offset_left = 246.0
-offset_top = 209.0
-offset_right = 248.0
-offset_bottom = 283.0
-mouse_filter = 2
-color = Color(1, 0.22, 0.78, 0.9)
-
-[node name="Character" type="TextureRect" parent="TitlePage"]
-layout_mode = 0
-offset_left = 346.0
-offset_top = 48.0
-offset_right = 628.0
-offset_bottom = 324.0
-mouse_filter = 2
-texture = ExtResource("2_title")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="Brand" type="VBoxContainer" parent="TitlePage"]
 layout_mode = 0
@@ -225,6 +156,11 @@ theme_override_colors/font_color = Color(1, 0.22, 0.78, 1)
 theme_override_font_sizes/font_size = 43
 text = "SHOOTER"
 
+[node name="TaglineGap" type="Control" parent="TitlePage/Brand"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="Tagline" type="Label" parent="TitlePage/Brand"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.52, 0.58, 0.65, 1)
@@ -241,12 +177,14 @@ theme_override_constants/separation = 7
 
 [node name="PlayButton" type="Button" parent="TitlePage/Actions" unique_id=1620718716]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 62)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.018, 0.024, 0.037, 1)
 theme_override_colors/font_hover_color = Color(0.018, 0.024, 0.037, 1)
 theme_override_colors/font_pressed_color = Color(0.018, 0.024, 0.037, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_colors/font_focus_color = Color(0.018, 0.024, 0.037, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.018, 0.024, 0.037, 1)
+theme_override_font_sizes/font_size = 20
 theme_override_styles/focus = SubResource("StylePlayHover")
 theme_override_styles/hover = SubResource("StylePlayHover")
 theme_override_styles/normal = SubResource("StylePlayNormal")
@@ -257,7 +195,7 @@ text = "▶  PLAY"
 [node name="PlayHint" type="Label" parent="TitlePage/Actions"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 10
 text = "ENTER THE ARENA  //  CREATE OR JOIN A ROOM"
 horizontal_alignment = 1
 
@@ -271,6 +209,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.68, 0.73, 0.78, 1)
 theme_override_colors/font_hover_color = Color(0.9, 0.96, 1, 1)
+theme_override_colors/font_focus_color = Color(0.9, 0.96, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.9, 0.96, 1, 1)
 theme_override_styles/hover = SubResource("StyleSecondaryHover")
 theme_override_styles/normal = SubResource("StyleSecondaryNormal")
 theme_override_styles/pressed = SubResource("StyleSecondaryHover")
@@ -283,6 +223,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.68, 0.73, 0.78, 1)
 theme_override_colors/font_hover_color = Color(0.9, 0.96, 1, 1)
+theme_override_colors/font_focus_color = Color(0.9, 0.96, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.9, 0.96, 1, 1)
 theme_override_styles/hover = SubResource("StyleSecondaryHover")
 theme_override_styles/normal = SubResource("StyleSecondaryNormal")
 theme_override_styles/pressed = SubResource("StyleSecondaryHover")
@@ -654,7 +596,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.02, 0.025, 0.035, 1)
+color = Color(0.02, 0.025, 0.035, 0)
 
 [node name="StatusLabel" type="Label" parent="Footer" unique_id=1404040029]
 unique_name_in_owner = true
@@ -665,6 +607,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+offset_left = 42.0
 theme_override_font_sizes/font_size = 10
-text = "  READY"
+text = "READY"
+vertical_alignment = 1
 vertical_alignment = 1
