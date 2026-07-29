@@ -1,6 +1,6 @@
 //! CPUプレイヤーの入力生成。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
@@ -13,10 +13,14 @@ use super::is_playing_phase;
 
 const ROUTE_REFRESH_TICKS: u64 = 15;
 const WAYPOINT_REACHED_DISTANCE: f32 = 6.0;
+const RETREAT_START_TILES: f32 = 1.75;
+const RETREAT_END_TILES: f32 = 3.0;
+const RETREAT_TARGET_TILES: f32 = 2.5;
 
 #[derive(Resource, Default)]
 pub(crate) struct CpuNavigation {
     routes: HashMap<u64, CpuRoute>,
+    retreating: HashSet<u64>,
 }
 
 #[derive(Default)]
@@ -49,7 +53,7 @@ pub(crate) fn update_cpu_players(
         if !cpu.is_cpu || !cpu.alive {
             continue;
         }
-        let Some((_, enemy_position, _)) = targets
+        let Some((enemy_id, enemy_position, _)) = targets
             .iter()
             .filter(|(id, _, alive)| *id != cpu.id && *alive)
             .min_by(|left, right| {
@@ -62,17 +66,26 @@ pub(crate) fn update_cpu_players(
             cpu.aim = Vec2::ZERO;
             cpu.shooting = false;
             navigation.routes.remove(&cpu.id);
+            navigation.retreating.remove(&cpu.id);
             continue;
         };
-        let movement_target = item_positions
-            .iter()
-            .min_by(|left, right| {
-                cpu.position
-                    .distance_squared(**left)
-                    .total_cmp(&cpu.position.distance_squared(**right))
-            })
-            .copied()
-            .unwrap_or(*enemy_position);
+        let enemy_distance = cpu.position.distance(*enemy_position);
+        let retreating =
+            update_retreat_state(&mut navigation, cpu.id, enemy_distance, map.tile_size());
+        let movement_target = if retreating {
+            choose_retreat_target(&map, cpu.id, cpu.position, *enemy_id, *enemy_position)
+                .unwrap_or(cpu.position)
+        } else {
+            item_positions
+                .iter()
+                .min_by(|left, right| {
+                    cpu.position
+                        .distance_squared(**left)
+                        .total_cmp(&cpu.position.distance_squared(**right))
+                })
+                .copied()
+                .unwrap_or(*enemy_position)
+        };
         let waypoint = next_movement_waypoint(
             &map,
             &mut navigation,
@@ -84,7 +97,7 @@ pub(crate) fn update_cpu_players(
         cpu.movement = waypoint
             .map(|position| (position - cpu.position).normalize_or_zero())
             .unwrap_or(Vec2::ZERO);
-        cpu.aim = (*enemy_position - cpu.position).normalize_or_zero();
+        cpu.aim = separation_direction(cpu.id, cpu.position, *enemy_id, *enemy_position);
         cpu.shooting = cpu.aim != Vec2::ZERO;
         let dash_target = cpu.position + cpu.movement * map.tile_size() * 2.0;
         if state.tick.is_multiple_of(180)
@@ -100,6 +113,77 @@ pub(crate) fn update_cpu_players(
             .iter()
             .any(|(target_id, _, alive)| target_id == id && *alive)
     });
+    navigation.retreating.retain(|id| {
+        targets
+            .iter()
+            .any(|(target_id, _, alive)| target_id == id && *alive)
+    });
+}
+
+fn update_retreat_state(
+    navigation: &mut CpuNavigation,
+    cpu_id: u64,
+    enemy_distance: f32,
+    tile_size: f32,
+) -> bool {
+    if enemy_distance < tile_size * RETREAT_START_TILES {
+        navigation.retreating.insert(cpu_id);
+    } else if enemy_distance >= tile_size * RETREAT_END_TILES {
+        navigation.retreating.remove(&cpu_id);
+    }
+    navigation.retreating.contains(&cpu_id)
+}
+
+/// 敵から離れつつ、壁にぶつからず到達できる退避先を選ぶ。
+fn choose_retreat_target(
+    map: &ArenaMap,
+    cpu_id: u64,
+    position: Vec2,
+    enemy_id: u64,
+    enemy_position: Vec2,
+) -> Option<Vec2> {
+    let away = -separation_direction(cpu_id, position, enemy_id, enemy_position);
+    let side = if cpu_id < enemy_id { 1.0 } else { -1.0 };
+    let perpendicular = Vec2::new(-away.y, away.x) * side;
+    let directions = [
+        away,
+        (away + perpendicular).normalize_or_zero(),
+        (away - perpendicular).normalize_or_zero(),
+        perpendicular,
+        -perpendicular,
+        -away,
+    ];
+    let distance = map.tile_size() * RETREAT_TARGET_TILES;
+    let candidates = directions
+        .into_iter()
+        .map(|direction| position + direction * distance)
+        .filter(|candidate| map.valid_player_position(*candidate));
+
+    candidates
+        .clone()
+        .filter(|candidate| map.has_clear_player_path(position, *candidate))
+        .max_by(|left, right| {
+            left.distance_squared(enemy_position)
+                .total_cmp(&right.distance_squared(enemy_position))
+        })
+        .or_else(|| {
+            candidates.max_by(|left, right| {
+                left.distance_squared(enemy_position)
+                    .total_cmp(&right.distance_squared(enemy_position))
+            })
+        })
+}
+
+/// 完全に同じ座標へ重なった場合も、IDを使って互いに逆方向を返す。
+fn separation_direction(cpu_id: u64, position: Vec2, enemy_id: u64, enemy_position: Vec2) -> Vec2 {
+    let direction = enemy_position - position;
+    if direction.length_squared() > 0.001 {
+        direction.normalize()
+    } else if cpu_id < enemy_id {
+        Vec2::X
+    } else {
+        Vec2::NEG_X
+    }
 }
 
 fn next_movement_waypoint(
@@ -153,6 +237,47 @@ fn next_movement_waypoint(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overlapping_cpus_choose_opposite_retreat_targets() {
+        let map = ArenaMap::default();
+        let position = map.tile_center(GridPosition { x: 10, y: 3 });
+
+        let first = choose_retreat_target(&map, 1, position, 2, position)
+            .expect("first CPU retreat target");
+        let second = choose_retreat_target(&map, 2, position, 1, position)
+            .expect("second CPU retreat target");
+
+        assert!((first - position).dot(second - position) < 0.0);
+        assert!(first.distance(second) >= map.tile_size() * 4.0);
+        assert!(map.has_clear_player_path(position, first));
+        assert!(map.has_clear_player_path(position, second));
+    }
+
+    #[test]
+    fn cpu_keeps_retreating_until_safe_distance_is_restored() {
+        let mut navigation = CpuNavigation::default();
+        let tile_size = 32.0;
+
+        assert!(update_retreat_state(
+            &mut navigation,
+            1,
+            tile_size,
+            tile_size
+        ));
+        assert!(update_retreat_state(
+            &mut navigation,
+            1,
+            tile_size * 2.0,
+            tile_size
+        ));
+        assert!(!update_retreat_state(
+            &mut navigation,
+            1,
+            tile_size * RETREAT_END_TILES,
+            tile_size
+        ));
+    }
 
     #[test]
     fn cpu_waypoint_turns_toward_gap_instead_of_wall() {
