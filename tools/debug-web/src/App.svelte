@@ -405,7 +405,7 @@
       </article>
       <article>
         <span>ENTITIES</span>
-        <strong>{snapshot.bullets.length + snapshot.items.length}<em> LIVE</em></strong>
+        <strong>{snapshot.bullets.length + snapshot.items.length}<em>&nbsp;LIVE</em></strong>
       </article>
     </section>
 
