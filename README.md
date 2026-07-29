@@ -68,7 +68,9 @@ Godotの`JOIN ROOM`へ`http://127.0.0.1:8080`を入力すると、Matchmakerが
 Game Serverを割り当て、Join Ticketを発行し、そのGame Serverへ直接接続する。
 Admin Serverのデバッグ画面は`http://127.0.0.1:8081/debug/`で確認できる。
 対象GameServerの選択、マップ・Entity・Snapshotの表示に加え、
-Pause、1 tick Step、Resumeを操作できる。詳しくは
+Pause、1 tick Step、Resume、モデル入力シナリオの注入を操作できる。
+入力列の共通JSON形式とAPIは
+[`docs/input-scenarios.md`](docs/input-scenarios.md)、構成全体は
 [`docs/deployment.md`](docs/deployment.md)を参照。
 
 Godotクライアントの接続先は

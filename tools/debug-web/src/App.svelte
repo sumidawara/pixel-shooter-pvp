@@ -2,7 +2,13 @@
   import { onMount } from "svelte";
   import { drawArena } from "./arena";
   import MapEditor from "./MapEditor.svelte";
-  import type { GameServer, Player, SnapshotEnvelope } from "./types";
+  import type {
+    ControlState,
+    GameServer,
+    InputScenario,
+    Player,
+    SnapshotEnvelope,
+  } from "./types";
 
   const POLL_INTERVAL_MS = 200;
   const phaseLabels: Record<string, string> = {
@@ -11,6 +17,38 @@
     running: "RUNNING",
     paused: "PAUSED",
     match_finished: "FINISHED",
+  };
+  const exampleScenario: InputScenario = {
+    schema_version: 1,
+    name: "trained-policy-sample",
+    frames: [
+      {
+        note: "model output at observation 0",
+        inputs: [
+          {
+            player_id: 2,
+            move_x: -1,
+            aim_x: 1,
+            shooting: true,
+            reason: "enemy is inside the preferred engagement range",
+            metadata: { confidence: 0.87, policy: "distance_keeper_v1" },
+          },
+        ],
+      },
+      {
+        note: "model output at observation 1",
+        inputs: [
+          {
+            player_id: 2,
+            move_y: 1,
+            aim_x: 1,
+            shooting: true,
+            reason: "strafe while line of sight is clear",
+            metadata: { confidence: 0.74, policy: "distance_keeper_v1" },
+          },
+        ],
+      },
+    ],
   };
 
   let snapshot = $state<SnapshotEnvelope | null>(null);
@@ -21,7 +59,10 @@
   let servers = $state<GameServer[]>([]);
   let selectedServerId = $state("");
   let controlBusy = $state(false);
+  let controlState = $state<ControlState | null>(null);
+  let scenarioJson = $state(JSON.stringify(exampleScenario, null, 2));
   let activeView = $state<"observer" | "editor">("observer");
+  let controlStateInFlight = false;
 
   let sortedPlayers = $derived(
     snapshot ? [...snapshot.players].sort((left, right) => left.id - right.id) : [],
@@ -37,6 +78,23 @@
     if (canvas && snapshot) drawArena(canvas, snapshot);
   });
 
+  const loadControlState = async () => {
+    if (!selectedServerId || controlStateInFlight) return;
+    controlStateInFlight = true;
+    try {
+      const response = await fetch(
+        `/api/servers/${encodeURIComponent(selectedServerId)}/state`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      controlState = (await response.json()) as ControlState;
+    } catch {
+      controlState = null;
+    } finally {
+      controlStateInFlight = false;
+    }
+  };
+
   onMount(() => {
     let disposed = false;
     let requestInFlight = false;
@@ -51,6 +109,7 @@
           if (!nextServers.some((server) => server.server_id === selectedServerId)) {
             selectedServerId = nextServers[0]?.server_id ?? "";
             snapshot = null;
+            controlState = null;
           }
         }
       } catch {
@@ -86,12 +145,15 @@
     };
 
     loadServers();
+    loadControlState();
     const serverTimer = window.setInterval(loadServers, 1000);
     const timer = window.setInterval(loadSnapshot, POLL_INTERVAL_MS);
+    const controlTimer = window.setInterval(loadControlState, POLL_INTERVAL_MS);
     return () => {
       disposed = true;
       window.clearInterval(serverTimer);
       window.clearInterval(timer);
+      window.clearInterval(controlTimer);
     };
   });
 
@@ -105,9 +167,55 @@
         body: action === "step" ? JSON.stringify({ ticks: 1 }) : undefined,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await new Promise((resolve) => window.setTimeout(resolve, 40));
+      await loadControlState();
       errorMessage = "";
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : "Control failed";
+    } finally {
+      controlBusy = false;
+    }
+  };
+
+  const loadInputScenario = async () => {
+    if (!selectedServerId || controlBusy) return;
+    controlBusy = true;
+    try {
+      const scenario = JSON.parse(scenarioJson) as InputScenario;
+      const response = await fetch(
+        `/api/servers/${encodeURIComponent(selectedServerId)}/input-scenario`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(scenario),
+        },
+      );
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `HTTP ${response.status}`);
+      }
+      controlState = (await response.json()) as ControlState;
+      errorMessage = "";
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : "Invalid scenario";
+    } finally {
+      controlBusy = false;
+    }
+  };
+
+  const clearInputScenario = async () => {
+    if (!selectedServerId || controlBusy) return;
+    controlBusy = true;
+    try {
+      const response = await fetch(
+        `/api/servers/${encodeURIComponent(selectedServerId)}/input-scenario/clear`,
+        { method: "POST" },
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      controlState = (await response.json()) as ControlState;
+      errorMessage = "";
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : "Clear failed";
     } finally {
       controlBusy = false;
     }
@@ -192,12 +300,86 @@
         {selectedServer?.healthy ? "HEALTHY" : "UNAVAILABLE"}
       </span>
       <strong>{selectedServer?.room_id ?? "NO ROOM"}</strong>
-      <small>{selectedServer?.simulation_mode.toUpperCase() ?? "—"}</small>
+      <small>{controlState?.simulation_mode.toUpperCase() ?? selectedServer?.simulation_mode.toUpperCase() ?? "—"}</small>
     </div>
     <div class="control-buttons">
       <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("pause")}>PAUSE</button>
-      <button disabled={!selectedServer || controlBusy || selectedServer?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
+      <button disabled={!selectedServer || controlBusy || controlState?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
       <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("resume")}>RESUME</button>
+    </div>
+  </section>
+
+  <section class="panel scenario-panel">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">MODEL INPUT INJECTION</span>
+        <h2>INPUT SCENARIO</h2>
+      </div>
+      <span class="tag" class:ready={controlState?.input_scenario}>
+        {controlState?.input_scenario ? "LOADED" : "IDLE"}
+      </span>
+    </div>
+    <div class="scenario-grid">
+      <div class="scenario-editor">
+        <label for="scenario-json">ONE FRAME = ONE GAME TICK</label>
+        <textarea id="scenario-json" bind:value={scenarioJson} spellcheck="false"></textarea>
+        <div class="scenario-actions">
+          <button disabled={!selectedServer || controlBusy} onclick={loadInputScenario}>
+            LOAD + PAUSE
+          </button>
+          <button disabled={!controlState?.input_scenario || controlBusy} onclick={clearInputScenario}>
+            CLEAR
+          </button>
+        </div>
+        <small>
+          POST /api/servers/{selectedServerId || "{server_id}"}/input-scenario
+        </small>
+      </div>
+      <div class="scenario-inspector">
+        {#if controlState?.input_scenario}
+          <div class="scenario-progress">
+            <span>{controlState.input_scenario.name}</span>
+            <strong>
+              {controlState.input_scenario.next_frame}/{controlState.input_scenario.total_frames}
+            </strong>
+            <progress
+              max={controlState.input_scenario.total_frames}
+              value={controlState.input_scenario.next_frame}
+            ></progress>
+          </div>
+          {#if controlState.input_scenario.last_applied}
+            <div class="applied-frame">
+              <span class="eyebrow">
+                APPLIED FRAME #{controlState.input_scenario.last_applied.index}
+                · SERVER TICK {controlState.tick}
+              </span>
+              {#if controlState.input_scenario.last_applied.frame.note}
+                <p>{controlState.input_scenario.last_applied.frame.note}</p>
+              {/if}
+              {#each controlState.input_scenario.last_applied.frame.inputs as input}
+                <article>
+                  <strong>PLAYER #{input.player_id}</strong>
+                  <code>
+                    MOVE {input.move_x ?? 0}, {input.move_y ?? 0}
+                    · AIM {input.aim_x ?? 0}, {input.aim_y ?? 0}
+                    · FIRE {input.shooting ? "ON" : "OFF"}
+                  </code>
+                  <p>{input.reason ?? "No model explanation supplied."}</p>
+                  {#if input.metadata && Object.keys(input.metadata).length > 0}
+                    <pre>{JSON.stringify(input.metadata, null, 2)}</pre>
+                  {/if}
+                </article>
+              {/each}
+            </div>
+          {:else}
+            <p class="scenario-empty">Press STEP +1 to apply frame 0 and inspect its decision.</p>
+          {/if}
+        {:else}
+          <p class="scenario-empty">
+            Paste a trained policy's action sequence, load it, then advance one tick at a time.
+          </p>
+        {/if}
+      </div>
     </div>
   </section>
 

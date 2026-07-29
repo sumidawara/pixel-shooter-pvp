@@ -41,6 +41,7 @@ export type ScoreItem = {
 };
 
 export type RoomSettings = {
+  map_id: string;
   match_seconds: number;
   kill_points: number;
   death_penalty: number;
@@ -84,4 +85,49 @@ export type GameServer = {
   tick: number;
   simulation_mode: "realtime" | "paused";
   healthy: boolean;
+};
+
+export type PlayerInputCommand = {
+  player_id: number;
+  move_x?: number;
+  move_y?: number;
+  aim_x?: number;
+  aim_y?: number;
+  shooting?: boolean;
+  reload_pressed?: boolean;
+  dash_pressed?: boolean;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type InputFrame = {
+  note?: string | null;
+  inputs: PlayerInputCommand[];
+};
+
+export type InputScenario = {
+  schema_version: 1;
+  name: string;
+  frames: InputFrame[];
+};
+
+export type InputScenarioProgress = {
+  name: string;
+  total_frames: number;
+  next_frame: number;
+  last_applied: {
+    index: number;
+    frame: InputFrame;
+  } | null;
+};
+
+export type ControlState = {
+  server_id: string;
+  status: "available" | "allocated";
+  room_id: string | null;
+  player_count: number;
+  tick: number;
+  simulation_mode: "realtime" | "paused";
+  pending_steps: number;
+  input_scenario: InputScenarioProgress | null;
 };
