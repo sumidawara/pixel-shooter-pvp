@@ -191,6 +191,16 @@ h2 {
 
 .selected-room-panel {
   margin-top: 18px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.selected-room-panel.paused {
+  border-color: rgba(255, 91, 104, 0.85);
+  box-shadow:
+    inset 4px 0 0 #ff5b68,
+    0 0 24px rgba(255, 91, 104, 0.08);
 }
 
 .selected-room-heading {
@@ -201,6 +211,13 @@ h2 {
   min-height: 108px;
   padding: 18px 20px;
   border-bottom: 1px solid #263340;
+  transition: background 160ms ease;
+}
+
+.selected-room-panel.paused .selected-room-heading {
+  background:
+    linear-gradient(90deg, rgba(255, 91, 104, 0.12), transparent 62%),
+    #090e14;
 }
 
 .selected-room-heading h2 {
@@ -237,28 +254,115 @@ h2 {
   font-size: clamp(0.9rem, 1.5vw, 1.2rem);
 }
 
+.selected-room-metrics .simulation-mode.paused-state {
+  color: #ff5b68;
+  text-shadow: 0 0 14px rgba(255, 91, 104, 0.45);
+}
+
 .control-buttons {
   display: flex;
   gap: 8px;
 }
 
-.control-buttons button {
-  min-width: 92px;
-  padding: 10px 12px;
+.control-buttons .control-button {
+  position: relative;
+  display: grid;
+  width: 58px;
+  min-width: 58px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
   color: #071017;
-  border: 0;
+  border: 1px solid #27e5ff;
   background: #27e5ff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: var(--fs-body);
-  font-weight: 800;
-  letter-spacing: 0.08em;
   cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
 }
 
-.control-buttons button:disabled {
+.control-buttons .control-button:hover:not(:disabled) {
+  border-color: #b9f8ff;
+  background: #8ff3ff;
+  transform: translateY(-1px);
+}
+
+.control-buttons .control-button:focus-visible {
+  outline: 2px solid #f2f7fa;
+  outline-offset: 3px;
+}
+
+.control-buttons .control-button:disabled {
   color: var(--ink-label);
+  border-color: #263340;
   background: #18222c;
   cursor: not-allowed;
+}
+
+.control-buttons .pause-control.active:disabled {
+  color: #fff5f6;
+  border-color: #ff929b;
+  background: #ff5b68;
+  box-shadow: 0 0 18px rgba(255, 91, 104, 0.32);
+  opacity: 1;
+}
+
+.pause-icon {
+  display: flex;
+  gap: 5px;
+}
+
+.pause-icon i {
+  display: block;
+  width: 5px;
+  height: 18px;
+  background: currentColor;
+}
+
+.play-icon {
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 16px solid currentColor;
+}
+
+.step-icon {
+  position: relative;
+  width: 24px;
+  height: 20px;
+  transform: translateX(-2px);
+}
+
+.step-icon::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 15px solid currentColor;
+  content: "";
+}
+
+.step-icon::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3px;
+  height: 20px;
+  background: currentColor;
+  content: "";
+}
+
+.step-count {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font: 800 0.5rem ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .rooms-overview {
@@ -497,9 +601,70 @@ h2 {
   border-bottom: 1px solid #263340;
 }
 
-.scenario-progress span,
+.scenario-progress-name > span,
 .scenario-progress strong {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.scenario-progress-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.scenario-progress-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scenario-step {
+  position: relative;
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  color: #071017;
+  border: 1px solid #27e5ff;
+  background: #27e5ff;
+  cursor: pointer;
+  place-items: center;
+}
+
+.scenario-step:hover:not(:disabled) {
+  border-color: #b9f8ff;
+  background: #8ff3ff;
+}
+
+.scenario-step:focus-visible {
+  outline: 2px solid #f2f7fa;
+  outline-offset: 2px;
+}
+
+.scenario-step:disabled {
+  color: var(--ink-label);
+  border-color: #263340;
+  background: #18222c;
+  cursor: not-allowed;
+}
+
+.scenario-step .step-icon {
+  width: 20px;
+  height: 16px;
+  transform: none;
+}
+
+.scenario-step .step-icon::before {
+  border-top-width: 8px;
+  border-bottom-width: 8px;
+  border-left-width: 12px;
+}
+
+.scenario-step .step-icon::after {
+  width: 3px;
+  height: 16px;
 }
 
 .scenario-progress strong {
@@ -1009,9 +1174,9 @@ footer {
     border-left: 0;
   }
 
-  .control-buttons button {
+  .control-buttons .control-button {
     flex: 1;
-    min-width: 80px;
+    min-width: 64px;
   }
 
   .detail-section-heading {

@@ -73,6 +73,10 @@
   let selectedServer = $derived(
     servers.find((server) => server.server_id === selectedServerId) ?? null,
   );
+  let simulationMode = $derived(
+    controlState?.simulation_mode ?? selectedServer?.simulation_mode ?? null,
+  );
+  let isPaused = $derived(simulationMode === "paused");
 
   $effect(() => {
     if (canvas && snapshot) drawArena(canvas, snapshot);
@@ -292,7 +296,11 @@
   {#if activeView === "editor"}
     <MapEditor />
   {:else}
-    <section class="panel selected-room-panel" aria-label="Selected room status">
+    <section
+      class="panel selected-room-panel"
+      class:paused={isPaused}
+      aria-label="Selected room status"
+    >
       <div class="selected-room-heading">
         <div>
           <span class="eyebrow">SELECTED ROOM</span>
@@ -305,9 +313,36 @@
           </p>
         </div>
         <div class="control-buttons">
-          <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("pause")}>PAUSE</button>
-          <button disabled={!selectedServer || controlBusy || controlState?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
-          <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("resume")}>RESUME</button>
+          <button
+            class="control-button pause-control"
+            class:active={isPaused}
+            disabled={!selectedServer || controlBusy || isPaused}
+            aria-label="Pause simulation"
+            aria-pressed={isPaused}
+            title="Pause simulation"
+            onclick={() => controlSimulation("pause")}
+          >
+            <span class="pause-icon" aria-hidden="true"><i></i><i></i></span>
+          </button>
+          <button
+            class="control-button step-control"
+            disabled={!selectedServer || controlBusy || !isPaused}
+            aria-label="Advance one tick"
+            title="Advance one tick"
+            onclick={() => controlSimulation("step")}
+          >
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-count" aria-hidden="true">+1</span>
+          </button>
+          <button
+            class="control-button resume-control"
+            disabled={!selectedServer || controlBusy || !isPaused}
+            aria-label="Resume simulation"
+            title="Resume simulation"
+            onclick={() => controlSimulation("resume")}
+          >
+            <span class="play-icon" aria-hidden="true"></span>
+          </button>
         </div>
       </div>
       <div class="metrics selected-room-metrics" aria-label="Selected room metrics">
@@ -334,8 +369,8 @@
         </article>
         <article>
           <span>SIMULATION</span>
-          <strong class="simulation-mode">
-            {controlState?.simulation_mode.toUpperCase() ?? selectedServer?.simulation_mode.toUpperCase() ?? "—"}
+          <strong class="simulation-mode" class:paused-state={isPaused}>
+            {simulationMode?.toUpperCase() ?? "—"}
           </strong>
         </article>
       </div>
@@ -530,7 +565,21 @@
         <div class="scenario-inspector">
           {#if controlState?.input_scenario}
             <div class="scenario-progress">
-              <span>{controlState.input_scenario.name}</span>
+              <div class="scenario-progress-name">
+                <span>{controlState.input_scenario.name}</span>
+                <button
+                  class="scenario-step"
+                  disabled={controlBusy ||
+                    !isPaused ||
+                    controlState.input_scenario.next_frame >=
+                      controlState.input_scenario.total_frames}
+                  aria-label="Apply next scenario frame"
+                  title="Apply next scenario frame"
+                  onclick={() => controlSimulation("step")}
+                >
+                  <span class="step-icon" aria-hidden="true"></span>
+                </button>
+              </div>
               <strong>
                 {controlState.input_scenario.next_frame}/{controlState.input_scenario.total_frames}
               </strong>
