@@ -22,13 +22,17 @@ WAIT_SECONDS ?= 30
 	web-install web-build web-check web-dev \
 	assets-bootstrap assets-build assets-watch godot godot-assets sfx release
 
+##@ 基本
+
 help: ## 利用できる開発コマンドを表示
-	@awk 'BEGIN {FS = ":.*## "; printf "Pixel Shooter PvP development commands\n\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-	@printf '\nExamples:\n'
+	@awk 'BEGIN {FS = ":.*## "; printf "Pixel Shooter PvP development commands\n"} /^##@ / {printf "\n%s\n", substr($$0, 5); next} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '\n使用例:\n'
 	@printf '  make dev\n'
 	@printf '  make logs SERVICE=matchmaker\n'
 	@printf '  make tunnel SSH_HOST=backend-host\n'
 	@printf '  make release RELEASE_TARGET=macos\n'
+
+##@ 初期設定
 
 doctor: ## 必要な開発ツールとバージョンを確認
 	@missing=0; \
@@ -47,6 +51,8 @@ doctor: ## 必要な開発ツールとバージョンを確認
 setup: ## Rust依存とデバッグWeb依存を取得
 	$(CARGO) fetch --locked
 	$(NPM) --prefix tools/debug-web ci
+
+##@ バックエンド（Docker Compose）
 
 dev: ## 開発用共有イメージを再ビルド・起動し、利用可能になるまで待機
 	$(COMPOSE) build admin-server
@@ -133,6 +139,8 @@ tunnel: ## MacからバックエンドへSSHトンネルを作成（SSH_HOST必�
 		-L 9002:127.0.0.1:9002 \
 		"$(SSH_HOST)"
 
+##@ Rust開発
+
 check: ## Rust Workspaceを高速チェック
 	$(CARGO) check --workspace --locked
 
@@ -165,6 +173,8 @@ run-matchmaker: ## Matchmaker単体を直接起動
 run-admin-server: ## Admin Server単体を直接起動
 	$(CARGO) run -p pixel-shooter-admin-server
 
+##@ 管理Web
+
 web-install: ## Adminデバッグ画面のnpm依存を取得
 	$(NPM) --prefix tools/debug-web ci
 
@@ -176,6 +186,8 @@ web-check: ## Adminデバッグ画面を型検査
 
 web-dev: ## Adminデバッグ画面のVite開発サーバーを起動
 	$(NPM) --prefix tools/debug-web run dev
+
+##@ Godot・アセット
 
 godot: ## Godotエディターでfrontendを開く
 	"$(GODOT_BIN)" --editor --path frontend
@@ -197,6 +209,8 @@ godot-assets: assets-build ## アセット監視とGodotエディターを同時
 
 sfx: ## 効果音を再生成
 	$(NODE) scripts/generate_sfx.mjs
+
+##@ リリース
 
 release: ## 配布物を作成（RELEASE_TARGET=macos|windows|linux|pck|server）
 	GODOT_BIN="$(GODOT_BIN)" ./scripts/build_release.sh "$(RELEASE_TARGET)"
