@@ -5,6 +5,9 @@ const MAGENTA := Color("#ff38c7")
 const YELLOW := Color("#ffe66d")
 const GREEN := Color("#7cff6b")
 
+## ID順に割り当てる色。下部ステータスと表彰台で同じ色になるよう1箇所にまとめる。
+const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
+
 @onready var player_one_status = %PlayerOneStatus
 @onready var player_two_status = %PlayerTwoStatus
 @onready var player_three_status = %PlayerThreeStatus
@@ -14,6 +17,7 @@ const GREEN := Color("#7cff6b")
 @onready var countdown_label: Label = %CountdownLabel
 @onready var result_overlay: Control = %ResultOverlay
 @onready var result_label: Label = %ResultLabel
+@onready var result_podium: ResultPodium = %ResultPodium
 
 
 func set_connection_status(text: String) -> void:
@@ -30,6 +34,9 @@ func apply_snapshot(
 ) -> void:
 	var sorted := players.duplicate()
 	sorted.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
+	var colors := {}
+	for index in range(sorted.size()):
+		colors[int(sorted[index].get("id", 0))] = PLAYER_COLORS[index % PLAYER_COLORS.size()]
 	player_one_status.apply_player(sorted[0] if sorted.size() > 0 else {}, CYAN, dash_cooldown)
 	player_two_status.apply_player(sorted[1] if sorted.size() > 1 else {}, MAGENTA, dash_cooldown)
 	player_three_status.apply_player(sorted[2] if sorted.size() > 2 else {}, YELLOW, dash_cooldown)
@@ -57,6 +64,10 @@ func apply_snapshot(
 	countdown_label.visible = phase == "countdown"
 	countdown_label.text = str(int(ceil(time_left)))
 	result_overlay.visible = phase == "match_finished"
+	# 結果画面では同じ文をResultLabelが大きく出すので、上部の表示は隠す。
+	match_label.visible = not result_overlay.visible
+	if result_overlay.visible:
+		result_podium.apply(players, colors)
 	result_label.text = center_text
 
 

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/hud/hud.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/player_status.tscn" id="2_status"]
 [ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
 [ext_resource type="Texture2D" path="res://assets/generated/ui/hud/gameover.png" id="4_gameover"]
+[ext_resource type="PackedScene" path="res://src/ui/hud/result_podium.tscn" id="5_podium"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -106,22 +107,38 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="Backdrop" type="ColorRect" parent="HUDRoot/ResultOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.027, 0.04, 0.94)
+
 [node name="ResultArt" type="TextureRect" parent="HUDRoot/ResultOverlay"]
-offset_left = 80.0
-offset_top = 45.0
-offset_right = 560.0
-offset_bottom = 315.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("4_gameover")
 expand_mode = 1
-modulate = Color(1, 1, 1, 0.42)
+modulate = Color(1, 1, 1, 0.16)
+
+[node name="ResultPodium" parent="HUDRoot/ResultOverlay" instance=ExtResource("5_podium")]
+unique_name_in_owner = true
 
 [node name="ResultLabel" type="Label" parent="HUDRoot/ResultOverlay"]
 unique_name_in_owner = true
 offset_left = 120.0
-offset_top = 160.0
+offset_top = 52.0
 offset_right = 520.0
-offset_bottom = 210.0
-theme_override_font_sizes/font_size = 24
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 20
 text = "PLAYER 1 WINS MATCH"
 horizontal_alignment = 1
 vertical_alignment = 1
