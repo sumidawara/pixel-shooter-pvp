@@ -448,10 +448,24 @@ mod tests {
 
     #[test]
     fn collision_keeps_player_outside_wall_tile() {
-        let map = ArenaMap::default();
-        let mut position = Vec2::new(143.0, 80.0);
+        let map = ArenaMap::from_json(
+            r####"{
+                "schema_version": 1,
+                "id": "collision_test",
+                "revision": "1",
+                "name": "Collision Test",
+                "width": 3,
+                "height": 3,
+                "tile_size": 32,
+                "tiles": ["###", "#.#", "###"],
+                "spawn_points": [[1, 1], [1, 1], [1, 1], [1, 1]],
+                "item_spawn_points": [[1, 1]]
+            }"####,
+        )
+        .expect("collision test map");
+        let mut position = Vec2::new(48.0, 48.0);
         map.move_with_collision(&mut position, Vec2::new(10.0, 0.0));
-        assert_eq!(position, Vec2::new(143.0, 80.0));
+        assert_eq!(position, Vec2::new(48.0, 48.0));
     }
 
     #[test]
