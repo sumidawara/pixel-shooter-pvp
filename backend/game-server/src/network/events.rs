@@ -293,6 +293,22 @@ pub(crate) fn process_network(
                     println!("CPU player {player_id} removed");
                 }
             }
+            NetworkEvent::Message(connection_id, ClientMessage::Leave) => {
+                for (_, mut player) in &mut players {
+                    if player.connection_id != Some(connection_id) {
+                        continue;
+                    }
+                    // 明示的な退出には再接続猶予を与えない。次のGameTickで
+                    // 最後の人間ならCPUを含むルーム全体が空へ戻る。
+                    player.connection_id = None;
+                    player.reconnect_grace_left = 0.0;
+                    player.movement = Vec2::ZERO;
+                    player.shooting = false;
+                    player.reload_requested = false;
+                    player.dash_requested = false;
+                    println!("player {} intentionally left", player.id);
+                }
+            }
             NetworkEvent::Message(
                 connection_id,
                 ClientMessage::UpdateRoomSettings {

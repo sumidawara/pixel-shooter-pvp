@@ -47,6 +47,7 @@ pub enum ClientMessage {
     RemoveCpu {
         player_id: u64,
     },
+    Leave,
     UpdateRoomSettings {
         settings: RoomSettings,
     },
@@ -237,5 +238,13 @@ mod tests {
         assert_eq!(value["type"], "map_catalog");
         assert_eq!(value["maps"][0]["id"], "crossroads");
         assert_eq!(value["maps"][0]["name"], "Crossroads");
+    }
+
+    #[test]
+    fn leave_message_is_distinct_from_connection_loss() {
+        let message: ClientMessage =
+            serde_json::from_str(r#"{"type":"leave"}"#).expect("leave message");
+
+        assert!(matches!(message, ClientMessage::Leave));
     }
 }

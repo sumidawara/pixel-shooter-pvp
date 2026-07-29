@@ -98,6 +98,9 @@ func _connect_websocket(url: String) -> void:
 
 
 func disconnect_from_server() -> void:
+	var should_send_leave := (
+		has_joined and socket.get_ready_state() == WebSocketPeer.STATE_OPEN
+	)
 	connection_generation += 1
 	connection_requested = false
 	has_joined = false
@@ -110,6 +113,8 @@ func disconnect_from_server() -> void:
 		matchmaking_request.queue_free()
 	matchmaking_request = null
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		if should_send_leave:
+			socket.send_text(JSON.stringify({"type": "leave"}))
 		socket.close()
 	socket = WebSocketPeer.new()
 	status_changed.emit("READY")
