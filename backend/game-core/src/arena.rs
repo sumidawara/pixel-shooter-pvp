@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::model::MAX_PLAYERS;
 
-const CLASSIC_ARENA_JSON: &str = include_str!("../../../frontend/maps/classic_arena.json");
+const CLASSIC_ARENA_JSON: &str = include_str!("../../maps/classic_arena.json");
 const MAX_MAP_WIDTH: usize = 256;
 const MAX_MAP_HEIGHT: usize = 256;
 const MIN_TILE_SIZE: u32 = 8;

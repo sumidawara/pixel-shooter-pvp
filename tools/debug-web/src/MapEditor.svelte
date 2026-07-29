@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import classicArenaSource from "../../../frontend/maps/classic_arena.json";
+  import classicArenaSource from "../../../backend/maps/classic_arena.json";
 
   type Tile = "." | "#" | "X";
   type Brush = "floor" | "solid" | "destructible" | "player_spawn" | "item_spawn";

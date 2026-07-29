@@ -5,7 +5,6 @@ ARG BINARY
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY backend backend
-COPY frontend/maps frontend/maps
 COPY tools/debug-web/dist tools/debug-web/dist
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
