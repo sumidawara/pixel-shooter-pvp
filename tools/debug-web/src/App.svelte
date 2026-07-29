@@ -221,6 +221,14 @@
     }
   };
 
+  const selectServer = (serverId: string) => {
+    if (serverId === selectedServerId) return;
+    selectedServerId = serverId;
+    snapshot = null;
+    controlState = null;
+    connected = false;
+  };
+
   const playerStatus = (player: Player): string => {
     if (!player.connected && !player.is_cpu) return "DISCONNECTED";
     if (!player.alive) return `RESPAWN ${player.respawn_left.toFixed(1)}s`;
@@ -284,130 +292,98 @@
   {#if activeView === "editor"}
     <MapEditor />
   {:else}
-    <section class="server-controls" aria-label="Game server controls">
-    <label>
-      <span>GAME SERVER</span>
-      <select bind:value={selectedServerId}>
-        {#each servers as server}
-          <option value={server.server_id}>
-            {server.server_id} · {server.status.toUpperCase()} · {server.player_count}/4
-          </option>
-        {/each}
-      </select>
-    </label>
-    <div class="server-meta">
-      <span class:healthy={selectedServer?.healthy}>
-        {selectedServer?.healthy ? "HEALTHY" : "UNAVAILABLE"}
-      </span>
-      <strong>{selectedServer?.room_id ?? "NO ROOM"}</strong>
-      <small>{controlState?.simulation_mode.toUpperCase() ?? selectedServer?.simulation_mode.toUpperCase() ?? "—"}</small>
-    </div>
-    <div class="control-buttons">
-      <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("pause")}>PAUSE</button>
-      <button disabled={!selectedServer || controlBusy || controlState?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
-      <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("resume")}>RESUME</button>
-    </div>
-  </section>
-
-  <section class="panel scenario-panel">
-    <div class="panel-heading">
-      <div>
-        <span class="eyebrow">MODEL INPUT INJECTION</span>
-        <h2>INPUT SCENARIO</h2>
-      </div>
-      <span class="tag" class:ready={controlState?.input_scenario}>
-        {controlState?.input_scenario ? "LOADED" : "IDLE"}
-      </span>
-    </div>
-    <div class="scenario-grid">
-      <div class="scenario-editor">
-        <label for="scenario-json">ONE FRAME = ONE GAME TICK</label>
-        <textarea id="scenario-json" bind:value={scenarioJson} spellcheck="false"></textarea>
-        <div class="scenario-actions">
-          <button disabled={!selectedServer || controlBusy} onclick={loadInputScenario}>
-            LOAD + PAUSE
-          </button>
-          <button disabled={!controlState?.input_scenario || controlBusy} onclick={clearInputScenario}>
-            CLEAR
-          </button>
-        </div>
-        <small>
-          POST /api/servers/{selectedServerId || "{server_id}"}/input-scenario
-        </small>
-      </div>
-      <div class="scenario-inspector">
-        {#if controlState?.input_scenario}
-          <div class="scenario-progress">
-            <span>{controlState.input_scenario.name}</span>
-            <strong>
-              {controlState.input_scenario.next_frame}/{controlState.input_scenario.total_frames}
-            </strong>
-            <progress
-              max={controlState.input_scenario.total_frames}
-              value={controlState.input_scenario.next_frame}
-            ></progress>
-          </div>
-          {#if controlState.input_scenario.last_applied}
-            <div class="applied-frame">
-              <span class="eyebrow">
-                APPLIED FRAME #{controlState.input_scenario.last_applied.index}
-                · SERVER TICK {controlState.tick}
-              </span>
-              {#if controlState.input_scenario.last_applied.frame.note}
-                <p>{controlState.input_scenario.last_applied.frame.note}</p>
-              {/if}
-              {#each controlState.input_scenario.last_applied.frame.inputs as input}
-                <article>
-                  <strong>PLAYER #{input.player_id}</strong>
-                  <code>
-                    MOVE {input.move_x ?? 0}, {input.move_y ?? 0}
-                    · AIM {input.aim_x ?? 0}, {input.aim_y ?? 0}
-                    · FIRE {input.shooting ? "ON" : "OFF"}
-                  </code>
-                  <p>{input.reason ?? "No model explanation supplied."}</p>
-                  {#if input.metadata && Object.keys(input.metadata).length > 0}
-                    <pre>{JSON.stringify(input.metadata, null, 2)}</pre>
-                  {/if}
-                </article>
-              {/each}
-            </div>
-          {:else}
-            <p class="scenario-empty">Press STEP +1 to apply frame 0 and inspect its decision.</p>
-          {/if}
-        {:else}
-          <p class="scenario-empty">
-            Paste a trained policy's action sequence, load it, then advance one tick at a time.
+    <section class="panel selected-room-panel" aria-label="Selected room status">
+      <div class="selected-room-heading">
+        <div>
+          <span class="eyebrow">SELECTED ROOM</span>
+          <h2>{selectedServer?.room_id ?? "NO ACTIVE ROOM"}</h2>
+          <p>
+            {selectedServer?.server_id ?? "NO GAME SERVER"}
+            <span class:healthy={selectedServer?.healthy}>
+              {selectedServer?.healthy ? "HEALTHY" : "UNAVAILABLE"}
+            </span>
           </p>
-        {/if}
+        </div>
+        <div class="control-buttons">
+          <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("pause")}>PAUSE</button>
+          <button disabled={!selectedServer || controlBusy || controlState?.simulation_mode !== "paused"} onclick={() => controlSimulation("step")}>STEP +1</button>
+          <button disabled={!selectedServer || controlBusy} onclick={() => controlSimulation("resume")}>RESUME</button>
+        </div>
       </div>
-    </div>
-  </section>
+      <div class="metrics selected-room-metrics" aria-label="Selected room metrics">
+        <article>
+          <span>PHASE</span>
+          <strong class:cyan={snapshot?.phase === "running"}>
+            {snapshot ? phaseLabels[snapshot.phase] ?? snapshot.phase.toUpperCase() : "—"}
+          </strong>
+        </article>
+        <article>
+          <span>TIME LEFT</span>
+          <strong>{snapshot ? formatTime(snapshot.time_left) : "—"}</strong>
+        </article>
+        <article>
+          <span>SERVER TICK</span>
+          <strong>{snapshot?.tick.toLocaleString() ?? controlState?.tick.toLocaleString() ?? "—"}</strong>
+        </article>
+        <article>
+          <span>PLAYERS</span>
+          <strong>
+            {snapshot ? activePlayers : selectedServer?.player_count ?? 0}
+            <em>/{snapshot?.room.max_players ?? 4}</em>
+          </strong>
+        </article>
+        <article>
+          <span>SIMULATION</span>
+          <strong class="simulation-mode">
+            {controlState?.simulation_mode.toUpperCase() ?? selectedServer?.simulation_mode.toUpperCase() ?? "—"}
+          </strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel rooms-overview" aria-label="All rooms overview">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">FLEET OVERVIEW</span>
+          <h2>ALL ROOMS</h2>
+        </div>
+        <span class="overview-count">{servers.length} GAME SERVERS</span>
+      </div>
+      <div class="room-card-grid">
+        {#each servers as server}
+          <button
+            class="room-card"
+            class:selected={server.server_id === selectedServerId}
+            class:unhealthy={!server.healthy}
+            aria-pressed={server.server_id === selectedServerId}
+            onclick={() => selectServer(server.server_id)}
+          >
+            <span class="room-card-status">
+              <i></i>
+              {server.healthy ? server.status.toUpperCase() : "OFFLINE"}
+            </span>
+            <strong>{server.room_id ?? "AVAILABLE SLOT"}</strong>
+            <small>{server.server_id}</small>
+            <dl>
+              <div><dt>PLAYERS</dt><dd>{server.player_count}/4</dd></div>
+              <div><dt>MODE</dt><dd>{server.simulation_mode.toUpperCase()}</dd></div>
+              <div><dt>TICK</dt><dd>{server.tick.toLocaleString()}</dd></div>
+            </dl>
+          </button>
+        {:else}
+          <p class="rooms-empty">NO GAME SERVERS REGISTERED</p>
+        {/each}
+      </div>
+    </section>
 
   {#if snapshot}
-    <section class="metrics" aria-label="Server metrics">
-      <article>
-        <span>PHASE</span>
-        <strong class:cyan={snapshot.phase === "running"}>
-          {phaseLabels[snapshot.phase] ?? snapshot.phase.toUpperCase()}
-        </strong>
-      </article>
-      <article>
-        <span>TIME LEFT</span>
-        <strong>{formatTime(snapshot.time_left)}</strong>
-      </article>
-      <article>
-        <span>SERVER TICK</span>
-        <strong>{snapshot.tick.toLocaleString()}</strong>
-      </article>
-      <article>
-        <span>PLAYERS</span>
-        <strong>{activePlayers}<em>/{snapshot.room.max_players}</em></strong>
-      </article>
-      <article>
-        <span>ENTITIES</span>
-        <strong>{snapshot.bullets.length + snapshot.items.length}<em>&nbsp;LIVE</em></strong>
-      </article>
-    </section>
+    <div class="detail-section-heading">
+      <div>
+        <span class="eyebrow">SELECTED ROOM DETAIL</span>
+        <h2>{selectedServer?.room_id ?? selectedServer?.server_id}</h2>
+      </div>
+      <small>AUTHORITATIVE SNAPSHOT</small>
+    </div>
 
     <section class="workspace">
       <div class="arena-panel panel">
@@ -524,6 +500,80 @@
       </summary>
       <pre>{JSON.stringify(snapshot, null, 2)}</pre>
     </details>
+
+    <section class="panel scenario-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">MODEL INPUT INJECTION</span>
+          <h2>INPUT SCENARIO</h2>
+        </div>
+        <span class="tag" class:ready={controlState?.input_scenario}>
+          {controlState?.input_scenario ? "LOADED" : "IDLE"}
+        </span>
+      </div>
+      <div class="scenario-grid">
+        <div class="scenario-editor">
+          <label for="scenario-json">ONE FRAME = ONE GAME TICK</label>
+          <textarea id="scenario-json" bind:value={scenarioJson} spellcheck="false"></textarea>
+          <div class="scenario-actions">
+            <button disabled={!selectedServer || controlBusy} onclick={loadInputScenario}>
+              LOAD + PAUSE
+            </button>
+            <button disabled={!controlState?.input_scenario || controlBusy} onclick={clearInputScenario}>
+              CLEAR
+            </button>
+          </div>
+          <small>
+            POST /api/servers/{selectedServerId || "{server_id}"}/input-scenario
+          </small>
+        </div>
+        <div class="scenario-inspector">
+          {#if controlState?.input_scenario}
+            <div class="scenario-progress">
+              <span>{controlState.input_scenario.name}</span>
+              <strong>
+                {controlState.input_scenario.next_frame}/{controlState.input_scenario.total_frames}
+              </strong>
+              <progress
+                max={controlState.input_scenario.total_frames}
+                value={controlState.input_scenario.next_frame}
+              ></progress>
+            </div>
+            {#if controlState.input_scenario.last_applied}
+              <div class="applied-frame">
+                <span class="eyebrow">
+                  APPLIED FRAME #{controlState.input_scenario.last_applied.index}
+                  · SERVER TICK {controlState.tick}
+                </span>
+                {#if controlState.input_scenario.last_applied.frame.note}
+                  <p>{controlState.input_scenario.last_applied.frame.note}</p>
+                {/if}
+                {#each controlState.input_scenario.last_applied.frame.inputs as input}
+                  <article>
+                    <strong>PLAYER #{input.player_id}</strong>
+                    <code>
+                      MOVE {input.move_x ?? 0}, {input.move_y ?? 0}
+                      · AIM {input.aim_x ?? 0}, {input.aim_y ?? 0}
+                      · FIRE {input.shooting ? "ON" : "OFF"}
+                    </code>
+                    <p>{input.reason ?? "No model explanation supplied."}</p>
+                    {#if input.metadata && Object.keys(input.metadata).length > 0}
+                      <pre>{JSON.stringify(input.metadata, null, 2)}</pre>
+                    {/if}
+                  </article>
+                {/each}
+              </div>
+            {:else}
+              <p class="scenario-empty">Press STEP +1 to apply frame 0 and inspect its decision.</p>
+            {/if}
+          {:else}
+            <p class="scenario-empty">
+              Paste a trained policy's action sequence, load it, then advance one tick at a time.
+            </p>
+          {/if}
+        </div>
+      </div>
+    </section>
   {:else}
     <section class="empty-state">
       <span class="loader" aria-hidden="true"></span>
