@@ -36,6 +36,7 @@ const PLAYER_COLORS := [
 @onready var add_cpu_button: Button = %AddCpuButton
 @onready var remove_cpu_button: Button = %RemoveCpuButton
 @onready var start_button: Button = %StartButton
+@onready var map_option: OptionButton = %MapOption
 @onready var match_seconds_input: SpinBox = %MatchSecondsInput
 @onready var kill_points_input: SpinBox = %KillPointsInput
 @onready var death_penalty_input: SpinBox = %DeathPenaltyInput
@@ -47,6 +48,7 @@ var is_room_host := false
 var applying_room_snapshot := false
 var last_cpu_id := 0
 var is_connecting := false
+var selected_map_id := "classic_arena"
 
 
 func _ready() -> void:
@@ -58,6 +60,7 @@ func _ready() -> void:
 	create_room_button.tooltip_text = "Desktop app only" if is_web else ""
 	%CreateRoomHint.text = "DESKTOP APP ONLY" if is_web else "START A LOCAL SERVER"
 	_bind_buttons()
+	set_available_maps([{"id": "classic_arena", "name": "Classic Arena"}])
 	_bind_room_settings()
 	show_title()
 
@@ -80,6 +83,7 @@ func _bind_buttons() -> void:
 
 
 func _bind_room_settings() -> void:
+	map_option.item_selected.connect(_on_map_selected)
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -185,6 +189,7 @@ func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int)
 
 func get_room_settings() -> Dictionary:
 	return {
+		"map_id": selected_map_id,
 		"match_seconds": match_seconds_input.value,
 		"kill_points": int(kill_points_input.value),
 		"death_penalty": int(death_penalty_input.value),
@@ -223,6 +228,7 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 	remove_cpu_button.disabled = last_cpu_id == 0
 	start_button.disabled = not can_start
 	start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
+	map_option.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -242,12 +248,48 @@ func _apply_room_settings(settings: Dictionary) -> void:
 	if settings.is_empty():
 		return
 	applying_room_snapshot = true
+	selected_map_id = str(settings.get("map_id", "classic_arena"))
+	_select_map(selected_map_id)
 	match_seconds_input.value = float(settings.get("match_seconds", 120.0))
 	kill_points_input.value = float(settings.get("kill_points", 100))
 	death_penalty_input.value = float(settings.get("death_penalty", 25))
 	item_points_input.value = float(settings.get("item_points", 20))
 	max_items_input.value = float(settings.get("max_items", 3))
 	applying_room_snapshot = false
+
+
+func set_available_maps(maps: Array) -> void:
+	applying_room_snapshot = true
+	map_option.clear()
+	for map in maps:
+		if typeof(map) != TYPE_DICTIONARY:
+			continue
+		var id := str(map.get("id", "")).strip_edges()
+		if id.is_empty():
+			continue
+		map_option.add_item(str(map.get("name", id)))
+		map_option.set_item_metadata(map_option.item_count - 1, id)
+	if map_option.item_count == 0:
+		map_option.add_item("Classic Arena")
+		map_option.set_item_metadata(0, "classic_arena")
+	_select_map(selected_map_id)
+	applying_room_snapshot = false
+
+
+func _select_map(map_id: String) -> void:
+	for index in range(map_option.item_count):
+		if str(map_option.get_item_metadata(index)) == map_id:
+			map_option.select(index)
+			selected_map_id = map_id
+			return
+	if map_option.item_count > 0:
+		map_option.select(0)
+		selected_map_id = str(map_option.get_item_metadata(0))
+
+
+func _on_map_selected(index: int) -> void:
+	selected_map_id = str(map_option.get_item_metadata(index))
+	_emit_room_settings()
 
 
 func _load_local_settings() -> void:

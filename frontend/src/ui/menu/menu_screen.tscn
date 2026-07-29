@@ -316,6 +316,20 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "GAME SETTINGS"
 
+[node name="MapRow" type="HBoxContainer" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+
+[node name="MapLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content/MapRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "MAP"
+
+[node name="MapOption" type="OptionButton" parent="CreatePage/RulesPanel/Margin/Content/MapRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="MatchLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content" unique_id=1452396166]
 layout_mode = 2
 text = "MATCH SECONDS"

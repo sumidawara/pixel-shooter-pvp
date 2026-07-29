@@ -18,6 +18,7 @@
 
 mod config;
 mod control;
+mod maps;
 mod network;
 mod server_runtime;
 
@@ -26,7 +27,7 @@ use std::time::Duration;
 use bevy::{app::ScheduleRunnerPlugin, prelude::*, time::Fixed};
 use pixel_shooter_game_core::{ArenaMap, GameCorePlugin, MatchState};
 
-use crate::{config::ServerSettings, server_runtime::ServerRuntimePlugin};
+use crate::{config::ServerSettings, maps::MapCatalog, server_runtime::ServerRuntimePlugin};
 
 fn main() {
     let mut settings = ServerSettings::load();
@@ -37,14 +38,12 @@ fn main() {
         settings.control.bind_address = debug_bind_address;
     }
     let tick_rate = settings.network.tick_rate;
-    let arena_map = match std::env::var("PIXEL_SHOOTER_MAP") {
-        Ok(path) => ArenaMap::load(&path)
-            .unwrap_or_else(|error| panic!("Could not load PIXEL_SHOOTER_MAP {path}: {error}")),
-        Err(_) => ArenaMap::default(),
-    };
+    let map_catalog = MapCatalog::load_from_environment();
+    let arena_map: ArenaMap = map_catalog.default_map().clone();
     let game_settings = settings.game.clone();
     let reconnect_grace_seconds = game_settings.match_rules.reconnect_grace_seconds;
-    let room_settings = game_settings.room_settings();
+    let mut room_settings = game_settings.room_settings();
+    room_settings.map_id = arena_map.id().into();
     let control_plane = control::start(&settings);
     let network = network::start(&settings, control_plane.snapshot());
 
@@ -88,6 +87,7 @@ fn main() {
         // FixedUpdateが設定したtick rateで進むよう、固定時間を登録する。
         .insert_resource(Time::<Fixed>::from_hz(tick_rate))
         .insert_resource(arena_map)
+        .insert_resource(map_catalog)
         .insert_resource(game_settings)
         .insert_resource(settings)
         .insert_resource(network)

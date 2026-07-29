@@ -54,6 +54,9 @@ pub enum ServerMessage {
     MapDefinition {
         map: MapDefinition,
     },
+    MapCatalog {
+        maps: Vec<MapSummary>,
+    },
     Snapshot(Box<Snapshot>),
 }
 
@@ -88,8 +91,10 @@ pub struct MapDefinition {
     pub item_spawn_points: Vec<[usize; 2]>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoomSettings {
+    #[serde(default = "default_map_id")]
+    pub map_id: String,
     pub match_seconds: f32,
     pub kill_points: i32,
     pub death_penalty: i32,
@@ -101,6 +106,7 @@ pub struct RoomSettings {
 impl Default for RoomSettings {
     fn default() -> Self {
         Self {
+            map_id: default_map_id(),
             match_seconds: 120.0,
             kill_points: 100,
             death_penalty: 25,
@@ -109,6 +115,16 @@ impl Default for RoomSettings {
             max_items: 3,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MapSummary {
+    pub id: String,
+    pub name: String,
+}
+
+fn default_map_id() -> String {
+    "classic_arena".into()
 }
 
 #[derive(Debug, Serialize)]
@@ -193,5 +209,20 @@ mod tests {
         let value = serde_json::to_value(message).expect("serialize map message");
         assert_eq!(value["type"], "map_definition");
         assert_eq!(value["map"]["tiles"][0], ".#");
+    }
+
+    #[test]
+    fn map_catalog_has_menu_labels_and_ids() {
+        let message = ServerMessage::MapCatalog {
+            maps: vec![MapSummary {
+                id: "crossroads".into(),
+                name: "Crossroads".into(),
+            }],
+        };
+        let value = serde_json::to_value(message).expect("serialize map catalog");
+
+        assert_eq!(value["type"], "map_catalog");
+        assert_eq!(value["maps"][0]["id"], "crossroads");
+        assert_eq!(value["maps"][0]["name"], "Crossroads");
     }
 }

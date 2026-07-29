@@ -3,6 +3,7 @@ extends Node
 signal status_changed(text: String)
 signal welcome_received(player_id: int, reconnected: bool)
 signal map_definition_received(map_definition: Dictionary)
+signal map_catalog_received(maps: Array)
 signal rejected(reason: String)
 signal snapshot_received(snapshot: Dictionary)
 
@@ -239,6 +240,10 @@ func _receive(text: String) -> void:
 				status_changed.emit("INVALID MAP DEFINITION")
 				return
 			map_definition_received.emit(map_definition)
+		"map_catalog":
+			var maps = message.get("maps", [])
+			if typeof(maps) == TYPE_ARRAY:
+				map_catalog_received.emit(maps)
 		"snapshot":
 			if start_request_pending and str(message.get("phase", "waiting")) != "waiting":
 				start_request_pending = false

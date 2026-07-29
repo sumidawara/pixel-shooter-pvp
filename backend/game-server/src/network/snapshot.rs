@@ -5,8 +5,8 @@ use std::time::Duration;
 use bevy::prelude::*;
 use pixel_shooter_game_core::{ArenaMap, Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ItemSnapshot, MatchPhase, PlayerSnapshot, RoomSnapshot, ServerMessage,
-    Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, ItemSnapshot, MapSummary, MatchPhase, PlayerSnapshot, RoomSnapshot,
+    ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio_tungstenite::tungstenite::Message;
 
@@ -111,7 +111,7 @@ pub(crate) fn broadcast_snapshot(
                     })
                 }),
             max_players: MAX_PLAYERS,
-            settings: state.room_settings,
+            settings: state.room_settings.clone(),
         },
     }));
     broadcast(&mut network, &snapshot);
@@ -170,6 +170,10 @@ pub(super) fn send_map_definition(network: &Network, connection_id: u64, map: &A
             map: map.definition(),
         },
     );
+}
+
+pub(super) fn send_map_catalog(network: &Network, connection_id: u64, maps: Vec<MapSummary>) {
+    send_to(network, connection_id, &ServerMessage::MapCatalog { maps });
 }
 
 /// Bevyで使うVec2を、protocol crateの通信用Vec2へ変換する。

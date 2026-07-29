@@ -27,6 +27,7 @@ func _ready() -> void:
 	host_server.server_failed.connect(_on_local_server_failed)
 	NetworkClient.status_changed.connect(_on_status_changed)
 	NetworkClient.welcome_received.connect(_on_welcome_received)
+	NetworkClient.map_catalog_received.connect(menu_screen.set_available_maps)
 	NetworkClient.rejected.connect(_on_rejected)
 	NetworkClient.snapshot_received.connect(_on_snapshot_received)
 	_show_menu()

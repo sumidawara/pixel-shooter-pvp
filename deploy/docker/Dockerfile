@@ -17,5 +17,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --create-home pixel-shooter
 COPY --from=builder /app/service /usr/local/bin/pixel-shooter-service
+COPY --from=builder /app/backend/maps /app/maps
 USER pixel-shooter
 ENTRYPOINT ["/usr/local/bin/pixel-shooter-service"]

@@ -7,11 +7,11 @@ use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{ArenaMap, MAX_PLAYERS, MatchState, Player};
 use pixel_shooter_protocol::{ClientMessage, MatchPhase, ServerMessage};
 
-use crate::{config::ServerSettings, control::AllocationState};
+use crate::{config::ServerSettings, control::AllocationState, maps::MapCatalog};
 
 use super::{
     Network, NetworkEvent,
-    snapshot::{reject_join, send_map_definition, send_to},
+    snapshot::{reject_join, send_map_catalog, send_map_definition, send_to},
 };
 
 /// 通信イベントをゲーム世界へ反映するSystem。
@@ -20,11 +20,13 @@ use super::{
 /// - `Commands`: Entityの作成・削除を予約する
 /// - `Res<Network>`: 読み取り専用でNetwork Resourceを借りる
 /// - `Query<(Entity, &mut Player)>`: Playerを持つ全EntityとPlayerデータを変更可能で取得する
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn process_network(
     mut commands: Commands,
     network: Res<Network>,
     settings: Res<ServerSettings>,
-    map: Res<ArenaMap>,
+    mut map: ResMut<ArenaMap>,
+    map_catalog: Res<MapCatalog>,
     allocation: Res<AllocationState>,
     mut state: ResMut<MatchState>,
     mut players: Query<(Entity, &mut Player)>,
@@ -116,6 +118,7 @@ pub(crate) fn process_network(
                             reconnected: true,
                         },
                     );
+                    send_map_catalog(&network, connection_id, map_catalog.summaries());
                     send_map_definition(&network, connection_id, &map);
                     println!("player {player_id} reconnected");
                     continue;
@@ -212,6 +215,7 @@ pub(crate) fn process_network(
                         reconnected: false,
                     },
                 );
+                send_map_catalog(&network, connection_id, map_catalog.summaries());
                 send_map_definition(&network, connection_id, &map);
                 println!("player {player_id} joined in slot {slot}");
             }
@@ -298,7 +302,28 @@ pub(crate) fn process_network(
                 if is_host_connection(connection_id, &state, &players)
                     && state.phase == MatchPhase::Waiting
                 {
-                    state.room_settings = settings.game.sanitize_room_settings(room_settings);
+                    let requested_map_id = room_settings.map_id.clone();
+                    let mut next_settings = settings.game.sanitize_room_settings(room_settings);
+                    let selected_map = map_catalog
+                        .get(&requested_map_id)
+                        .cloned()
+                        .unwrap_or_else(|| map.clone());
+                    next_settings.map_id = selected_map.id().into();
+
+                    if selected_map.id() != map.id() {
+                        *map = selected_map;
+                        for (_, mut player) in &mut players {
+                            player.position = map.spawn_position(player.slot);
+                            player.movement = Vec2::ZERO;
+                            player.shooting = false;
+                            player.dash_requested = false;
+                            if let Some(player_connection_id) = player.connection_id {
+                                send_map_definition(&network, player_connection_id, &map);
+                            }
+                        }
+                        println!("host selected map {} ({})", map.name(), map.id());
+                    }
+                    state.room_settings = next_settings;
                 }
             }
             NetworkEvent::Message(connection_id, ClientMessage::StartMatch) => {

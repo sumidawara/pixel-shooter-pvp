@@ -47,6 +47,7 @@ pub struct GameplaySettings {
 impl GameSettings {
     pub fn room_settings(&self) -> RoomSettings {
         RoomSettings {
+            map_id: "classic_arena".into(),
             match_seconds: self.match_rules.match_seconds,
             kill_points: self.match_rules.kill_points,
             death_penalty: self.match_rules.death_penalty,
