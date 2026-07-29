@@ -45,6 +45,9 @@ services:
       PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
       PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
       PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
+      PIXEL_SHOOTER_CONFIG: /app/server.json
+    volumes:
+      - ./server.json:/app/server.json:ro
     ports:
       - "9001:9001"
     depends_on:
@@ -67,6 +70,9 @@ services:
       PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
       PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
       PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
+      PIXEL_SHOOTER_CONFIG: /app/server.json
+    volumes:
+      - ./server.json:/app/server.json:ro
     ports:
       - "9002:9001"
     depends_on:

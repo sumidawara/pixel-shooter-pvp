@@ -2,6 +2,8 @@
 
 サーバーは起動時にリポジトリ直下の `server.json` を読み込みます。
 別のファイルを使う場合は `PIXEL_SHOOTER_CONFIG` にパスを指定します。
+Docker Composeでも同じファイルを`/app/server.json`へ読み取り専用でマウントし、
+両Game Serverが起動時に読み込みます。
 
 ```sh
 PIXEL_SHOOTER_CONFIG=server.production.json \
@@ -23,6 +25,9 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 - `item_points`: 得点アイテム1個の加点
 - `item_spawn_interval`: アイテムの生成間隔
 - `max_items`: 同時に存在できるアイテム数
+
+`gameplay`の`reload_seconds`は武器のリロードにかかる秒数です。設定変更後は
+Game Serverを再起動すると反映されます。
 
 これらはサーバー起動時のルーム初期値になる。Waiting中はルームホストが
 GodotのCreate Room画面から安全な範囲内で上書きできる。

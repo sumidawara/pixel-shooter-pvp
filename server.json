@@ -32,7 +32,7 @@
     "shot_interval": 0.24,
     "recoil_distance": 5.0,
     "max_ammo": 6,
-    "reload_seconds": 1.0,
+    "reload_seconds": 2.4,
     "max_hp": 5,
     "hit_invulnerable_seconds": 0.18,
     "respawn_invulnerable_seconds": 1.0,
