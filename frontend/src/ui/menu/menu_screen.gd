@@ -23,6 +23,7 @@ const PLAYER_COLORS := [
 @onready var join_page: Control = %JoinPage
 @onready var create_page: Control = %CreatePage
 @onready var settings_page: Control = %SettingsPage
+@onready var play_button: Button = %PlayButton
 @onready var create_room_button: Button = %CreateRoomButton
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
@@ -97,6 +98,7 @@ func _bind_room_settings() -> void:
 func show_title() -> void:
 	_show_page(title_page)
 	status_label.text = "READY"
+	play_button.call_deferred("grab_focus")
 
 
 func show_join() -> void:
