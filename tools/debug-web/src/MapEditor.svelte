@@ -3,7 +3,13 @@
   import classicArenaSource from "../../../backend/maps/classic_arena.json";
 
   type Tile = "." | "#" | "X";
-  type Brush = "floor" | "solid" | "destructible" | "player_spawn" | "item_spawn";
+  type Brush =
+    | "floor"
+    | "solid"
+    | "destructible"
+    | "player_spawn"
+    | "item_spawn"
+    | "erase";
   type Point = [number, number];
   type MapDefinition = {
     schema_version: number;
@@ -30,6 +36,7 @@
     { id: "destructible", key: "3", label: "BREAKABLE", detail: "X" },
     { id: "player_spawn", key: "4", label: "PLAYER", detail: "S" },
     { id: "item_spawn", key: "5", label: "ITEM", detail: "I" },
+    { id: "erase", key: "6", label: "ERASER", detail: "⌫" },
   ];
 
   const cloneMap = (source: MapDefinition): MapDefinition =>
@@ -219,8 +226,17 @@
     else map.item_spawn_points.push([x, y]);
   };
 
+  const eraseCell = (x: number, y: number) => {
+    setTerrain(x, y, ".");
+    map.spawn_points = map.spawn_points.filter(([pointX, pointY]) => pointX !== x || pointY !== y);
+    map.item_spawn_points = map.item_spawn_points.filter(
+      ([pointX, pointY]) => pointX !== x || pointY !== y,
+    );
+  };
+
   const paintCell = (x: number, y: number, activeBrush = brush) => {
-    if (activeBrush === "floor") setTerrain(x, y, ".");
+    if (activeBrush === "erase") eraseCell(x, y);
+    else if (activeBrush === "floor") setTerrain(x, y, ".");
     else if (activeBrush === "solid") setTerrain(x, y, "#");
     else if (activeBrush === "destructible") setTerrain(x, y, "X");
     else setMarker(x, y, activeBrush);
@@ -230,12 +246,12 @@
     event.preventDefault();
     checkpoint();
     painting = true;
-    paintCell(x, y, event.button === 2 ? "floor" : brush);
+    paintCell(x, y, event.button === 2 ? "erase" : brush);
   };
   const continuePaint = (event: PointerEvent, x: number, y: number) => {
     hoverCell = [x, y];
     if (!painting || event.buttons === 0) return;
-    paintCell(x, y, event.buttons === 2 ? "floor" : brush);
+    paintCell(x, y, event.buttons === 2 ? "erase" : brush);
   };
 
   const resizeMap = () => {
@@ -454,7 +470,7 @@
             </button>
           {/each}
         </div>
-        <small class="hint">Drag to paint · Right-click to erase · Keys 1–5 switch tools</small>
+        <small class="hint">Drag to paint · Right-click to erase · Keys 1–6 switch tools</small>
       </section>
 
       <section class="editor-panel utility-actions">
