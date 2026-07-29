@@ -3,6 +3,7 @@
 //! プレイヤーの入力やSnapshotを定義する`pixel-shooter-protocol`とは分離する。
 
 use std::{
+    collections::BTreeMap,
     error::Error,
     fmt::{Display, Formatter},
 };
@@ -11,6 +12,8 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
+
+pub use pixel_shooter_protocol::PlayerInput;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -94,6 +97,48 @@ fn default_step_count() -> u64 {
     1
 }
 
+/// 訓練環境とAdminデバッグ画面で共有する入力列。
+///
+/// `frames[n]` はゲームの1tickに対応し、配列順に適用される。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InputScenario {
+    pub schema_version: u32,
+    pub name: String,
+    pub frames: Vec<InputFrame>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InputFrame {
+    pub note: Option<String>,
+    pub inputs: Vec<PlayerInputCommand>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlayerInputCommand {
+    pub player_id: u64,
+    #[serde(flatten)]
+    pub input: PlayerInput,
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub metadata: BTreeMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AppliedInputFrame {
+    pub index: usize,
+    pub frame: InputFrame,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InputScenarioProgress {
+    pub name: String,
+    pub total_frames: usize,
+    pub next_frame: usize,
+    pub last_applied: Option<AppliedInputFrame>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ControlState {
     pub server_id: String,
@@ -103,6 +148,7 @@ pub struct ControlState {
     pub tick: u64,
     pub simulation_mode: SimulationMode,
     pub pending_steps: u64,
+    pub input_scenario: Option<InputScenarioProgress>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -191,6 +237,33 @@ mod tests {
         assert_eq!(
             decode_join_ticket(b"secret", &ticket, 121),
             Err(TicketError::Expired)
+        );
+    }
+
+    #[test]
+    fn input_scenario_uses_flat_player_actions() {
+        let json = r#"{
+            "schema_version": 1,
+            "name": "trained-policy",
+            "frames": [{
+                "note": "keep distance",
+                "inputs": [{
+                    "player_id": 2,
+                    "move_x": -1.0,
+                    "aim_x": 1.0,
+                    "shooting": true,
+                    "reason": "enemy is inside preferred range"
+                }]
+            }]
+        }"#;
+        let scenario: InputScenario = serde_json::from_str(json).expect("input scenario");
+
+        assert_eq!(scenario.frames[0].inputs[0].input.move_x, -1.0);
+        assert!(scenario.frames[0].inputs[0].input.shooting);
+        assert_eq!(scenario.frames[0].inputs[0].input.move_y, 0.0);
+        assert_eq!(
+            scenario.frames[0].inputs[0].reason.as_deref(),
+            Some("enemy is inside preferred range")
         );
     }
 }

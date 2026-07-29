@@ -7,7 +7,7 @@ use axum::{
     http::{StatusCode, header},
     response::Response,
 };
-use pixel_shooter_admin_protocol::{GameServerView, StepRequest};
+use pixel_shooter_admin_protocol::{GameServerView, InputScenario, StepRequest};
 use serde::Deserialize;
 
 use crate::{
@@ -62,6 +62,33 @@ pub(crate) async fn resume(
     Path(server_id): Path<String>,
 ) -> Response {
     proxy_control(&state, &server_id, "resume", None).await
+}
+
+pub(crate) async fn load_scenario(
+    State(state): State<AppState>,
+    Path(server_id): Path<String>,
+    Json(scenario): Json<InputScenario>,
+) -> Response {
+    let server = match select_server(&state, Some(&server_id)).await {
+        Ok(server) => server,
+        Err(response) => return response,
+    };
+    proxy_response(
+        state
+            .client
+            .post(format!("{}/internal/debug/scenario", server.control_url))
+            .json(&scenario)
+            .send()
+            .await,
+    )
+    .await
+}
+
+pub(crate) async fn clear_scenario(
+    State(state): State<AppState>,
+    Path(server_id): Path<String>,
+) -> Response {
+    proxy_control(&state, &server_id, "scenario/clear", None).await
 }
 
 pub(crate) async fn proxy_control(

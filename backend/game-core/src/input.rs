@@ -1,0 +1,133 @@
+//! 外部の訓練・デバッグ環境から1tickだけ上書きするプレイヤー入力。
+
+use std::collections::{HashMap, HashSet};
+
+use bevy::prelude::*;
+use pixel_shooter_protocol::PlayerInput;
+
+use crate::model::Player;
+
+#[derive(Resource, Default)]
+pub struct PlayerInputOverrides {
+    inputs: HashMap<u64, PlayerInput>,
+    released: HashSet<u64>,
+}
+
+impl PlayerInputOverrides {
+    pub fn replace(&mut self, inputs: impl IntoIterator<Item = (u64, PlayerInput)>) {
+        self.released = self.inputs.keys().copied().collect();
+        self.inputs.clear();
+        self.inputs.extend(inputs);
+        self.released
+            .retain(|player_id| !self.inputs.contains_key(player_id));
+    }
+
+    pub fn clear(&mut self) {
+        self.released = self.inputs.keys().copied().collect();
+        self.inputs.clear();
+    }
+}
+
+pub(crate) fn apply_player_input_overrides(
+    overrides: Res<PlayerInputOverrides>,
+    mut players: Query<&mut Player>,
+) {
+    for mut player in &mut players {
+        if overrides.released.contains(&player.id) {
+            player.movement = Vec2::ZERO;
+            player.shooting = false;
+            player.reload_requested = false;
+            player.dash_requested = false;
+        }
+        let Some(input) = overrides.inputs.get(&player.id) else {
+            continue;
+        };
+        player.movement = Vec2::new(input.move_x, input.move_y).clamp_length_max(1.0);
+        let aim = Vec2::new(input.aim_x, input.aim_y);
+        if aim.length_squared() > 0.001 {
+            player.aim = aim.normalize();
+        }
+        player.shooting = input.shooting;
+        player.reload_requested = input.reload_pressed;
+        player.dash_requested = input.dash_pressed;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_player(id: u64) -> Player {
+        Player {
+            id,
+            connection_id: None,
+            is_cpu: true,
+            reconnect_token: String::new(),
+            reconnect_grace_left: 0.0,
+            slot: 0,
+            name: "CPU".into(),
+            position: Vec2::ZERO,
+            aim: Vec2::X,
+            movement: Vec2::ZERO,
+            shooting: false,
+            hp: 5,
+            score: 0,
+            alive: true,
+            respawn_left: 0.0,
+            shot_cooldown: 0.0,
+            ammo: 6,
+            reload_left: 0.0,
+            reload_requested: false,
+            invulnerable_left: 0.0,
+            dash_cooldown_left: 0.0,
+            dash_time_left: 0.0,
+            dash_direction: Vec2::ZERO,
+            dash_requested: false,
+            last_input_sequence: 0,
+        }
+    }
+
+    #[test]
+    fn injected_action_is_clamped_applied_and_released() {
+        let mut app = App::new();
+        let mut overrides = PlayerInputOverrides::default();
+        overrides.replace([(
+            7,
+            PlayerInput {
+                move_x: 2.0,
+                aim_y: 4.0,
+                shooting: true,
+                dash_pressed: true,
+                ..default()
+            },
+        )]);
+        app.insert_resource(overrides)
+            .add_systems(Update, apply_player_input_overrides)
+            .world_mut()
+            .spawn(test_player(7));
+
+        app.update();
+        {
+            let world = app.world_mut();
+            let mut players = world.query::<&Player>();
+            let player = players.single(world).unwrap();
+            assert_eq!(player.movement, Vec2::X);
+            assert_eq!(player.aim, Vec2::Y);
+            assert!(player.shooting);
+            assert!(player.dash_requested);
+        }
+
+        app.world_mut()
+            .resource_mut::<PlayerInputOverrides>()
+            .clear();
+        app.update();
+        {
+            let world = app.world_mut();
+            let mut players = world.query::<&Player>();
+            let player = players.single(world).unwrap();
+            assert_eq!(player.movement, Vec2::ZERO);
+            assert!(!player.shooting);
+            assert!(!player.dash_requested);
+        }
+    }
+}

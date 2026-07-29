@@ -23,13 +23,6 @@ pub(crate) fn broadcast_snapshot(
     bullets: Query<&Bullet>,
     items: Query<&ScoreItem>,
 ) {
-    // サーバー更新は60Hzだが、設定したtick間隔で送信頻度を抑える。
-    if !state
-        .tick
-        .is_multiple_of(settings.network.snapshot_every_ticks)
-    {
-        return;
-    }
     let reconnect_grace_left = players
         .iter()
         .filter(|player| !player.is_cpu && player.connection_id.is_none())
@@ -114,17 +107,24 @@ pub(crate) fn broadcast_snapshot(
             settings: state.room_settings.clone(),
         },
     }));
-    broadcast(&mut network, &snapshot);
+    let Ok(text) = serde_json::to_string(&snapshot) else {
+        return;
+    };
+    if let Ok(mut debug_snapshot) = network.game_snapshot.write() {
+        *debug_snapshot = Some(text.clone());
+    }
+    // Adminの1tick観察用Snapshotは毎tick保存するが、ゲームクライアントへの
+    // 配信頻度は従来どおり設定値で抑える。
+    if state
+        .tick
+        .is_multiple_of(settings.network.snapshot_every_ticks)
+    {
+        broadcast(&mut network, text);
+    }
 }
 
 /// 接続中の全クライアントへ同じJSONメッセージを送る。
-fn broadcast(network: &mut Network, message: &ServerMessage) {
-    let Ok(text) = serde_json::to_string(message) else {
-        return;
-    };
-    if let Ok(mut snapshot) = network.game_snapshot.write() {
-        *snapshot = Some(text.clone());
-    }
+fn broadcast(network: &mut Network, text: String) {
     let message = Message::Text(text.into());
     for sender in network.clients.lock().expect("clients lock").values() {
         network.outbound_sequence += 1;

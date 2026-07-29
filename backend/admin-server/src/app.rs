@@ -10,7 +10,9 @@ use tokio::net::TcpListener;
 use crate::{
     routes::{
         assets::{app_css, app_js, index},
-        controls::{debug_snapshot, pause, resume, server_state, step},
+        controls::{
+            clear_scenario, debug_snapshot, load_scenario, pause, resume, server_state, step,
+        },
         health,
         registry::{allocate, heartbeat, list_servers, register},
     },
@@ -33,6 +35,14 @@ pub(crate) async fn run() {
         .route("/api/servers/{server_id}/pause", post(pause))
         .route("/api/servers/{server_id}/step", post(step))
         .route("/api/servers/{server_id}/resume", post(resume))
+        .route(
+            "/api/servers/{server_id}/input-scenario",
+            post(load_scenario),
+        )
+        .route(
+            "/api/servers/{server_id}/input-scenario/clear",
+            post(clear_scenario),
+        )
         .route("/internal/health", get(health))
         .route("/internal/game-servers/register", post(register))
         .route("/internal/game-servers/heartbeat", post(heartbeat))

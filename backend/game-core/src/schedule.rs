@@ -5,7 +5,11 @@
 
 use bevy::{ecs::schedule::ScheduleLabel, prelude::*};
 
-use crate::{arena::ArenaMap, game};
+use crate::{
+    arena::ArenaMap,
+    game,
+    input::{PlayerInputOverrides, apply_player_input_overrides},
+};
 
 /// 実時間とは無関係な、ゲーム内の1tickの長さ。
 #[derive(Resource, Clone, Copy, Debug)]
@@ -44,6 +48,7 @@ impl Plugin for GameCorePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GameClock::from_hz(self.tick_rate))
             .init_resource::<ArenaMap>()
+            .init_resource::<PlayerInputOverrides>()
             .init_resource::<game::CpuNavigation>()
             .init_schedule(GameTick)
             .add_systems(
@@ -51,6 +56,7 @@ impl Plugin for GameCorePlugin {
                 (
                     game::update_match,
                     game::update_cpu_players,
+                    apply_player_input_overrides,
                     game::move_players,
                     game::fire_bullets,
                     game::move_and_hit_bullets,

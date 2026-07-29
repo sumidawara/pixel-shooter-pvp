@@ -16,8 +16,9 @@ use axum::{
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use pixel_shooter_admin_protocol::{
-    AllocateRoomRequest, ControlState, GameServerHeartbeat, GameServerRegistration,
-    GameServerStatus, SimulationMode, StepRequest,
+    AllocateRoomRequest, AppliedInputFrame, ControlState, GameServerHeartbeat,
+    GameServerRegistration, GameServerStatus, InputScenario, InputScenarioProgress, SimulationMode,
+    StepRequest,
 };
 use pixel_shooter_game_core::{MatchState, Player};
 use serde::Serialize;
@@ -33,6 +34,8 @@ enum ControlCommand {
     Pause(oneshot::Sender<CommandResult>),
     Step(StepRequest, oneshot::Sender<CommandResult>),
     Resume(oneshot::Sender<CommandResult>),
+    LoadScenario(InputScenario, oneshot::Sender<CommandResult>),
+    ClearScenario(oneshot::Sender<CommandResult>),
 }
 
 #[derive(Resource)]
@@ -52,6 +55,46 @@ impl ControlPlane {
 pub(crate) struct SimulationControl {
     pub(crate) mode: SimulationMode,
     pub(crate) pending_steps: u64,
+}
+
+#[derive(Resource, Debug, Default)]
+pub(crate) struct DebugInputScenario {
+    name: String,
+    frames: Vec<pixel_shooter_admin_protocol::InputFrame>,
+    next_frame: usize,
+    last_applied: Option<AppliedInputFrame>,
+}
+
+impl DebugInputScenario {
+    pub(crate) fn take_next(&mut self) -> Option<pixel_shooter_admin_protocol::InputFrame> {
+        let frame = self.frames.get(self.next_frame)?.clone();
+        self.last_applied = Some(AppliedInputFrame {
+            index: self.next_frame,
+            frame: frame.clone(),
+        });
+        self.next_frame += 1;
+        Some(frame)
+    }
+
+    fn load(&mut self, scenario: InputScenario) {
+        self.name = scenario.name;
+        self.frames = scenario.frames;
+        self.next_frame = 0;
+        self.last_applied = None;
+    }
+
+    fn clear(&mut self) {
+        *self = Self::default();
+    }
+
+    fn progress(&self) -> Option<InputScenarioProgress> {
+        (!self.frames.is_empty()).then(|| InputScenarioProgress {
+            name: self.name.clone(),
+            total_frames: self.frames.len(),
+            next_frame: self.next_frame,
+            last_applied: self.last_applied.clone(),
+        })
+    }
 }
 
 impl Default for SimulationControl {
@@ -102,6 +145,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
         tick: 0,
         simulation_mode: SimulationMode::Realtime,
         pending_steps: 0,
+        input_scenario: None,
     }));
     let snapshot = Arc::new(RwLock::new(None));
     start_http_thread(
@@ -156,6 +200,8 @@ fn start_http_thread(
                 .route("/internal/debug/pause", post(pause))
                 .route("/internal/debug/step", post(step))
                 .route("/internal/debug/resume", post(resume))
+                .route("/internal/debug/scenario", post(load_scenario))
+                .route("/internal/debug/scenario/clear", post(clear_scenario))
                 .with_state(state);
             println!("GameServer control API listening on http://{bind_address}");
             if let Err(error) = axum::serve(listener, app).await {
@@ -255,6 +301,20 @@ async fn resume(State(state): State<HttpState>) -> Response {
     request_command(&state, ControlCommand::Resume).await
 }
 
+async fn load_scenario(
+    State(state): State<HttpState>,
+    Json(scenario): Json<InputScenario>,
+) -> Response {
+    request_command(&state, |reply| {
+        ControlCommand::LoadScenario(scenario, reply)
+    })
+    .await
+}
+
+async fn clear_scenario(State(state): State<HttpState>) -> Response {
+    request_command(&state, ControlCommand::ClearScenario).await
+}
+
 async fn request_command(
     state: &HttpState,
     command: impl FnOnce(oneshot::Sender<CommandResult>) -> ControlCommand,
@@ -283,6 +343,7 @@ fn error_response(status: StatusCode, error: &str) -> Response {
 pub(crate) fn process_commands(
     control: Res<ControlPlane>,
     mut simulation: ResMut<SimulationControl>,
+    mut scenario: ResMut<DebugInputScenario>,
     mut allocation: ResMut<AllocationState>,
     state: Res<MatchState>,
     players: Query<&Player>,
@@ -302,6 +363,7 @@ pub(crate) fn process_commands(
                     Ok(build_state(
                         &control,
                         &simulation,
+                        &scenario,
                         &allocation,
                         &state,
                         players.iter().len(),
@@ -318,6 +380,7 @@ pub(crate) fn process_commands(
                 let result = Ok(build_state(
                     &control,
                     &simulation,
+                    &scenario,
                     &allocation,
                     &state,
                     players.iter().len(),
@@ -333,6 +396,7 @@ pub(crate) fn process_commands(
                     Ok(build_state(
                         &control,
                         &simulation,
+                        &scenario,
                         &allocation,
                         &state,
                         players.iter().len(),
@@ -349,6 +413,37 @@ pub(crate) fn process_commands(
                 let result = Ok(build_state(
                     &control,
                     &simulation,
+                    &scenario,
+                    &allocation,
+                    &state,
+                    players.iter().len(),
+                ));
+                let _ = reply.send(result.clone());
+                result
+            }
+            ControlCommand::LoadScenario(input_scenario, reply) => {
+                let result = validate_scenario(&input_scenario).map(|()| {
+                    simulation.mode = SimulationMode::Paused;
+                    simulation.pending_steps = 0;
+                    scenario.load(input_scenario);
+                    build_state(
+                        &control,
+                        &simulation,
+                        &scenario,
+                        &allocation,
+                        &state,
+                        players.iter().len(),
+                    )
+                });
+                let _ = reply.send(result.clone());
+                result
+            }
+            ControlCommand::ClearScenario(reply) => {
+                scenario.clear();
+                let result = Ok(build_state(
+                    &control,
+                    &simulation,
+                    &scenario,
                     &allocation,
                     &state,
                     players.iter().len(),
@@ -366,6 +461,7 @@ pub(crate) fn process_commands(
 pub(crate) fn publish_state(
     control: Res<ControlPlane>,
     simulation: Res<SimulationControl>,
+    scenario: Res<DebugInputScenario>,
     mut allocation: ResMut<AllocationState>,
     state: Res<MatchState>,
     players: Query<&Player>,
@@ -382,13 +478,20 @@ pub(crate) fn publish_state(
             allocation.had_players = false;
         }
     }
-    *control.shared_state.write().expect("control state lock") =
-        build_state(&control, &simulation, &allocation, &state, player_count);
+    *control.shared_state.write().expect("control state lock") = build_state(
+        &control,
+        &simulation,
+        &scenario,
+        &allocation,
+        &state,
+        player_count,
+    );
 }
 
 fn build_state(
     control: &ControlPlane,
     simulation: &SimulationControl,
+    scenario: &DebugInputScenario,
     allocation: &AllocationState,
     state: &MatchState,
     player_count: usize,
@@ -407,7 +510,39 @@ fn build_state(
         tick: state.tick,
         simulation_mode: simulation.mode,
         pending_steps: simulation.pending_steps,
+        input_scenario: scenario.progress(),
     }
+}
+
+fn validate_scenario(scenario: &InputScenario) -> Result<(), String> {
+    if scenario.schema_version != 1 {
+        return Err("unsupported_input_scenario_version".into());
+    }
+    if scenario.name.trim().is_empty() {
+        return Err("input_scenario_name_required".into());
+    }
+    if scenario.frames.is_empty() || scenario.frames.len() > 100_000 {
+        return Err("input_scenario_frames_must_be_between_1_and_100000".into());
+    }
+    for frame in &scenario.frames {
+        if frame.inputs.len() > pixel_shooter_game_core::MAX_PLAYERS {
+            return Err("too_many_player_inputs_in_frame".into());
+        }
+        let mut player_ids = std::collections::HashSet::new();
+        for command in &frame.inputs {
+            if command.player_id == 0 || !player_ids.insert(command.player_id) {
+                return Err("invalid_or_duplicate_player_id_in_frame".into());
+            }
+            let input = command.input;
+            if ![input.move_x, input.move_y, input.aim_x, input.aim_y]
+                .into_iter()
+                .all(f32::is_finite)
+            {
+                return Err("input_values_must_be_finite".into());
+            }
+        }
+    }
+    Ok(())
 }
 
 fn unix_time() -> u64 {
@@ -415,4 +550,76 @@ fn unix_time() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use pixel_shooter_admin_protocol::{InputFrame, PlayerInput, PlayerInputCommand};
+
+    use super::*;
+
+    fn scenario_with_frames(frame_count: usize) -> InputScenario {
+        InputScenario {
+            schema_version: 1,
+            name: "policy-episode".into(),
+            frames: (0..frame_count)
+                .map(|index| InputFrame {
+                    note: Some(format!("observation {index}")),
+                    inputs: vec![PlayerInputCommand {
+                        player_id: 2,
+                        input: PlayerInput {
+                            move_x: index as f32,
+                            ..default()
+                        },
+                        reason: Some("test decision".into()),
+                        metadata: BTreeMap::new(),
+                    }],
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn scenario_advances_exactly_one_frame_at_a_time() {
+        let mut queue = DebugInputScenario::default();
+        queue.load(scenario_with_frames(2));
+
+        assert_eq!(queue.progress().expect("progress").next_frame, 0);
+        assert_eq!(
+            queue.take_next().expect("first frame").inputs[0]
+                .input
+                .move_x,
+            0.0
+        );
+        let progress = queue.progress().expect("progress after first frame");
+        assert_eq!(progress.next_frame, 1);
+        assert_eq!(progress.last_applied.expect("applied frame").index, 0);
+        assert_eq!(
+            queue.take_next().expect("second frame").inputs[0]
+                .input
+                .move_x,
+            1.0
+        );
+        assert!(queue.take_next().is_none());
+    }
+
+    #[test]
+    fn invalid_scenario_versions_and_duplicate_players_are_rejected() {
+        let mut unsupported = scenario_with_frames(1);
+        unsupported.schema_version = 2;
+        assert_eq!(
+            validate_scenario(&unsupported),
+            Err("unsupported_input_scenario_version".into())
+        );
+
+        let mut duplicate = scenario_with_frames(1);
+        let command = duplicate.frames[0].inputs[0].clone();
+        duplicate.frames[0].inputs.push(command);
+        assert_eq!(
+            validate_scenario(&duplicate),
+            Err("invalid_or_duplicate_player_id_in_frame".into())
+        );
+    }
 }

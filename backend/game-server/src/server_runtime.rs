@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use pixel_shooter_admin_protocol::SimulationMode;
-use pixel_shooter_game_core::advance_one_tick;
+use pixel_shooter_game_core::{PlayerInputOverrides, advance_one_tick};
 
 use crate::{control, network};
 
@@ -40,6 +40,20 @@ fn drive_game_tick(world: &mut World) {
         }
     };
     if should_advance {
+        let frame = world
+            .resource_mut::<control::DebugInputScenario>()
+            .take_next();
+        let mut overrides = world.resource_mut::<PlayerInputOverrides>();
+        if let Some(frame) = frame {
+            overrides.replace(
+                frame
+                    .inputs
+                    .into_iter()
+                    .map(|command| (command.player_id, command.input)),
+            );
+        } else {
+            overrides.clear();
+        }
         advance_one_tick(world);
     }
 }

@@ -4,6 +4,19 @@ pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
 pub const ITEM_RADIUS: f32 = 10.0;
 
+/// クライアント、訓練環境、デバッグ入力注入で共通利用する1tick分の操作。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PlayerInput {
+    pub move_x: f32,
+    pub move_y: f32,
+    pub aim_x: f32,
+    pub aim_y: f32,
+    pub shooting: bool,
+    pub reload_pressed: bool,
+    pub dash_pressed: bool,
+}
+
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct Vec2 {
     pub x: f32,

@@ -93,6 +93,7 @@ fn main() {
         .insert_resource(network)
         .insert_resource(control_plane)
         .insert_resource(control::SimulationControl::default())
+        .insert_resource(control::DebugInputScenario::default())
         .insert_resource(control::AllocationState::default())
         .insert_resource(MatchState {
             reconnect_grace_seconds,
