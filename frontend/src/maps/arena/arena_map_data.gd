@@ -9,28 +9,10 @@ const MAX_MAP_HEIGHT := 256
 const MIN_TILE_SIZE := 8
 const MAX_TILE_SIZE := 128
 
-var schema_version := 0
-var id := ""
-var revision := ""
-var display_name := ""
 var width := 0
 var height := 0
 var tile_size := 0
 var tiles: Array[int] = []
-var spawn_points: Array[Vector2i] = []
-var item_spawn_points: Array[Vector2i] = []
-
-
-static func load_from_file(path: String) -> ArenaMapData:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("Could not open arena map %s: %s" % [path, FileAccess.get_open_error()])
-		return null
-	var parsed = JSON.parse_string(file.get_as_text())
-	if typeof(parsed) != TYPE_DICTIONARY:
-		push_error("Arena map %s is not a JSON object" % path)
-		return null
-	return from_dictionary(parsed, path)
 
 
 static func from_dictionary(data: Dictionary, source := "server map") -> ArenaMapData:
@@ -41,14 +23,13 @@ static func from_dictionary(data: Dictionary, source := "server map") -> ArenaMa
 
 
 func _load_dictionary(data: Dictionary, source: String) -> bool:
-	schema_version = int(data.get("schema_version", 0))
-	id = str(data.get("id", ""))
-	revision = str(data.get("revision", ""))
-	display_name = str(data.get("name", id))
+	var schema_version := int(data.get("schema_version", 0))
+	var map_id := str(data.get("id", ""))
+	var map_revision := str(data.get("revision", ""))
 	width = int(data.get("width", 0))
 	height = int(data.get("height", 0))
 	tile_size = int(data.get("tile_size", 0))
-	if schema_version != 1 or id.is_empty() or revision.is_empty():
+	if schema_version != 1 or map_id.is_empty() or map_revision.is_empty():
 		push_error("%s has invalid schema_version, id, or revision" % source)
 		return false
 	if (
@@ -87,14 +68,12 @@ func _load_dictionary(data: Dictionary, source: String) -> bool:
 					push_error("%s has unknown tile '%s' at (%d, %d)" % [source, unknown, x, y])
 					return false
 
-	var next_spawn_points = _read_points(data.get("spawn_points", []), "spawn point", source)
-	var next_item_spawn_points = _read_points(
+	var spawn_points = _read_points(data.get("spawn_points", []), "spawn point", source)
+	var item_spawn_points = _read_points(
 		data.get("item_spawn_points", []), "item spawn point", source
 	)
-	if next_spawn_points == null or next_item_spawn_points == null:
+	if spawn_points == null or item_spawn_points == null:
 		return false
-	spawn_points = next_spawn_points
-	item_spawn_points = next_item_spawn_points
 	if spawn_points.size() < 4 or item_spawn_points.is_empty():
 		push_error("%s needs at least 4 player spawns and 1 item spawn" % source)
 		return false
