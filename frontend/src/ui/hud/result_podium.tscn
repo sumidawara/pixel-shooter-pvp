@@ -1,0 +1,55 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/ui/hud/result_podium.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://src/ui/hud/result_slot.tscn" id="2_slot"]
+[ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
+
+[node name="ResultPodium" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_script")
+
+[node name="PodiumGroup" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Second" parent="PodiumGroup" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+offset_left = 105.0
+offset_top = 228.0
+offset_right = 205.0
+offset_bottom = 300.0
+
+[node name="Third" parent="PodiumGroup" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+offset_left = 305.0
+offset_top = 244.0
+offset_right = 405.0
+offset_bottom = 300.0
+
+[node name="First" parent="PodiumGroup" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+offset_left = 205.0
+offset_top = 208.0
+offset_right = 305.0
+offset_bottom = 300.0
+
+[node name="Fourth" parent="PodiumGroup" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+offset_left = 437.0
+offset_top = 300.0
+offset_right = 537.0
+offset_bottom = 322.0
+show_box = false
