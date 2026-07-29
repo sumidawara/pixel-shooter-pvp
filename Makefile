@@ -2,6 +2,7 @@ SHELL := /bin/sh
 
 CARGO ?= cargo
 COMPOSE ?= docker compose
+COMPOSE_RELEASE ?= docker compose -f docker-compose.release.yml
 CURL ?= curl
 GODOT_BIN ?= godot
 NODE ?= node
@@ -14,7 +15,7 @@ SSH_HOST ?=
 WAIT_SECONDS ?= 30
 
 .PHONY: help doctor setup \
-	dev up rebuild build-images config stop down restart ps logs wait integration urls tunnel \
+	dev up rebuild rebuild-release build-images config stop down restart reload-maps ps logs wait integration urls tunnel \
 	build build-game-server check test fmt fmt-check lint verify \
 	run-game-server run-matchmaker run-admin-server \
 	web-install web-build web-check web-dev godot sfx release
@@ -45,22 +46,28 @@ setup: ## Rust依存とデバッグWeb依存を取得
 	$(CARGO) fetch --locked
 	$(NPM) --prefix tools/debug-web ci
 
-dev: ## Compose全体を再ビルド・起動し、利用可能になるまで待機
-	$(COMPOSE) up --detach --build
+dev: ## 開発用共有イメージを再ビルド・起動し、利用可能になるまで待機
+	$(COMPOSE) build admin-server
+	$(COMPOSE) up --detach --no-build
 	@$(MAKE) wait
 	@$(MAKE) urls
 
 up: ## ビルド済みComposeイメージを起動
 	$(COMPOSE) up --detach --no-build $(SERVICE)
 
-rebuild: ## Composeイメージを再ビルドして起動
-	$(COMPOSE) up --detach --build $(SERVICE)
+rebuild: ## 開発用共有イメージを1回だけ再ビルドして起動
+	$(COMPOSE) build admin-server
+	$(COMPOSE) up --detach --no-build $(SERVICE)
 
-build-images: ## Composeイメージだけをビルド
-	$(COMPOSE) build $(SERVICE)
+rebuild-release: ## 本番相当のreleaseイメージを再ビルドして起動
+	$(COMPOSE_RELEASE) up --detach --build $(SERVICE)
 
-config: ## Compose設定を検証
+build-images: ## 開発用共有イメージだけをビルド
+	$(COMPOSE) build admin-server
+
+config: ## 開発用・release用Compose設定を検証
 	$(COMPOSE) config --quiet
+	$(COMPOSE_RELEASE) config --quiet
 
 stop: ## Composeサービスを停止（SERVICEで対象を限定可能）
 	$(COMPOSE) stop $(SERVICE)
@@ -70,6 +77,9 @@ down: ## Composeサービスを停止してコンテナを削除
 
 restart: ## Composeサービスを再起動（イメージは再ビルドしない）
 	$(COMPOSE) restart $(SERVICE)
+
+reload-maps: ## マップを再読込するためGame Serverだけを再起動
+	$(COMPOSE) restart game-server-1 game-server-2
 
 ps: ## Composeサービスの状態を表示
 	$(COMPOSE) ps

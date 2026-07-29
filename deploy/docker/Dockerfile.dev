@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+
+FROM rust:1.92-bookworm AS builder
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY backend backend
+COPY tools/debug-web/dist tools/debug-web/dist
+RUN --mount=type=cache,id=pixel-shooter-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=pixel-shooter-target-dev,target=/app/target,sharing=locked \
+    cargo build --workspace --bins --locked \
+    && mkdir -p /app/services \
+    && install -m 0755 target/debug/pixel-shooter-admin-server /app/services/ \
+    && install -m 0755 target/debug/pixel-shooter-matchmaker /app/services/ \
+    && install -m 0755 target/debug/pixel-shooter-server /app/services/
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home pixel-shooter
+COPY --from=builder /app/services/ /usr/local/bin/
+USER pixel-shooter

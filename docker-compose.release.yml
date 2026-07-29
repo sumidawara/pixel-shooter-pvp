@@ -1,20 +1,24 @@
 services:
   admin-server:
-    image: pixel-shooter-backend-dev
+    image: pixel-shooter-admin-server:release
     build:
       context: .
-      dockerfile: deploy/docker/Dockerfile.dev
-    command: ["/usr/local/bin/pixel-shooter-admin-server"]
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-admin-server
     environment:
       PIXEL_SHOOTER_ADMIN_BIND_ADDR: 0.0.0.0:8081
     ports:
       - "8081:8081"
-    stop_grace_period: 1s
     restart: unless-stopped
 
   matchmaker:
-    image: pixel-shooter-backend-dev
-    command: ["/usr/local/bin/pixel-shooter-matchmaker"]
+    image: pixel-shooter-matchmaker:release
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-matchmaker
     environment:
       PIXEL_SHOOTER_MATCHMAKER_BIND_ADDR: 0.0.0.0:8080
       PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
@@ -23,12 +27,15 @@ services:
       - "8080:8080"
     depends_on:
       - admin-server
-    stop_grace_period: 1s
     restart: unless-stopped
 
   game-server-1:
-    image: pixel-shooter-backend-dev
-    command: ["/usr/local/bin/pixel-shooter-server"]
+    image: pixel-shooter-game-server:release
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-server
     environment:
       PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
       PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
@@ -38,19 +45,19 @@ services:
       PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
       PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
       PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
-      PIXEL_SHOOTER_MAP: /app/maps/classic_arena.json
-    volumes:
-      - ./backend/maps:/app/maps:ro
     ports:
       - "9001:9001"
     depends_on:
       - admin-server
-    stop_grace_period: 1s
     restart: unless-stopped
 
   game-server-2:
-    image: pixel-shooter-backend-dev
-    command: ["/usr/local/bin/pixel-shooter-server"]
+    image: pixel-shooter-game-server:release
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        BINARY: pixel-shooter-server
     environment:
       PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
       PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
@@ -60,12 +67,8 @@ services:
       PIXEL_SHOOTER_ADMIN_URL: http://admin-server:8081
       PIXEL_SHOOTER_REQUIRE_JOIN_TICKET: "true"
       PIXEL_SHOOTER_JOIN_SECRET: ${PIXEL_SHOOTER_JOIN_SECRET:-local-compose-secret}
-      PIXEL_SHOOTER_MAP: /app/maps/classic_arena.json
-    volumes:
-      - ./backend/maps:/app/maps:ro
     ports:
       - "9002:9001"
     depends_on:
       - admin-server
-    stop_grace_period: 1s
     restart: unless-stopped

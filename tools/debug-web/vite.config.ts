@@ -20,7 +20,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/debug/api": "http://127.0.0.1:9101",
+      "/debug/api": "http://127.0.0.1:8081",
+      "/api": "http://127.0.0.1:8081",
     },
   },
 });

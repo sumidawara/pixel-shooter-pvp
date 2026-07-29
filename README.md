@@ -27,17 +27,24 @@ make setup
 make dev
 ```
 
-`make dev`はComposeイメージを再ビルドしてバックエンド全体を起動し、Game Serverの
-登録完了まで待って接続先を表示する。ビルド済みイメージをそのまま起動する場合は
-`make up`、バックエンド変更を反映する場合は`make rebuild`を使う。
+`make dev`は全Rustバイナリをincrementalな開発プロファイルで1つの共有イメージへ
+ビルドし、バックエンド全体を起動する。Game Serverの登録完了後に接続先を表示する。
+ビルド済みイメージをそのまま起動する場合は`make up`、バックエンド変更を反映する
+場合は`make rebuild`を使う。本番相当のreleaseビルドは`make rebuild-release`で
+明示的に作成する。
 
 ```sh
 make ps
 make logs
 make logs SERVICE=matchmaker
 make integration
+make reload-maps
 make down
 ```
+
+開発用Composeは`backend/maps`をGame Serverへ直接マウントする。マップJSONの
+変更後はイメージを再ビルドせず、`make reload-maps`でGame Server 2台だけを再起動
+すれば反映できる。
 
 GodotがPATHにある場合は、次のコマンドでプロジェクトを開ける。
 
@@ -69,10 +76,16 @@ Godotクライアントの接続先は
 一時的に別の接続先を使う場合は、起動時に`PIXEL_SHOOTER_SERVER_URL`環境変数でも
 上書きできる。
 
-Adminデバッグ画面を変更した場合:
+Adminデバッグ画面を変更中は、Compose環境を起動したままViteのHMRを利用できる。
 
 ```sh
 make web-install
+make web-dev
+```
+
+埋め込み用の配布アセットを更新する場合:
+
+```sh
 make web-build
 ```
 

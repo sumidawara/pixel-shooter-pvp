@@ -2,7 +2,5 @@
 .godot
 dist
 target
-frontend/*
-!frontend/maps/
-!frontend/maps/**
+frontend
 tools/debug-web/node_modules

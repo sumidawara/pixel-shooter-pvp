@@ -2,10 +2,17 @@
 
 ## Docker Compose
 
-開発用の固定2台GameServerプールを起動する。
+開発用の固定2台GameServerプールは、incrementalビルドを使う共有イメージで起動する。
 
 ```sh
-PIXEL_SHOOTER_JOIN_SECRET='replace-with-a-long-random-secret' docker compose up --build
+PIXEL_SHOOTER_JOIN_SECRET='replace-with-a-long-random-secret' make dev
+```
+
+本番相当のreleaseイメージを使う場合は、専用Composeファイルを指定する。
+
+```sh
+PIXEL_SHOOTER_JOIN_SECRET='replace-with-a-long-random-secret' \
+  docker compose -f docker-compose.release.yml up --detach --build
 ```
 
 | ポート | サービス |
@@ -16,9 +23,13 @@ PIXEL_SHOOTER_JOIN_SECRET='replace-with-a-long-random-secret' docker compose up 
 | `9002` | GameServer 2 WebSocket |
 
 GameServerのControl API（コンテナ内9101番）はホストへ公開しない。
-固定台数を変える場合は`docker-compose.yml`へGameServerサービスを追加し、
+固定台数を変える場合は対象のComposeファイルへGameServerサービスを追加し、
 一意な`PIXEL_SHOOTER_SERVER_ID`、外部`PIXEL_SHOOTER_PUBLIC_URL`、
 内部`PIXEL_SHOOTER_CONTROL_URL`を設定する。
+
+開発用の`docker-compose.yml`は`backend/maps`を読み取り専用でマウントしている。
+マップ変更後は`make reload-maps`でGame Serverだけを再起動する。release構成では
+マップをバイナリへ埋め込むため、変更時にreleaseイメージを再ビルドする。
 
 Godotの`JOIN ROOM`には`http://127.0.0.1:8080`を入力する。クライアントは
 MatchmakerへHTTP POSTし、返された`game_url`へJoin Ticket付きWebSocketで直接接続する。
