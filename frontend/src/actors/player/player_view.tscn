@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/actors/player/player_view.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://src/actors/player/player_stand.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/generated/actors/player/player_stand.png" id="2_sprite"]
 [ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
 
 [node name="PlayerView" type="Node2D"]

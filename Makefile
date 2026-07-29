@@ -5,6 +5,7 @@ COMPOSE ?= docker compose
 COMPOSE_RELEASE ?= docker compose -f docker-compose.release.yml
 CURL ?= curl
 GODOT_BIN ?= godot
+ASEPRITE_BIN ?=
 NODE ?= node
 NPM ?= npm
 SSH ?= ssh
@@ -18,7 +19,8 @@ WAIT_SECONDS ?= 30
 	dev up rebuild rebuild-release build-images config stop down restart reload-maps ps logs wait integration urls tunnel \
 	build build-game-server check test fmt fmt-check lint verify \
 	run-game-server run-matchmaker run-admin-server \
-	web-install web-build web-check web-dev godot sfx release
+	web-install web-build web-check web-dev \
+	assets-bootstrap assets-build assets-watch godot godot-assets sfx release
 
 help: ## 利用できる開発コマンドを表示
 	@awk 'BEGIN {FS = ":.*## "; printf "Pixel Shooter PvP development commands\n\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -176,6 +178,21 @@ web-dev: ## Adminデバッグ画面のVite開発サーバーを起動
 	$(NPM) --prefix tools/debug-web run dev
 
 godot: ## Godotエディターでfrontendを開く
+	"$(GODOT_BIN)" --editor --path frontend
+
+assets-bootstrap: ## 既存PNGから未作成のAseprite原本を作成
+	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs bootstrap
+
+assets-build: ## Aseprite原本からGodot用PNGを一括生成
+	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs build
+
+assets-watch: ## Aseprite原本を監視してGodot用PNGを自動生成
+	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs watch
+
+godot-assets: assets-build ## アセット監視とGodotエディターを同時に起動
+	@ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs watch & \
+	watcher_pid=$$!; \
+	trap 'kill "$$watcher_pid" 2>/dev/null || true' EXIT INT TERM; \
 	"$(GODOT_BIN)" --editor --path frontend
 
 sfx: ## 効果音を再生成

@@ -1,0 +1,28 @@
+{
+  "assets": [
+    {
+      "source": "aseprite/actors/player/player_stand.aseprite",
+      "output": "generated/actors/player/player_stand.png"
+    },
+    {
+      "source": "aseprite/actors/player/player_run.aseprite",
+      "output": "generated/actors/player/player_run.png"
+    },
+    {
+      "source": "aseprite/effects/sparkle.aseprite",
+      "output": "generated/effects/sparkle.png"
+    },
+    {
+      "source": "aseprite/ui/hud/gameover.aseprite",
+      "output": "generated/ui/hud/gameover.png"
+    },
+    {
+      "source": "aseprite/ui/menu/cursor.aseprite",
+      "output": "generated/ui/menu/cursor.png"
+    },
+    {
+      "source": "aseprite/ui/menu/title.aseprite",
+      "output": "generated/ui/menu/title.png"
+    }
+  ]
+}

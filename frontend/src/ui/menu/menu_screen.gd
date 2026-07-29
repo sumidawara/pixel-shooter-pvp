@@ -10,7 +10,7 @@ signal room_settings_changed(settings: Dictionary)
 signal leave_room_requested
 signal quit_requested
 
-const CURSOR_TEXTURE: Texture2D = preload("res://src/ui/menu/cursor.png")
+const CURSOR_TEXTURE: Texture2D = preload("res://assets/generated/ui/menu/cursor.png")
 const PLAYER_COLORS := [
 	Color("#27e5ff"),
 	Color("#ff38c7"),

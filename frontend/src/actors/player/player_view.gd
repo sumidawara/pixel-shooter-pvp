@@ -1,7 +1,7 @@
 extends Node2D
 
-const PLAYER_STAND: Texture2D = preload("res://src/actors/player/player_stand.png")
-const PLAYER_RUN: Texture2D = preload("res://src/actors/player/player_run.png")
+const PLAYER_STAND: Texture2D = preload("res://assets/generated/actors/player/player_stand.png")
+const PLAYER_RUN: Texture2D = preload("res://assets/generated/actors/player/player_run.png")
 
 @onready var outline_sprite: Sprite2D = %OutlineSprite
 @onready var character_sprite: Sprite2D = %CharacterSprite
