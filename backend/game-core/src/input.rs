@@ -7,6 +7,12 @@ use pixel_shooter_protocol::PlayerInput;
 
 use crate::model::Player;
 
+#[derive(Clone, Copy)]
+enum PendingActionPolicy {
+    Preserve,
+    Replace,
+}
+
 #[derive(Resource, Default)]
 pub struct PlayerInputOverrides {
     inputs: HashMap<u64, PlayerInput>,
@@ -28,6 +34,49 @@ impl PlayerInputOverrides {
     }
 }
 
+/// WebSocketから受け取った入力をPlayerへ反映する。
+///
+/// PlayerInputを網羅的に分解する共通処理を通すため、操作フィールドを追加した際は
+/// 通信入力とデバッグ注入の両方を同時に更新しない限りコンパイルが通らない。
+pub fn apply_network_player_input(player: &mut Player, input: PlayerInput) {
+    apply_player_input(player, input, PendingActionPolicy::Preserve);
+}
+
+fn apply_player_input(
+    player: &mut Player,
+    input: PlayerInput,
+    pending_action_policy: PendingActionPolicy,
+) {
+    let PlayerInput {
+        move_x,
+        move_y,
+        aim_x,
+        aim_y,
+        shooting,
+        reload_pressed,
+        dash_pressed,
+    } = input;
+
+    player.movement = Vec2::new(move_x, move_y).clamp_length_max(1.0);
+    let aim = Vec2::new(aim_x, aim_y);
+    if aim.length_squared() > 0.001 {
+        player.aim = aim.normalize();
+    }
+    player.shooting = shooting;
+    match pending_action_policy {
+        PendingActionPolicy::Preserve => {
+            // 押した瞬間だけtrueになる操作は、Systemで消費するまでORで保持する。
+            player.reload_requested |= reload_pressed;
+            player.dash_requested |= dash_pressed;
+        }
+        PendingActionPolicy::Replace => {
+            // 注入入力はCPU入力を含むそのtickの操作を完全に上書きする。
+            player.reload_requested = reload_pressed;
+            player.dash_requested = dash_pressed;
+        }
+    }
+}
+
 pub(crate) fn apply_player_input_overrides(
     overrides: Res<PlayerInputOverrides>,
     mut players: Query<&mut Player>,
@@ -42,14 +91,7 @@ pub(crate) fn apply_player_input_overrides(
         let Some(input) = overrides.inputs.get(&player.id) else {
             continue;
         };
-        player.movement = Vec2::new(input.move_x, input.move_y).clamp_length_max(1.0);
-        let aim = Vec2::new(input.aim_x, input.aim_y);
-        if aim.length_squared() > 0.001 {
-            player.aim = aim.normalize();
-        }
-        player.shooting = input.shooting;
-        player.reload_requested = input.reload_pressed;
-        player.dash_requested = input.dash_pressed;
+        apply_player_input(&mut player, *input, PendingActionPolicy::Replace);
     }
 }
 

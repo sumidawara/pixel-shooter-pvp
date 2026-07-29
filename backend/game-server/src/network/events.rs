@@ -4,7 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use bevy::prelude::*;
 use pixel_shooter_admin_protocol::decode_join_ticket;
-use pixel_shooter_game_core::{ArenaMap, MAX_PLAYERS, MatchState, Player};
+use pixel_shooter_game_core::{
+    ArenaMap, MAX_PLAYERS, MatchState, Player, apply_network_player_input,
+};
 use pixel_shooter_protocol::{ClientMessage, MatchPhase, ServerMessage};
 
 use crate::{config::ServerSettings, control::AllocationState, maps::MapCatalog};
@@ -219,19 +221,7 @@ pub(crate) fn process_network(
                 send_map_definition(&network, connection_id, &map);
                 println!("player {player_id} joined in slot {slot}");
             }
-            NetworkEvent::Message(
-                connection_id,
-                ClientMessage::Input {
-                    sequence,
-                    move_x,
-                    move_y,
-                    aim_x,
-                    aim_y,
-                    shooting,
-                    reload_pressed,
-                    dash_pressed,
-                },
-            ) => {
+            NetworkEvent::Message(connection_id, ClientMessage::Input { sequence, input }) => {
                 for (_, mut player) in &mut players {
                     // 古いsequenceの入力を後から適用すると巻き戻るため破棄する。
                     if player.connection_id != Some(connection_id)
@@ -240,16 +230,7 @@ pub(crate) fn process_network(
                         continue;
                     }
                     player.last_input_sequence = sequence;
-                    // 斜め移動だけ速くならないよう、入力ベクトルの長さを最大1にする。
-                    player.movement = Vec2::new(move_x, move_y).clamp_length_max(1.0);
-                    let aim = Vec2::new(aim_x, aim_y);
-                    if aim.length_squared() > 0.001 {
-                        player.aim = aim.normalize();
-                    }
-                    player.shooting = shooting;
-                    // 押した瞬間だけtrueになる操作は、Systemで消費するまでORで保持する。
-                    player.reload_requested |= reload_pressed;
-                    player.dash_requested |= dash_pressed;
+                    apply_network_player_input(&mut player, input);
                 }
             }
             NetworkEvent::Message(connection_id, ClientMessage::AddCpu) => {

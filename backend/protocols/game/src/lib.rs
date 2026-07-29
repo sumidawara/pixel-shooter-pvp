@@ -35,13 +35,8 @@ pub enum ClientMessage {
     },
     Input {
         sequence: u32,
-        move_x: f32,
-        move_y: f32,
-        aim_x: f32,
-        aim_y: f32,
-        shooting: bool,
-        reload_pressed: bool,
-        dash_pressed: bool,
+        #[serde(flatten)]
+        input: PlayerInput,
     },
     AddCpu,
     RemoveCpu {
@@ -246,5 +241,40 @@ mod tests {
             serde_json::from_str(r#"{"type":"leave"}"#).expect("leave message");
 
         assert!(matches!(message, ClientMessage::Leave));
+    }
+
+    #[test]
+    fn websocket_input_uses_the_shared_flat_player_input() {
+        let message: ClientMessage = serde_json::from_str(
+            r#"{
+                "type": "input",
+                "sequence": 42,
+                "move_x": 1.0,
+                "move_y": -0.5,
+                "aim_x": 0.8,
+                "aim_y": -0.2,
+                "shooting": true,
+                "reload_pressed": false,
+                "dash_pressed": true
+            }"#,
+        )
+        .expect("flat websocket input");
+
+        let ClientMessage::Input { sequence, input } = message else {
+            panic!("expected input message");
+        };
+        assert_eq!(sequence, 42);
+        assert_eq!(
+            input,
+            PlayerInput {
+                move_x: 1.0,
+                move_y: -0.5,
+                aim_x: 0.8,
+                aim_y: -0.2,
+                shooting: true,
+                reload_pressed: false,
+                dash_pressed: true,
+            }
+        );
     }
 }
