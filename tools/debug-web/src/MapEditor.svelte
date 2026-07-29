@@ -597,8 +597,8 @@
 
   .editor-heading p {
     margin-top: 7px;
-    color: #7890a2;
-    font-size: 0.78rem;
+    color: var(--ink-label);
+    font-size: var(--fs-body);
   }
 
   .editor-actions {
@@ -665,9 +665,9 @@
   .section-label {
     display: block;
     margin-bottom: 12px;
-    color: #607384;
+    color: var(--ink-label);
     font: 700 0.58rem ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--track-label);
   }
 
   label {
@@ -678,7 +678,7 @@
   label > span {
     display: block;
     margin-bottom: 5px;
-    color: #718596;
+    color: var(--ink-label);
     font: 700 0.56rem ui-monospace, SFMono-Regular, Menlo, monospace;
     letter-spacing: 0.1em;
   }
@@ -748,7 +748,7 @@
 
   .brushes kbd {
     padding: 2px 0;
-    color: #607384;
+    color: var(--ink-label);
     border: 1px solid #2c3d4b;
     text-align: center;
     font: inherit;
@@ -761,8 +761,8 @@
   .hint {
     display: block;
     margin-top: 10px;
-    color: #536473;
-    font-size: 0.62rem;
+    color: var(--ink-dim);
+    font-size: var(--fs-label);
     line-height: 1.5;
   }
 
@@ -814,14 +814,14 @@
 
   .map-toolbar strong {
     display: block;
-    font-size: 0.78rem;
+    font-size: var(--fs-body);
     letter-spacing: 0.06em;
   }
 
   .map-toolbar span,
   .coordinate {
-    color: #607384;
-    font-size: 0.62rem;
+    color: var(--ink-label);
+    font-size: var(--fs-label);
   }
 
   .map-toolbar span {
@@ -916,8 +916,8 @@
   .map-status {
     border-top: 1px solid #263340;
     border-bottom: 0;
-    color: #7890a2;
-    font-size: 0.62rem;
+    color: var(--ink-label);
+    font-size: var(--fs-label);
     letter-spacing: 0.05em;
   }
 
@@ -933,7 +933,7 @@
   }
 
   .map-status dt {
-    color: #536473;
+    color: var(--ink-dim);
   }
 
   .map-status dd {
@@ -985,7 +985,7 @@
     padding: 14px;
     color: #8dcf86;
     border: 1px solid rgba(124, 255, 107, 0.24);
-    font-size: 0.72rem;
+    font-size: var(--fs-body);
     line-height: 1.5;
   }
 
@@ -1005,7 +1005,7 @@
     color: #d89399;
     border-left: 2px solid #ff5b68;
     background: rgba(255, 91, 104, 0.06);
-    font-size: 0.67rem;
+    font-size: var(--fs-label);
     line-height: 1.4;
   }
 
@@ -1024,19 +1024,19 @@
   }
 
   .schema-note > span {
-    color: #607384;
+    color: var(--ink-label);
     font: 700 0.56rem ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.11em;
+    letter-spacing: var(--track-label);
   }
 
   .schema-note code {
     color: #27e5ff;
-    font-size: 0.72rem;
+    font-size: var(--fs-body);
   }
 
   .schema-note small {
-    color: #718596;
-    font-size: 0.65rem;
+    color: var(--ink-label);
+    font-size: var(--fs-label);
     line-height: 1.5;
   }
 

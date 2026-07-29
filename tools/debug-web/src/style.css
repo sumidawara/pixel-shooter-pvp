@@ -3,7 +3,19 @@
   background: #070b10;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
-  text-rendering: geometricPrecision;
+
+  /* 文字サイズは3段だけに絞る。11px未満は判読できないので下限にしている。 */
+  --fs-micro: 0.6875rem; /* 11px: 凡例、表ヘッダー、補助ラベル */
+  --fs-label: 0.75rem; /* 12px: 見出しラベル、タブ、操作ボタン */
+  --fs-body: 0.8125rem; /* 13px: 表の値、JSON、定義リスト */
+
+  /* 暗い背景でのコントラスト比を確保した文字色。
+     --ink-label は約7.7:1、--ink-dim は約5.8:1でどちらもWCAG AAを満たす。 */
+  --ink-label: #93a6b5;
+  --ink-dim: #7d8f9e;
+
+  /* 小さい大文字の字間。広すぎると語のまとまりが崩れて読みにくい。 */
+  --track-label: 0.06em;
 }
 
 * {
@@ -53,13 +65,13 @@ main {
 .mode-tabs button {
   min-width: 190px;
   padding: 11px 15px 10px;
-  color: #6f8191;
+  color: var(--ink-label);
   border: 1px solid #263340;
   border-bottom: 0;
   background: #090e14;
   text-align: left;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.67rem;
+  font-size: var(--fs-label);
   font-weight: 800;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -72,9 +84,9 @@ main {
 .mode-tabs button small {
   display: block;
   margin-top: 4px;
-  color: #536473;
-  font-size: 0.5rem;
-  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--track-label);
 }
 
 .mode-tabs button.active {
@@ -103,12 +115,12 @@ footer,
 .state-label,
 .host-tag {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--track-label);
 }
 
 .eyebrow {
-  color: #6f8191;
-  font-size: 0.68rem;
+  color: var(--ink-label);
+  font-size: var(--fs-label);
   font-weight: 700;
 }
 
@@ -122,7 +134,7 @@ h1 {
   margin-top: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: clamp(1.4rem, 3vw, 2.2rem);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.05em;
 }
 
@@ -150,14 +162,14 @@ h2 {
 
 .connection strong {
   color: #7cff6b;
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-body);
+  letter-spacing: var(--track-label);
 }
 
 .connection small {
   margin-top: 3px;
-  color: #6f8191;
-  font-size: 0.62rem;
+  color: var(--ink-label);
+  font-size: var(--fs-label);
 }
 
 .status-dot {
@@ -192,10 +204,10 @@ h2 {
 .server-meta span,
 .server-meta small {
   display: block;
-  color: #6f8191;
+  color: var(--ink-label);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-label);
 }
 
 .server-controls select {
@@ -230,14 +242,14 @@ h2 {
   border: 0;
   background: #27e5ff;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
+  font-size: var(--fs-body);
   font-weight: 800;
   letter-spacing: 0.08em;
   cursor: pointer;
 }
 
 .control-buttons button:disabled {
-  color: #6f8191;
+  color: var(--ink-label);
   background: #18222c;
   cursor: not-allowed;
 }
@@ -256,10 +268,10 @@ h2 {
 .scenario-editor label {
   display: block;
   margin-bottom: 7px;
-  color: #6f8191;
+  color: var(--ink-label);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-label);
 }
 
 .scenario-editor textarea {
@@ -273,7 +285,7 @@ h2 {
   outline: none;
   background: #070b10;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-body);
   line-height: 1.55;
 }
 
@@ -293,7 +305,7 @@ h2 {
   border: 0;
   background: #27e5ff;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-size: var(--fs-label);
   font-weight: 800;
   cursor: pointer;
 }
@@ -305,7 +317,7 @@ h2 {
 }
 
 .scenario-actions button:disabled {
-  color: #6f8191;
+  color: var(--ink-label);
   border-color: transparent;
   background: #18222c;
   cursor: not-allowed;
@@ -314,9 +326,9 @@ h2 {
 .scenario-editor > small {
   display: block;
   margin-top: 9px;
-  color: #526270;
+  color: var(--ink-dim);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.61rem;
+  font-size: var(--fs-label);
 }
 
 .scenario-inspector {
@@ -359,7 +371,7 @@ h2 {
 .applied-frame > p,
 .scenario-empty {
   color: #8293a1;
-  font-size: 0.76rem;
+  font-size: var(--fs-body);
   line-height: 1.6;
 }
 
@@ -378,19 +390,19 @@ h2 {
 
 .applied-frame article strong {
   color: #7cff6b;
-  font-size: 0.68rem;
+  font-size: var(--fs-label);
 }
 
 .applied-frame article code {
   margin-top: 7px;
   color: #a9bac7;
-  font-size: 0.66rem;
+  font-size: var(--fs-label);
 }
 
 .applied-frame article p {
   margin: 9px 0 0;
   color: #dce7ef;
-  font-size: 0.76rem;
+  font-size: var(--fs-body);
 }
 
 .applied-frame article pre {
@@ -399,7 +411,7 @@ h2 {
   overflow: auto;
   color: #ffe66d;
   background: #070b10;
-  font-size: 0.65rem;
+  font-size: var(--fs-label);
 }
 
 .metrics {
@@ -421,8 +433,8 @@ h2 {
 
 .metrics span {
   display: block;
-  color: #6f8191;
-  font-size: 0.62rem;
+  color: var(--ink-label);
+  font-size: var(--fs-label);
 }
 
 .metrics strong {
@@ -430,7 +442,7 @@ h2 {
   margin-top: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: clamp(1.25rem, 2vw, 1.8rem);
-  font-weight: 520;
+  font-weight: 500;
 }
 
 .metrics strong.cyan {
@@ -438,7 +450,7 @@ h2 {
 }
 
 .metrics em {
-  color: #6f8191;
+  color: var(--ink-label);
   font-size: 0.72em;
   font-style: normal;
 }
@@ -471,8 +483,8 @@ h2 {
 .legend {
   display: flex;
   gap: 16px;
-  color: #6f8191;
-  font-size: 0.58rem;
+  color: var(--ink-label);
+  font-size: var(--fs-micro);
 }
 
 .legend span {
@@ -559,7 +571,7 @@ canvas {
   padding: 5px 7px;
   color: #ff5b68;
   border: 1px solid currentColor;
-  font-size: 0.58rem;
+  font-size: var(--fs-micro);
 }
 
 .tag.ready {
@@ -584,14 +596,14 @@ canvas {
 }
 
 dt {
-  color: #6f8191;
-  font-size: 0.62rem;
+  color: var(--ink-label);
+  font-size: var(--fs-label);
 }
 
 dd {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-body);
   text-align: right;
 }
 
@@ -617,8 +629,8 @@ dd {
 }
 
 .entity-counts span {
-  color: #6f8191;
-  font-size: 0.58rem;
+  color: var(--ink-label);
+  font-size: var(--fs-micro);
 }
 
 .entity-counts strong {
@@ -638,7 +650,7 @@ dd {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.76rem;
+  font-size: var(--fs-body);
 }
 
 th,
@@ -650,9 +662,9 @@ td {
 }
 
 th {
-  color: #6f8191;
+  color: var(--ink-label);
   background: #0b1118;
-  font-size: 0.58rem;
+  font-size: var(--fs-micro);
 }
 
 tbody tr:last-child td {
@@ -682,12 +694,12 @@ tr.disconnected {
   padding: 2px 4px;
   color: #27e5ff;
   border: 1px solid rgba(39, 229, 255, 0.45);
-  font-size: 0.5rem;
+  font-size: var(--fs-micro);
 }
 
 .state-label {
   color: #a9bac7;
-  font-size: 0.58rem;
+  font-size: var(--fs-micro);
 }
 
 .hp-cell {
@@ -715,11 +727,11 @@ tr.disconnected {
   padding: 15px 16px;
   cursor: pointer;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
+  font-size: var(--fs-body);
 }
 
 .raw-panel summary small {
-  color: #6f8191;
+  color: var(--ink-label);
 }
 
 .raw-panel pre {
@@ -729,7 +741,7 @@ tr.disconnected {
   padding: 18px;
   border-top: 1px solid #263340;
   color: #98adbd;
-  font-size: 0.7rem;
+  font-size: var(--fs-body);
 }
 
 .empty-state {
@@ -748,7 +760,7 @@ tr.disconnected {
 }
 
 .empty-state small {
-  color: #6f8191;
+  color: var(--ink-label);
 }
 
 .loader {
@@ -764,8 +776,8 @@ footer {
   display: flex;
   justify-content: space-between;
   padding: 16px 2px 0;
-  color: #536473;
-  font-size: 0.56rem;
+  color: var(--ink-dim);
+  font-size: var(--fs-micro);
 }
 
 @keyframes spin {
