@@ -8,6 +8,8 @@ use serde::Serialize;
 
 use crate::model::MAX_PLAYERS;
 
+mod navigation;
+
 const CLASSIC_ARENA_JSON: &str = include_str!("../../maps/classic_arena.json");
 const MAX_MAP_WIDTH: usize = 256;
 const MAX_MAP_HEIGHT: usize = 256;
@@ -28,7 +30,7 @@ impl TileKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GridPosition {
     pub x: usize,
     pub y: usize,

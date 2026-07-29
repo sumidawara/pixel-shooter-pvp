@@ -11,7 +11,7 @@ mod score;
 use pixel_shooter_protocol::MatchPhase;
 
 pub(crate) use combat::{fire_bullets, move_and_hit_bullets};
-pub(crate) use cpu::update_cpu_players;
+pub(crate) use cpu::{CpuNavigation, update_cpu_players};
 pub(crate) use items::update_score_items;
 pub(crate) use match_flow::update_match;
 pub(crate) use movement::move_players;

@@ -44,6 +44,7 @@ impl Plugin for GameCorePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GameClock::from_hz(self.tick_rate))
             .init_resource::<ArenaMap>()
+            .init_resource::<game::CpuNavigation>()
             .init_schedule(GameTick)
             .add_systems(
                 GameTick,
