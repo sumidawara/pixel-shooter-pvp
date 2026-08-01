@@ -15,38 +15,12 @@ const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
 @onready var match_label: Label = %MatchLabel
 @onready var connection_label: Label = %ConnectionLabel
 @onready var countdown_label: Label = %CountdownLabel
-@onready var no_ammo_label: Label = %NoAmmoLabel
 @onready var result_overlay: Control = %ResultOverlay
 @onready var result_label: Label = %ResultLabel
 @onready var result_podium: ResultPodium = %ResultPodium
 
-var no_ammo_tween: Tween
-
-
 func set_connection_status(text: String) -> void:
 	connection_label.text = text
-
-
-func show_no_ammo() -> void:
-	clear_no_ammo()
-	no_ammo_label.visible = true
-	no_ammo_label.modulate = Color.WHITE
-	no_ammo_label.scale = Vector2(1.12, 1.12)
-	no_ammo_tween = create_tween()
-	no_ammo_tween.tween_property(no_ammo_label, "scale", Vector2.ONE, 0.08).set_trans(
-		Tween.TRANS_BACK
-	).set_ease(Tween.EASE_OUT)
-	no_ammo_tween.tween_interval(0.45)
-	no_ammo_tween.tween_property(no_ammo_label, "modulate:a", 0.0, 0.2)
-	no_ammo_tween.tween_callback(func(): no_ammo_label.visible = false)
-
-
-func clear_no_ammo() -> void:
-	if no_ammo_tween != null and no_ammo_tween.is_valid():
-		no_ammo_tween.kill()
-	no_ammo_tween = null
-	if is_instance_valid(no_ammo_label):
-		no_ammo_label.visible = false
 
 
 func apply_snapshot(

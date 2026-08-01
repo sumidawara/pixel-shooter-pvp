@@ -26,24 +26,30 @@ unique_name_in_owner = true
 width = 4.0
 default_color = Color(0.15, 0.9, 1, 1)
 
-[node name="NameLabel" type="Label" parent="."]
+[node name="ReloadLabel" type="Label" parent="."]
 unique_name_in_owner = true
-offset_left = -35.0
-offset_top = -27.0
-offset_right = 35.0
-offset_bottom = -10.0
+visible = false
+offset_left = -48.0
+offset_top = -53.0
+offset_right = 48.0
+offset_bottom = -25.0
 theme = ExtResource("3_theme")
+theme_override_colors/font_color = Color(1, 0.48, 0.3, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.027, 0.04, 1)
+theme_override_constants/line_spacing = -2
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 10
-text = "Player"
+text = "NO AMMO\nRELOAD 2.4s"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="DisconnectedLabel" type="Label" parent="."]
 unique_name_in_owner = true
 visible = false
 offset_left = -42.0
-offset_top = -42.0
+offset_top = -68.0
 offset_right = 42.0
-offset_bottom = -27.0
+offset_bottom = -53.0
 theme = ExtResource("3_theme")
 theme_override_font_sizes/font_size = 9
 text = "DISCONNECTED"

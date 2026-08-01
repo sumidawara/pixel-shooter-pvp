@@ -7,7 +7,7 @@ const PLAYER_RUN: Texture2D = preload("res://assets/generated/actors/player/play
 @onready var character_sprite: Sprite2D = %CharacterSprite
 @onready var aim_line: Line2D = %AimLine
 @onready var dash_trail: Line2D = %DashTrail
-@onready var name_label: Label = %NameLabel
+@onready var reload_label: Label = %ReloadLabel
 @onready var disconnected_label: Label = %DisconnectedLabel
 @onready var respawn_label: Label = %RespawnLabel
 
@@ -16,15 +16,21 @@ var accent_color := Color.WHITE
 var moving := false
 
 
-func apply_state(next_state: Dictionary, color: Color, is_moving: bool) -> void:
+func apply_state(next_state: Dictionary, color: Color, is_moving: bool, is_local: bool) -> void:
 	state = next_state
 	accent_color = color
 	moving = is_moving
-	name_label.text = str(state.get("name", "Player"))
-	name_label.modulate = accent_color
 	disconnected_label.visible = not bool(state.get("connected", true))
 	disconnected_label.modulate = accent_color
 	var alive := bool(state.get("alive", false))
+	var reloading := is_local and alive and bool(state.get("reloading", false))
+	reload_label.visible = reloading
+	if reloading:
+		var reload_left := maxf(float(state.get("reload_left", 0.0)), 0.0)
+		if int(state.get("ammo", 0)) == 0:
+			reload_label.text = "NO AMMO\nRELOAD %.1fs" % reload_left
+		else:
+			reload_label.text = "RELOAD %.1fs" % reload_left
 	character_sprite.visible = alive
 	outline_sprite.visible = alive
 	aim_line.visible = alive

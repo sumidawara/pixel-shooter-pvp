@@ -115,7 +115,6 @@ func resume_session(id: int) -> void:
 func end_session() -> void:
 	session_active = false
 	if is_instance_valid(hud):
-		hud.clear_no_ammo()
 		hud.visible = false
 	if is_instance_valid(dry_fire_player):
 		dry_fire_player.stop()
@@ -163,7 +162,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		and _local_player_has_no_ammo()
 	):
 		dry_fire_player.play()
-		hud.show_no_ammo()
 	if not event.is_action_pressed("ui_cancel"):
 		return
 	if exit_confirm_modal.is_open():
@@ -396,7 +394,7 @@ func _update_player_views() -> void:
 				id,
 				_to_vector(player.get("position", {}))
 			)
-		player_views[id].apply_state(player, _player_color(id), moving)
+		player_views[id].apply_state(player, _player_color(id), moving, id == player_id)
 
 
 func _capture_snapshot_effects(
