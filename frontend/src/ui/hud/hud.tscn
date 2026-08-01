@@ -27,30 +27,30 @@ color = Color(0.02, 0.027, 0.04, 1)
 
 [node name="PlayerOneStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 5.0
+offset_left = 4.0
 offset_top = 361.0
-offset_right = 155.0
+offset_right = 252.0
 offset_bottom = 399.0
 
 [node name="PlayerTwoStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 160.0
+offset_left = 254.0
 offset_top = 361.0
-offset_right = 310.0
+offset_right = 381.0
 offset_bottom = 399.0
 
 [node name="PlayerThreeStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 320.0
+offset_left = 383.0
 offset_top = 361.0
-offset_right = 470.0
+offset_right = 510.0
 offset_bottom = 399.0
 
 [node name="PlayerFourStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
-offset_left = 480.0
+offset_left = 512.0
 offset_top = 361.0
-offset_right = 630.0
+offset_right = 639.0
 offset_bottom = 399.0
 
 [node name="MatchLabel" type="Label" parent="HUDRoot"]

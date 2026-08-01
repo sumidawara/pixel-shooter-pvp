@@ -289,6 +289,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	_sync_items(next_items)
 	hud.apply_snapshot(
 		players,
+		player_id,
 		phase,
 		time_left,
 		winner_id,

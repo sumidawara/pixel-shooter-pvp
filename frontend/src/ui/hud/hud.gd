@@ -25,21 +25,55 @@ func set_connection_status(text: String) -> void:
 
 func apply_snapshot(
 	players: Array,
+	local_player_id: int,
 	phase: String,
 	time_left: float,
 	winner_id,
 	reconnect_grace_left: float,
 	dash_cooldown: float
 ) -> void:
-	var sorted := players.duplicate()
-	sorted.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
+	var sorted_by_id := players.duplicate()
+	sorted_by_id.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	var colors := {}
-	for index in range(sorted.size()):
-		colors[int(sorted[index].get("id", 0))] = PLAYER_COLORS[index % PLAYER_COLORS.size()]
-	player_one_status.apply_player(sorted[0] if sorted.size() > 0 else {}, CYAN, dash_cooldown)
-	player_two_status.apply_player(sorted[1] if sorted.size() > 1 else {}, MAGENTA, dash_cooldown)
-	player_three_status.apply_player(sorted[2] if sorted.size() > 2 else {}, YELLOW, dash_cooldown)
-	player_four_status.apply_player(sorted[3] if sorted.size() > 3 else {}, GREEN, dash_cooldown)
+	for index in range(sorted_by_id.size()):
+		colors[int(sorted_by_id[index].get("id", 0))] = PLAYER_COLORS[index % PLAYER_COLORS.size()]
+
+	var ranked := players.duplicate()
+	ranked.sort_custom(func(a, b):
+		var score_a := int(a.get("score", 0))
+		var score_b := int(b.get("score", 0))
+		return score_a > score_b if score_a != score_b else int(a.get("id", 0)) < int(b.get("id", 0))
+	)
+	var ranks := {}
+	for index in range(ranked.size()):
+		ranks[int(ranked[index].get("id", 0))] = index + 1
+
+	# カード位置が順位更新のたびに動かないよう、自機を先頭、他プレイヤーをID順に固定する。
+	var display_players: Array = []
+	for player in sorted_by_id:
+		if int(player.get("id", 0)) == local_player_id:
+			display_players.append(player)
+			break
+	for player in sorted_by_id:
+		if int(player.get("id", 0)) != local_player_id:
+			display_players.append(player)
+
+	var status_views := [
+		player_one_status,
+		player_two_status,
+		player_three_status,
+		player_four_status,
+	]
+	for index in range(status_views.size()):
+		var player: Dictionary = display_players[index] if index < display_players.size() else {}
+		var id := int(player.get("id", 0))
+		status_views[index].apply_player(
+			player,
+			colors.get(id, PLAYER_COLORS[index]),
+			dash_cooldown,
+			int(ranks.get(id, index + 1)),
+			index == 0 and id == local_player_id
+		)
 
 	var center_text := _format_time(time_left)
 	if phase == "waiting":

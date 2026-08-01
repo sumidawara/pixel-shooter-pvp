@@ -1,58 +1,117 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/ui/hud/player_status.gd" id="1_script"]
 [ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/generated/actors/player/player_stand.png" id="3_avatar"]
 
 [node name="PlayerStatus" type="Control"]
-custom_minimum_size = Vector2(150, 38)
+custom_minimum_size = Vector2(120, 38)
 layout_mode = 3
 anchors_preset = 0
+mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
-[node name="InfoLabel" type="Label" parent="."]
+[node name="Panel" type="Panel" parent="."]
 unique_name_in_owner = true
-offset_right = 150.0
-offset_bottom = 15.0
-theme_override_font_sizes/font_size = 10
-text = "PLAYER 0 PTS 6/6"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="HpContainer" type="HBoxContainer" parent="."]
+[node name="Accent" type="ColorRect" parent="."]
 unique_name_in_owner = true
-offset_top = 17.0
-offset_right = 108.0
-offset_bottom = 29.0
-theme_override_constants/separation = 4
+mouse_filter = 2
+color = Color(0.153, 0.898, 1, 1)
 
-[node name="Hp1" type="ColorRect" parent="HpContainer"]
-custom_minimum_size = Vector2(18, 10)
-layout_mode = 2
-color = Color(0.15, 0.9, 1, 1)
-
-[node name="Hp2" type="ColorRect" parent="HpContainer"]
-custom_minimum_size = Vector2(18, 10)
-layout_mode = 2
-color = Color(0.15, 0.9, 1, 1)
-
-[node name="Hp3" type="ColorRect" parent="HpContainer"]
-custom_minimum_size = Vector2(18, 10)
-layout_mode = 2
-color = Color(0.15, 0.9, 1, 1)
-
-[node name="Hp4" type="ColorRect" parent="HpContainer"]
-custom_minimum_size = Vector2(18, 10)
-layout_mode = 2
-color = Color(0.15, 0.9, 1, 1)
-
-[node name="Hp5" type="ColorRect" parent="HpContainer"]
-custom_minimum_size = Vector2(18, 10)
-layout_mode = 2
-color = Color(0.15, 0.9, 1, 1)
-
-[node name="DashBar" type="ProgressBar" parent="."]
+[node name="RankLabel" type="Label" parent="."]
 unique_name_in_owner = true
-offset_top = 33.0
-offset_right = 106.0
-offset_bottom = 37.0
-value = 100.0
-show_percentage = false
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
+theme_override_font_sizes/font_size = 15
+text = "#1"
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="AvatarOutline" type="TextureRect" parent="."]
+unique_name_in_owner = true
+texture = ExtResource("3_avatar")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Avatar" type="TextureRect" parent="."]
+unique_name_in_owner = true
+texture = ExtResource("3_avatar")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.925, 0.965, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "PLAYER"
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="ScoreLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
+theme_override_font_sizes/font_size = 9
+text = "500P"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HpKeyLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.502, 0.569, 0.639, 1)
+theme_override_font_sizes/font_size = 7
+text = "HP"
+vertical_alignment = 1
+
+[node name="HpTrack" type="ColorRect" parent="."]
+unique_name_in_owner = true
+mouse_filter = 2
+color = Color(0.157, 0.208, 0.259, 1)
+
+[node name="HpFill" type="ColorRect" parent="HpTrack"]
+unique_name_in_owner = true
+mouse_filter = 2
+color = Color(0.153, 0.898, 1, 1)
+
+[node name="HpValueLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.69, 0.757, 0.82, 1)
+theme_override_font_sizes/font_size = 7
+text = "5/5"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="AmmoLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
+theme_override_font_sizes/font_size = 8
+text = "AMMO 6/6"
+vertical_alignment = 1
+
+[node name="DashLabel" type="Label" parent="."]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.69, 0.757, 0.82, 1)
+theme_override_font_sizes/font_size = 8
+text = "DASH READY"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DashTrack" type="ColorRect" parent="."]
+unique_name_in_owner = true
+mouse_filter = 2
+color = Color(0.157, 0.208, 0.259, 1)
+
+[node name="DashFill" type="ColorRect" parent="DashTrack"]
+unique_name_in_owner = true
+mouse_filter = 2
+color = Color(0.404, 0.937, 0.635, 1)
