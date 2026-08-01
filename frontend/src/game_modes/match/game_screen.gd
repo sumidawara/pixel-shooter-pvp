@@ -27,6 +27,7 @@ const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
 @onready var effect_layer: Node2D = %EffectLayer
 @onready var hud = %HUD
 @onready var shot_player: AudioStreamPlayer = %ShotPlayer
+@onready var dry_fire_player: AudioStreamPlayer = %DryFirePlayer
 @onready var hit_player: AudioStreamPlayer = %HitPlayer
 @onready var dash_player: AudioStreamPlayer = %DashPlayer
 @onready var reload_player: AudioStreamPlayer = %ReloadPlayer
@@ -114,7 +115,10 @@ func resume_session(id: int) -> void:
 func end_session() -> void:
 	session_active = false
 	if is_instance_valid(hud):
+		hud.clear_no_ammo()
 		hud.visible = false
+	if is_instance_valid(dry_fire_player):
+		dry_fire_player.stop()
 	if is_instance_valid(exit_confirm_modal):
 		exit_confirm_modal.close_modal()
 	player_id = 0
@@ -149,13 +153,31 @@ func set_connection_status(text: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or not session_active or not event.is_action_pressed("ui_cancel"):
+	if not visible or not session_active:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if (
+		mouse_event != null
+		and mouse_event.button_index == MOUSE_BUTTON_LEFT
+		and mouse_event.pressed
+		and _local_player_has_no_ammo()
+	):
+		dry_fire_player.play()
+		hud.show_no_ammo()
+	if not event.is_action_pressed("ui_cancel"):
 		return
 	if exit_confirm_modal.is_open():
 		exit_confirm_modal.close_modal()
 	else:
 		exit_confirm_modal.open_modal()
 	get_viewport().set_input_as_handled()
+
+
+func _local_player_has_no_ammo() -> bool:
+	if not _is_playing_phase() or exit_confirm_modal.is_open() or not players_by_id.has(player_id):
+		return false
+	var local_player: Dictionary = players_by_id[player_id]
+	return bool(local_player.get("alive", false)) and int(local_player.get("ammo", 0)) == 0
 
 
 func _process(delta: float) -> void:

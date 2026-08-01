@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://src/game_modes/match/game_screen.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://src/maps/arena/arena_view.tscn" id="2_arena"]
@@ -12,6 +12,7 @@
 [ext_resource type="AudioStream" path="res://src/shared/audio/round_start.wav" id="10_start"]
 [ext_resource type="AudioStream" path="res://src/shared/audio/round_end.wav" id="11_end"]
 [ext_resource type="PackedScene" path="res://src/ui/exit_confirm_modal/exit_confirm_modal.tscn" id="12_exit_modal"]
+[ext_resource type="AudioStream" path="res://src/shared/audio/dry_fire.wav" id="13_dry_fire"]
 [node name="GameScreen" type="Node2D"]
 unique_name_in_owner = true
 visible = false
@@ -41,6 +42,11 @@ script = ExtResource("3_effects")
 unique_name_in_owner = true
 stream = ExtResource("5_shot")
 volume_db = -10.0
+
+[node name="DryFirePlayer" type="AudioStreamPlayer" parent="Audio"]
+unique_name_in_owner = true
+stream = ExtResource("13_dry_fire")
+volume_db = -7.0
 
 [node name="HitPlayer" type="AudioStreamPlayer" parent="Audio"]
 unique_name_in_owner = true

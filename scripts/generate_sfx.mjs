@@ -46,6 +46,11 @@ writeWav("shot", 0.09, (time, progress, index) => {
   return (square * 0.55 + noise(index) * 0.2) * (1 - progress) ** 2;
 });
 
+writeWav("dry_fire", 0.08, (time, progress) => {
+  const click = Math.sign(Math.sin(Math.PI * 2 * (1_050 - progress * 280) * time));
+  return click * 0.24 * (1 - progress) ** 4;
+});
+
 writeWav("hit", 0.13, (time, progress, index) => {
   const square = Math.sign(Math.sin(Math.PI * 2 * (180 - progress * 70) * time));
   return (square * 0.3 + noise(index) * 0.55) * (1 - progress);
