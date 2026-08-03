@@ -35,6 +35,18 @@ Godotの`JOIN ROOM`には`http://127.0.0.1:8080`を入力する。クライア�
 MatchmakerへHTTP POSTし、返された`game_url`へJoin Ticket付きWebSocketで直接接続する。
 従来どおり`ws://127.0.0.1:9001`を入力すれば、Ticket不要設定の単体サーバーへ直結できる。
 
+enosawaのTailnet向け環境では、次のHTTPS/WSSエンドポイントを使用する。
+
+| URL | サービス |
+| --- | --- |
+| `https://matchmaker.pvp.es.sumidawara.uk` | Matchmaker API |
+| `https://admin.pvp.es.sumidawara.uk` | AdminServerデバッグ画面 |
+| `wss://game1.pvp.es.sumidawara.uk` | GameServer 1 |
+| `wss://game2.pvp.es.sumidawara.uk` | GameServer 2 |
+
+Godotの`JOIN ROOM`には`https://matchmaker.pvp.es.sumidawara.uk`を入力する。
+AdminServerは操作APIを持つため、`admin.pvp.es.sumidawara.uk`はTailnet内だけで公開する。
+
 ## 個別プロセス
 
 ```sh
