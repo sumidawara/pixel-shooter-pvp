@@ -55,6 +55,7 @@ fn apply_player_input(
         shooting,
         reload_pressed,
         dash_pressed,
+        use_item_pressed,
     } = input;
 
     player.movement = Vec2::new(move_x, move_y).clamp_length_max(1.0);
@@ -68,11 +69,13 @@ fn apply_player_input(
             // 押した瞬間だけtrueになる操作は、Systemで消費するまでORで保持する。
             player.reload_requested |= reload_pressed;
             player.dash_requested |= dash_pressed;
+            player.use_item_requested |= use_item_pressed;
         }
         PendingActionPolicy::Replace => {
             // 注入入力はCPU入力を含むそのtickの操作を完全に上書きする。
             player.reload_requested = reload_pressed;
             player.dash_requested = dash_pressed;
+            player.use_item_requested = use_item_pressed;
         }
     }
 }
@@ -87,6 +90,7 @@ pub(crate) fn apply_player_input_overrides(
             player.shooting = false;
             player.reload_requested = false;
             player.dash_requested = false;
+            player.use_item_requested = false;
         }
         let Some(input) = overrides.inputs.get(&player.id) else {
             continue;
@@ -125,6 +129,10 @@ mod tests {
             dash_time_left: 0.0,
             dash_direction: Vec2::ZERO,
             dash_requested: false,
+            use_item_requested: false,
+            held_item: None,
+            berserk_left: 0.0,
+            shield_hp: 0,
             last_input_sequence: 0,
         }
     }
@@ -140,6 +148,7 @@ mod tests {
                 aim_y: 4.0,
                 shooting: true,
                 dash_pressed: true,
+                use_item_pressed: true,
                 ..default()
             },
         )]);
@@ -157,6 +166,7 @@ mod tests {
             assert_eq!(player.aim, Vec2::Y);
             assert!(player.shooting);
             assert!(player.dash_requested);
+            assert!(player.use_item_requested);
         }
 
         app.world_mut()
@@ -170,6 +180,7 @@ mod tests {
             assert_eq!(player.movement, Vec2::ZERO);
             assert!(!player.shooting);
             assert!(!player.dash_requested);
+            assert!(!player.use_item_requested);
         }
     }
 }

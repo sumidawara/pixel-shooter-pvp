@@ -45,12 +45,14 @@ pub(crate) fn fire_bullets(
         state.next_bullet_id += 1;
         let aim = player.aim;
         // プレイヤー中心に弾を置くと自分と重なるため、照準方向へ少し前に出す。
+        let berserk = player.berserk_left > 0.0;
         commands.spawn(Bullet {
             id: state.next_bullet_id,
             owner_id: player.id,
             position: player.position + aim * (PLAYER_RADIUS + 6.0),
-            velocity: aim * settings.gameplay.bullet_speed,
-            life_left: 2.0,
+            velocity: aim * settings.gameplay.bullet_speed * if berserk { 1.3 } else { 1.0 },
+            life_left: if berserk { 2.6 } else { 2.0 },
+            damage: if berserk { 2 } else { 1 },
         });
 
         // 射撃方向と反対へ少し押し戻す。サーバーで計算するので全員に同じ結果になる。
@@ -104,7 +106,11 @@ pub(crate) fn move_and_hit_bullets(
             // 円同士の当たり判定。sqrtを避けるため距離も半径も二乗して比較する。
             let hit_distance = PLAYER_RADIUS + BULLET_RADIUS;
             if player.position.distance_squared(bullet.position) <= hit_distance * hit_distance {
-                player.hp -= 1;
+                if player.shield_hp > 0 {
+                    player.shield_hp = (player.shield_hp - bullet.damage).max(0);
+                } else {
+                    player.hp -= bullet.damage;
+                }
                 player.invulnerable_left = settings.gameplay.hit_invulnerable_seconds;
                 hit = true;
                 if player.hp <= 0 {

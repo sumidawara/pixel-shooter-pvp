@@ -21,6 +21,7 @@ always represents exactly one authoritative game tick.
           "shooting": true,
           "reload_pressed": false,
           "dash_pressed": false,
+          "use_item_pressed": false,
           "reason": "enemy is inside the preferred engagement range",
           "metadata": {
             "confidence": 0.87,
@@ -73,4 +74,3 @@ POST /api/servers/{server_id}/input-scenario/clear
 An input only overrides the named player for that frame. CPU players not named
 in a frame continue using the built-in policy. When an override ends, its
 one-shot movement and buttons are released before normal control resumes.
-

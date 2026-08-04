@@ -15,6 +15,18 @@ pub struct PlayerInput {
     pub shooting: bool,
     pub reload_pressed: bool,
     pub dash_pressed: bool,
+    pub use_item_pressed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ItemKind {
+    EnergyCell,
+    Dash,
+    LarokinPoppos,
+    Berserk,
+    Shield,
+    Ghost,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
@@ -83,6 +95,7 @@ pub struct Snapshot {
     pub players: Vec<PlayerSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
     pub items: Vec<ItemSnapshot>,
+    pub larokin_poppos: Vec<LarokinPopposSnapshot>,
     pub room: RoomSnapshot,
 }
 
@@ -177,6 +190,9 @@ pub struct PlayerSnapshot {
     pub dash_cooldown_left: f32,
     pub dashing: bool,
     pub dash_time_left: f32,
+    pub held_item: Option<HeldItemSnapshot>,
+    pub berserk_left: f32,
+    pub shield_hp: i32,
     pub last_input_sequence: u32,
 }
 
@@ -186,6 +202,7 @@ pub struct BulletSnapshot {
     pub owner_id: u64,
     pub position: Vec2,
     pub velocity: Vec2,
+    pub damage: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -193,6 +210,22 @@ pub struct ItemSnapshot {
     pub id: u64,
     pub position: Vec2,
     pub points: i32,
+    pub kind: ItemKind,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct HeldItemSnapshot {
+    pub kind: ItemKind,
+    pub charges: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LarokinPopposSnapshot {
+    pub id: u64,
+    pub owner_id: u64,
+    pub position: Vec2,
+    pub velocity: Vec2,
+    pub telegraph_left: f32,
 }
 
 #[cfg(test)]
@@ -256,6 +289,7 @@ mod tests {
                 "shooting": true,
                 "reload_pressed": false,
                 "dash_pressed": true
+                ,"use_item_pressed": true
             }"#,
         )
         .expect("flat websocket input");
@@ -274,6 +308,7 @@ mod tests {
                 shooting: true,
                 reload_pressed: false,
                 dash_pressed: true,
+                use_item_pressed: true,
             }
         );
     }

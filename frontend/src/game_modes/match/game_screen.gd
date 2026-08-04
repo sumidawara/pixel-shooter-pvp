@@ -18,10 +18,12 @@ const GREEN := Color("#7cff6b")
 const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")
 const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
+const LAROKIN_VIEW_SCENE := preload("res://src/combat/items/larokin_poppos_view.tscn")
 
 @onready var world: Node2D = %World
 @onready var arena_view = $World/Arena
 @onready var item_layer: Node2D = %ItemLayer
+@onready var larokin_layer: Node2D = %LarokinLayer
 @onready var player_layer: Node2D = %PlayerLayer
 @onready var bullet_layer: Node2D = %BulletLayer
 @onready var effect_layer: Node2D = %EffectLayer
@@ -74,6 +76,7 @@ var bullet_velocities: Dictionary = {}
 
 # 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
 var item_views: Dictionary = {}
+var larokin_views: Dictionary = {}
 var arena_map: ArenaMapData
 var map_ready := false
 
@@ -141,6 +144,9 @@ func end_session() -> void:
 	for view in item_views.values():
 		view.queue_free()
 	item_views.clear()
+	for view in larokin_views.values():
+		view.queue_free()
+	larokin_views.clear()
 	effect_layer.clear()
 	world.position = Vector2.ZERO
 
@@ -226,6 +232,8 @@ func _physics_process(delta: float) -> void:
 		"delta": delta,
 		"movement": movement,
 		"dash_pressed": not input_blocked and Input.is_action_just_pressed("dash"),
+		"use_item_pressed": not input_blocked and Input.is_action_just_pressed("use_item"),
+		"held_kind": _local_held_item_kind(),
 	}
 	if _is_playing_phase() and not input_blocked:
 		pending_inputs.append(input_record)
@@ -242,6 +250,7 @@ func _physics_process(delta: float) -> void:
 		"shooting": not input_blocked and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT),
 		"reload_pressed": not input_blocked and Input.is_action_just_pressed("reload"),
 		"dash_pressed": bool(input_record.dash_pressed),
+		"use_item_pressed": bool(input_record.use_item_pressed),
 	})
 
 
@@ -269,6 +278,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	var next_players: Array = snapshot.get("players", [])
 	var next_bullets: Array = snapshot.get("bullets", [])
 	var next_items: Array = snapshot.get("items", [])
+	var next_larokin: Array = snapshot.get("larokin_poppos", [])
 	var next_phase := str(snapshot.get("phase", "waiting"))
 	var next_time := float(snapshot.get("time_left", 0.0))
 	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
@@ -287,6 +297,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	_sync_players()
 	_sync_bullets(next_bullets)
 	_sync_items(next_items)
+	_sync_larokin(next_larokin)
 	hud.apply_snapshot(
 		players,
 		player_id,
@@ -294,7 +305,8 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 		time_left,
 		winner_id,
 		reconnect_grace_left,
-		dash_cooldown
+		dash_cooldown,
+		players_by_id.get(player_id, {})
 	)
 
 
@@ -306,13 +318,30 @@ func _sync_items(next_items: Array) -> void:
 		if not item_views.has(id):
 			var view = ITEM_VIEW_SCENE.instantiate()
 			item_layer.add_child(view)
-			view.configure(int(item.get("points", 0)))
+			view.configure(str(item.get("kind", "energy_cell")), int(item.get("points", 0)))
 			item_views[id] = view
 		item_views[id].position = _to_vector(item.get("position", {}))
 	for id in item_views.keys():
 		if not active_ids.has(id):
 			item_views[id].queue_free()
 			item_views.erase(id)
+
+
+func _sync_larokin(next_attackers: Array) -> void:
+	var active_ids: Dictionary = {}
+	for attacker in next_attackers:
+		var id := int(attacker.get("id", 0))
+		active_ids[id] = true
+		if not larokin_views.has(id):
+			var view = LAROKIN_VIEW_SCENE.instantiate()
+			larokin_layer.add_child(view)
+			larokin_views[id] = view
+		larokin_views[id].apply_state(attacker)
+		larokin_views[id].position = _to_vector(attacker.get("position", {}))
+	for id in larokin_views.keys():
+		if not active_ids.has(id):
+			larokin_views[id].queue_free()
+			larokin_views.erase(id)
 
 
 func _sync_players() -> void:
@@ -486,6 +515,13 @@ func _simulate_predicted_input(input_record: Dictionary) -> void:
 	var movement: Vector2 = input_record.get("movement", Vector2.ZERO)
 	predicted_dash_cooldown = maxf(predicted_dash_cooldown - delta, 0.0)
 	if (
+		bool(input_record.get("use_item_pressed", false))
+		and str(input_record.get("held_kind", "")) == "dash"
+		and movement.length_squared() > 0.001
+	):
+		predicted_dash_direction = movement.normalized()
+		predicted_dash_time = dash_duration
+	if (
 		bool(input_record.get("dash_pressed", false))
 		and predicted_dash_cooldown <= 0.0
 		and movement.length_squared() > 0.001
@@ -494,7 +530,7 @@ func _simulate_predicted_input(input_record: Dictionary) -> void:
 		predicted_dash_time = dash_duration
 		predicted_dash_cooldown = dash_cooldown
 	var direction := movement
-	var speed := move_speed
+	var speed := move_speed * (0.5 if _local_berserk_active() else 1.0)
 	if predicted_dash_time > 0.0:
 		predicted_dash_time = maxf(predicted_dash_time - delta, 0.0)
 		direction = predicted_dash_direction
@@ -547,3 +583,14 @@ func _to_vector(value: Dictionary) -> Vector2:
 
 func _is_playing_phase() -> bool:
 	return phase == "running"
+
+
+func _local_held_item_kind() -> String:
+	if not players_by_id.has(player_id):
+		return ""
+	var held = players_by_id[player_id].get("held_item")
+	return str(held.get("kind", "")) if typeof(held) == TYPE_DICTIONARY else ""
+
+
+func _local_berserk_active() -> bool:
+	return players_by_id.has(player_id) and float(players_by_id[player_id].get("berserk_left", 0.0)) > 0.0

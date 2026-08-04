@@ -12,7 +12,7 @@ use pixel_shooter_protocol::MatchPhase;
 
 pub(crate) use combat::{fire_bullets, move_and_hit_bullets};
 pub(crate) use cpu::{CpuNavigation, update_cpu_players};
-pub(crate) use items::update_score_items;
+pub(crate) use items::{update_items, update_larokin_poppos};
 pub(crate) use match_flow::update_match;
 pub(crate) use movement::move_players;
 pub(crate) use respawn::update_respawns;
@@ -69,6 +69,10 @@ mod tests {
             dash_time_left: 0.0,
             dash_direction: bevy::prelude::Vec2::ZERO,
             dash_requested: false,
+            use_item_requested: false,
+            held_item: None,
+            berserk_left: 0.0,
+            shield_hp: 0,
             last_input_sequence: 0,
         }
     }

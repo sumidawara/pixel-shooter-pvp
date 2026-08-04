@@ -99,6 +99,16 @@ pub(crate) fn update_cpu_players(
             .unwrap_or(Vec2::ZERO);
         cpu.aim = separation_direction(cpu.id, cpu.position, *enemy_id, *enemy_position);
         cpu.shooting = cpu.aim != Vec2::ZERO;
+        if cpu.held_item.is_some() {
+            let should_use = match cpu.held_item.map(|item| item.kind) {
+                Some(pixel_shooter_protocol::ItemKind::Shield) => cpu.hp <= 3,
+                Some(pixel_shooter_protocol::ItemKind::Dash) => state.tick.is_multiple_of(120),
+                Some(pixel_shooter_protocol::ItemKind::Ghost) => targets.len() > 1,
+                Some(_) => state.tick.is_multiple_of(90),
+                None => false,
+            };
+            cpu.use_item_requested |= should_use;
+        }
         let dash_target = cpu.position + cpu.movement * map.tile_size() * 2.0;
         if state.tick.is_multiple_of(180)
             && cpu.movement != Vec2::ZERO

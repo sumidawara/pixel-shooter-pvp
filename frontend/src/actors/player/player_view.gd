@@ -20,6 +20,7 @@ func apply_state(next_state: Dictionary, color: Color, is_moving: bool, is_local
 	state = next_state
 	accent_color = color
 	moving = is_moving
+	queue_redraw()
 	disconnected_label.visible = not bool(state.get("connected", true))
 	disconnected_label.modulate = accent_color
 	var alive := bool(state.get("alive", false))
@@ -46,6 +47,15 @@ func apply_state(next_state: Dictionary, color: Color, is_moving: bool, is_local
 	aim_line.points = PackedVector2Array([aim * 4.0, aim * 22.0])
 	dash_trail.default_color = Color(accent_color, 0.35)
 	dash_trail.points = PackedVector2Array([-aim * 8.0, -aim * 28.0])
+
+
+func _draw() -> void:
+	if not bool(state.get("alive", false)):
+		return
+	if int(state.get("shield_hp", 0)) > 0:
+		draw_arc(Vector2.ZERO, 17.0, 0.0, TAU, 24, Color("#a879ff"), 3.0)
+	if float(state.get("berserk_left", 0.0)) > 0.0:
+		draw_arc(Vector2.ZERO, 20.0, 0.0, TAU, 20, Color(1.0, 0.22, 0.28, 0.72), 2.0)
 
 
 func _process(_delta: float) -> void:
