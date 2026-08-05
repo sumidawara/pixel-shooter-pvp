@@ -27,6 +27,7 @@ pub(crate) fn move_players(
         if !player.alive {
             player.reload_requested = false;
             player.dash_requested = false;
+            player.use_item_requested = false;
             continue;
         }
         player.shot_cooldown = (player.shot_cooldown - dt).max(0.0);
@@ -65,7 +66,12 @@ pub(crate) fn move_players(
             player.dash_time_left = (player.dash_time_left - dt).max(0.0);
             (player.dash_direction, settings.gameplay.dash_speed)
         } else {
-            (player.movement, settings.gameplay.move_speed)
+            let speed = if player.berserk_left > 0.0 {
+                settings.gameplay.move_speed * 0.5
+            } else {
+                settings.gameplay.move_speed
+            };
+            (player.movement, speed)
         };
 
         // 速度(px/秒) × 経過秒で、このtickに進む距離を求める。

@@ -57,10 +57,11 @@ impl Plugin for GameCorePlugin {
                     game::update_match,
                     game::update_cpu_players,
                     apply_player_input_overrides,
+                    game::update_items,
                     game::move_players,
                     game::fire_bullets,
                     game::move_and_hit_bullets,
-                    game::update_score_items,
+                    game::update_larokin_poppos,
                     game::update_respawns,
                 )
                     // 入力反映後の状態を、移動→射撃→判定の順に確定する。

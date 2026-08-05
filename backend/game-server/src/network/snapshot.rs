@@ -3,10 +3,12 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use pixel_shooter_game_core::{ArenaMap, Bullet, MAX_PLAYERS, MatchState, Player, ScoreItem};
+use pixel_shooter_game_core::{
+    ArenaMap, Bullet, LarokinPoppos, MAX_PLAYERS, MatchState, Player, ScoreItem,
+};
 use pixel_shooter_protocol::{
-    BulletSnapshot, ItemSnapshot, MapSummary, MatchPhase, PlayerSnapshot, RoomSnapshot,
-    ServerMessage, Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, HeldItemSnapshot, ItemSnapshot, LarokinPopposSnapshot, MapSummary, MatchPhase,
+    PlayerSnapshot, RoomSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio_tungstenite::tungstenite::Message;
 
@@ -22,6 +24,7 @@ pub(crate) fn broadcast_snapshot(
     players: Query<&Player>,
     bullets: Query<&Bullet>,
     items: Query<&ScoreItem>,
+    larokin_poppos: Query<&LarokinPoppos>,
 ) {
     let reconnect_grace_left = players
         .iter()
@@ -65,6 +68,12 @@ pub(crate) fn broadcast_snapshot(
                 dash_cooldown_left: player.dash_cooldown_left,
                 dashing: player.dash_time_left > 0.0,
                 dash_time_left: player.dash_time_left,
+                held_item: player.held_item.map(|item| HeldItemSnapshot {
+                    kind: item.kind,
+                    charges: item.charges,
+                }),
+                berserk_left: player.berserk_left,
+                shield_hp: player.shield_hp,
                 last_input_sequence: player.last_input_sequence,
             })
             .collect(),
@@ -76,6 +85,7 @@ pub(crate) fn broadcast_snapshot(
                     owner_id: bullet.owner_id,
                     position: net_vec(bullet.position),
                     velocity: net_vec(bullet.velocity),
+                    damage: bullet.damage,
                 })
                 .collect()
         } else {
@@ -88,6 +98,21 @@ pub(crate) fn broadcast_snapshot(
                     id: item.id,
                     position: net_vec(item.position),
                     points: state.room_settings.item_points,
+                    kind: item.kind,
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
+        larokin_poppos: if state.phase == MatchPhase::Running {
+            larokin_poppos
+                .iter()
+                .map(|attacker| LarokinPopposSnapshot {
+                    id: attacker.id,
+                    owner_id: attacker.owner_id,
+                    position: net_vec(attacker.position),
+                    velocity: net_vec(attacker.velocity),
+                    telegraph_left: attacker.telegraph_left,
                 })
                 .collect()
         } else {

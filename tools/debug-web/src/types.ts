@@ -24,6 +24,9 @@ export type Player = {
   dash_cooldown_left: number;
   dashing: boolean;
   dash_time_left: number;
+  held_item: { kind: ItemKind; charges: number } | null;
+  berserk_left: number;
+  shield_hp: number;
   last_input_sequence: number;
 };
 
@@ -32,12 +35,30 @@ export type Bullet = {
   owner_id: number;
   position: Vec2;
   velocity: Vec2;
+  damage: number;
 };
+
+export type ItemKind =
+  | "energy_cell"
+  | "dash"
+  | "larokin_poppos"
+  | "berserk"
+  | "shield"
+  | "ghost";
 
 export type ScoreItem = {
   id: number;
   position: Vec2;
   points: number;
+  kind: ItemKind;
+};
+
+export type LarokinPoppos = {
+  id: number;
+  owner_id: number;
+  position: Vec2;
+  velocity: Vec2;
+  telegraph_left: number;
 };
 
 export type RoomSettings = {
@@ -63,6 +84,7 @@ export type Snapshot = {
   players: Player[];
   bullets: Bullet[];
   items: ScoreItem[];
+  larokin_poppos: LarokinPoppos[];
   room: {
     host_player_id: number | null;
     can_start: boolean;
@@ -96,6 +118,7 @@ export type PlayerInputCommand = {
   shooting?: boolean;
   reload_pressed?: boolean;
   dash_pressed?: boolean;
+  use_item_pressed?: boolean;
   reason?: string;
   metadata?: Record<string, unknown>;
 };

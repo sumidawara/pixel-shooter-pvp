@@ -33,12 +33,13 @@
   "aim_y":-0.2,
   "shooting":true,
   "reload_pressed":false,
-  "dash_pressed":true
+  "dash_pressed":true,
+  "use_item_pressed":false
 }
 ```
 
 `sequence` が最後に受理した値以下なら、古い入力として破棄する。
-`reload_pressed`と`dash_pressed`はキーを押した瞬間だけ`true`にする。
+`reload_pressed`、`dash_pressed`、`use_item_pressed`はキーを押した瞬間だけ`true`にする。
 
 ルームホストだけが送信できる操作:
 

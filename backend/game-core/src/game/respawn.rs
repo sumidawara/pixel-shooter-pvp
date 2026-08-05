@@ -43,6 +43,8 @@ pub(crate) fn update_respawns(
             player.reload_left = 0.0;
             player.invulnerable_left = settings.gameplay.respawn_invulnerable_seconds;
             player.dash_time_left = 0.0;
+            player.berserk_left = 0.0;
+            player.shield_hp = 0;
         }
     }
 }
@@ -61,4 +63,8 @@ pub(super) fn reset_player(player: &mut Player, gameplay: &GameplaySettings, map
     player.dash_cooldown_left = 0.0;
     player.dash_time_left = 0.0;
     player.dash_requested = false;
+    player.use_item_requested = false;
+    player.held_item = None;
+    player.berserk_left = 0.0;
+    player.shield_hp = 0;
 }

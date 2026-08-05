@@ -73,6 +73,7 @@ pub(crate) fn process_network(
                             player.shooting = false;
                             player.reload_requested = false;
                             player.dash_requested = false;
+                            player.use_item_requested = false;
                             println!(
                                 "player {} disconnected; waiting {} seconds",
                                 player.id, state.reconnect_grace_seconds
@@ -287,6 +288,7 @@ pub(crate) fn process_network(
                     player.shooting = false;
                     player.reload_requested = false;
                     player.dash_requested = false;
+                    player.use_item_requested = false;
                     println!("player {} intentionally left", player.id);
                 }
             }
@@ -314,6 +316,7 @@ pub(crate) fn process_network(
                             player.movement = Vec2::ZERO;
                             player.shooting = false;
                             player.dash_requested = false;
+                            player.use_item_requested = false;
                             if let Some(player_connection_id) = player.connection_id {
                                 send_map_definition(&network, player_connection_id, &map);
                             }
@@ -422,6 +425,10 @@ fn new_player(
         dash_time_left: 0.0,
         dash_direction: Vec2::ZERO,
         dash_requested: false,
+        use_item_requested: false,
+        held_item: None,
+        berserk_left: 0.0,
+        shield_hp: 0,
         last_input_sequence: 0,
     }
 }

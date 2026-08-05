@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/ui/hud/hud.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/player_status.tscn" id="2_status"]
 [ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
 [ext_resource type="Texture2D" path="res://assets/generated/ui/hud/gameover.png" id="4_gameover"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/result_podium.tscn" id="5_podium"]
+[ext_resource type="Script" path="res://src/ui/hud/item_slot.gd" id="6_item_slot"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -83,6 +84,15 @@ theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
 theme_override_font_sizes/font_size = 10
 text = "ESC MENU"
 horizontal_alignment = 2
+
+[node name="ItemSlot" type="Control" parent="HUDRoot"]
+unique_name_in_owner = true
+offset_left = 540.0
+offset_top = 27.0
+offset_right = 632.0
+offset_bottom = 67.0
+mouse_filter = 2
+script = ExtResource("6_item_slot")
 
 [node name="CountdownLabel" type="Label" parent="HUDRoot"]
 unique_name_in_owner = true

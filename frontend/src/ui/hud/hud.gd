@@ -18,6 +18,7 @@ const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
 @onready var result_overlay: Control = %ResultOverlay
 @onready var result_label: Label = %ResultLabel
 @onready var result_podium: ResultPodium = %ResultPodium
+@onready var item_slot = %ItemSlot
 
 func set_connection_status(text: String) -> void:
 	connection_label.text = text
@@ -30,8 +31,10 @@ func apply_snapshot(
 	time_left: float,
 	winner_id,
 	reconnect_grace_left: float,
-	dash_cooldown: float
+	dash_cooldown: float,
+	local_player: Dictionary
 ) -> void:
+	item_slot.apply_player(local_player)
 	var sorted_by_id := players.duplicate()
 	sorted_by_id.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	var colors := {}

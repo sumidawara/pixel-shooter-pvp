@@ -5,7 +5,7 @@ use pixel_shooter_protocol::MatchPhase;
 
 use crate::{
     arena::ArenaMap,
-    model::{Bullet, MatchState, Player, ScoreItem},
+    model::{Bullet, LarokinPoppos, MatchState, Player, ScoreItem},
     schedule::GameClock,
     settings::GameSettings,
 };
@@ -25,6 +25,7 @@ pub(crate) fn update_match(
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
     items: Query<Entity, With<ScoreItem>>,
+    attackers: Query<Entity, With<LarokinPoppos>>,
     mut commands: Commands,
 ) {
     let dt = clock.delta_seconds();
@@ -42,6 +43,7 @@ pub(crate) fn update_match(
         }
         despawn_all_bullets(&mut commands, &bullets);
         despawn_all_items(&mut commands, &items);
+        despawn_all_attackers(&mut commands, &attackers);
         reset_empty_room(&mut state);
         state.tick += 1;
         println!("room reset because no human players remain");
@@ -77,6 +79,7 @@ pub(crate) fn update_match(
             }
             despawn_all_bullets(&mut commands, &bullets);
             despawn_all_items(&mut commands, &items);
+            despawn_all_attackers(&mut commands, &attackers);
             reset_empty_room(&mut state);
             state.tick += 1;
             println!("room reset because no human players remain");
@@ -114,6 +117,7 @@ pub(crate) fn update_match(
             finish_match(&mut state, remaining_ids.first().copied(), &settings);
             despawn_all_bullets(&mut commands, &bullets);
             despawn_all_items(&mut commands, &items);
+            despawn_all_attackers(&mut commands, &attackers);
             println!("match ended because fewer than two players remain");
         } else if state.phase == MatchPhase::Paused {
             state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Waiting);
@@ -154,6 +158,7 @@ pub(crate) fn update_match(
                 start_new_match(&mut state, &mut players, &settings, &map);
                 despawn_all_bullets(&mut commands, &bullets);
                 despawn_all_items(&mut commands, &items);
+                despawn_all_attackers(&mut commands, &attackers);
             }
         }
         MatchPhase::Countdown => {
@@ -173,6 +178,7 @@ pub(crate) fn update_match(
                 finish_match(&mut state, winner_id, &settings);
                 despawn_all_bullets(&mut commands, &bullets);
                 despawn_all_items(&mut commands, &items);
+                despawn_all_attackers(&mut commands, &attackers);
             }
         }
         MatchPhase::MatchFinished => {
@@ -252,6 +258,12 @@ fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bul
 
 fn despawn_all_items(commands: &mut Commands, items: &Query<Entity, With<ScoreItem>>) {
     for entity in items {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn despawn_all_attackers(commands: &mut Commands, attackers: &Query<Entity, With<LarokinPoppos>>) {
+    for entity in attackers {
         commands.entity(entity).despawn();
     }
 }

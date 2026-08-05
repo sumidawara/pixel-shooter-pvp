@@ -1,7 +1,7 @@
 //! GameCoreのBevy Worldに保存するComponentとResource。
 
 use bevy::prelude::*;
-use pixel_shooter_protocol::{MatchPhase, RoomSettings};
+use pixel_shooter_protocol::{ItemKind, MatchPhase, RoomSettings};
 
 pub const MAX_PLAYERS: usize = 4;
 
@@ -20,6 +20,7 @@ pub struct MatchState {
     pub match_winner_id: Option<u64>,
     pub next_bullet_id: u64,
     pub next_item_id: u64,
+    pub next_larokin_id: u64,
     pub item_spawn_left: f32,
     pub next_player_id: u64,
     pub reconnect_grace_seconds: f32,
@@ -61,6 +62,10 @@ pub struct Player {
     pub dash_time_left: f32,
     pub dash_direction: Vec2,
     pub dash_requested: bool,
+    pub use_item_requested: bool,
+    pub held_item: Option<HeldItem>,
+    pub berserk_left: f32,
+    pub shield_hp: i32,
     pub last_input_sequence: u32,
 }
 
@@ -72,6 +77,7 @@ pub struct Bullet {
     pub position: Vec2,
     pub velocity: Vec2,
     pub life_left: f32,
+    pub damage: i32,
 }
 
 /// アリーナに出現し、触れたプレイヤーへ得点を与えるアイテム。
@@ -79,4 +85,22 @@ pub struct Bullet {
 pub struct ScoreItem {
     pub id: u64,
     pub position: Vec2,
+    pub kind: ItemKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HeldItem {
+    pub kind: ItemKind,
+    pub charges: u32,
+}
+
+/// ラロキンポッポス使用時にアリーナ端から突撃する攻撃体。
+#[derive(Component)]
+pub struct LarokinPoppos {
+    pub id: u64,
+    pub owner_id: u64,
+    pub position: Vec2,
+    pub velocity: Vec2,
+    pub telegraph_left: f32,
+    pub life_left: f32,
 }

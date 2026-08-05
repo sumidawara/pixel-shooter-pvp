@@ -26,6 +26,9 @@ unique_name_in_owner = true
 [node name="ItemLayer" type="Node2D" parent="World"]
 unique_name_in_owner = true
 
+[node name="LarokinLayer" type="Node2D" parent="World"]
+unique_name_in_owner = true
+
 [node name="BulletLayer" type="Node2D" parent="World"]
 unique_name_in_owner = true
 
