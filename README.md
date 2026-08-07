@@ -21,6 +21,24 @@ make doctor
 make setup
 ```
 
+コミット前の検査は`make verify`にまとめている。Rustの整形・Clippy・テストに加え、
+Adminデバッグ画面の型検査と、Godotクライアントのテストを実行する。
+
+```sh
+make verify
+```
+
+`make test-frontend`はローカルGame Serverを起動する2本を`SKIP`として明示する。
+CIなど未実行を残したくない場面では`make test-frontend-full`を使う。
+
+サーバー側のゲーム規則や通信フォーマットを変更した場合は、クライアントとの
+契約テストの期待値を再生成し、Godot側を追従させる。
+
+```sh
+make update-goldens
+make test-frontend
+```
+
 通常の開発では、Admin Server、Matchmaker、Game Server 2台をまとめて起動する。
 
 ```sh

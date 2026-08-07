@@ -12,12 +12,16 @@ SSH ?= ssh
 
 SERVICE ?=
 RELEASE_TARGET ?= macos
+# ローカルGame Serverのバイナリを子プロセスとして起動するGodotテスト。
+# 事前に make build-game-server が必要なので、他のテストと分けて扱う。
+FRONTEND_SERVER_TESTS ?= join_room_flow_test room_flow_test
+GAME_SERVER_BINARY ?= target/debug/pixel-shooter-server
 SSH_HOST ?=
 WAIT_SECONDS ?= 30
 
 .PHONY: help doctor setup \
 	dev up rebuild rebuild-release build-images config stop down restart reload-maps ps logs wait integration urls tunnel \
-	build build-game-server check test fmt fmt-check lint verify \
+	build build-game-server check test test-frontend test-frontend-full update-goldens fmt fmt-check lint verify \
 	run-game-server run-matchmaker run-admin-server \
 	web-install web-build web-check web-dev \
 	assets-bootstrap assets-build assets-watch godot godot-assets sfx release
@@ -153,6 +157,47 @@ build-game-server: ## CREATE ROOM用のGame Serverをビルド
 test: ## Rust Workspaceの全テストを実行
 	$(CARGO) test --workspace --locked
 
+# サーバー側の規則を変えたら、クライアント予測と通信フォーマットのゴールデンを
+# 生成し直す。更新後は必ず test-frontend を通し、Godot側を追従させること。
+update-goldens: ## クライアント契約テストの期待値を再生成
+	UPDATE_MOVEMENT_GOLDEN=1 $(CARGO) test --locked \
+		-p pixel-shooter-game-core --test movement_prediction_golden
+	UPDATE_WIRE_GOLDEN=1 $(CARGO) test --locked \
+		-p pixel-shooter-protocol --test wire_golden
+
+# Godotのテストはグローバルクラス名の解決にインポート済みのプロジェクトを必要とする。
+# 新規チェックアウトでも動くよう、毎回インポートしてから実行する。
+# GDScriptはpush_errorでも終了コードを変えないため、出力を検査して失敗を判定する。
+test-frontend: ## Godotクライアントのテストを実行（要GODOT_BIN）
+	@$(GODOT_BIN) --headless --path frontend --import >/dev/null 2>&1 || true
+	@failed=0; skipped=''; \
+	for test in frontend/tests/*_test.gd; do \
+		name=$$(basename "$$test" .gd); \
+		case " $(FRONTEND_SERVER_TESTS) " in \
+		*" $$name "*) \
+			if [ ! -x "$(GAME_SERVER_BINARY)" ]; then \
+				skipped="$$skipped $$name"; \
+				printf '  SKIP %s\n' "$$name"; \
+				continue; \
+			fi;; \
+		esac; \
+		output=$$($(GODOT_BIN) --headless --path frontend --script "res://tests/$$name.gd" 2>&1); \
+		if [ $$? -ne 0 ] || printf '%s' "$$output" | grep -q "SCRIPT ERROR\|^ERROR:"; then \
+			printf '  FAIL %s\n%s\n' "$$name" "$$output"; \
+			failed=1; \
+		else \
+			printf '  ok   %s\n' "$$name"; \
+		fi; \
+	done; \
+	if [ -n "$$skipped" ]; then \
+		printf '\n未実行:%s\n' "$$skipped"; \
+		printf 'ローカルGame Serverを起動するテストのため、先に make build-game-server が必要。\n'; \
+		printf 'CIでは make test-frontend-full を使い、未実行を残さないこと。\n'; \
+	fi; \
+	exit $$failed
+
+test-frontend-full: build-game-server test-frontend ## Godotテストをローカルサーバー込みで実行
+
 fmt: ## Rustコードを整形
 	$(CARGO) fmt --all
 
@@ -162,7 +207,7 @@ fmt-check: ## Rustコードの整形を変更せず検査
 lint: ## Clippyを警告エラー扱いで実行
 	$(CARGO) clippy --workspace --all-targets --locked -- -D warnings
 
-verify: fmt-check lint test web-check ## コミット前の全検査を実行
+verify: fmt-check lint test web-check test-frontend ## コミット前の全検査を実行
 
 run-game-server: ## Game Server単体を直接起動
 	$(CARGO) run -p pixel-shooter-server

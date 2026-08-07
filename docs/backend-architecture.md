@@ -69,6 +69,35 @@ GameCoreは、WebSocketの待受ポートやTokioの実行方法を知らない�
 `Paused`中も外側の`FixedUpdate`は動くため、WebSocket、管理API、Heartbeatは停止しない。
 `StepRequest { ticks: 1 }`を受けると、次の外側ループで`GameTick`だけを1回進める。
 
+## ルーム割当と参加可否
+
+AdminServerは、まず参加枠の残っている既存ルームへ合流させ、無ければ空きGameServerへ
+新しいルームを割り当てる。合流先の判定にはGameServerがheartbeatで報告する
+`accepting_players`（`MatchPhase::Waiting` かつ定員未満）を使う。
+
+参加可否を決めるのはGameServerの試合フェーズと人数であり、AdminServerはそれを知らない。
+報告しない場合、AdminServerは走行中のルームへ案内してしまい、プレイヤーはGameServerに
+拒否されて行き止まりになる（空きGameServerが隣にあっても）。
+
+Join Ticketを発行した時点で1席を確保し、`RESERVATION_TTL`（Ticketの有効期限と同じ60秒）
+を過ぎても接続が来なければ席を返す。返さないと、拒否された割当や離脱したぶんだけ
+席が減り続ける。
+
+heartbeat間隔ぶんのすれ違いは残るため、GameServerは満室・試合開始済みの拒否を
+`retryable: true` で返し、クライアントは別のルームを取り直す。
+
+## ゲーム規則の単一実装
+
+被弾の適用（シールド消費、無敵時間、死亡判定、スコア増減）は
+`backend/game-core/src/game/damage.rs` に集約する。弾もラロキンポッポスも
+この関数だけを呼ぶ。ダメージ源ごとに条件が分かれていると、
+「弾では無敵時間が付くのにラロキンでは付かない」といった差異が静かに生まれる。
+
+移動・ダッシュ・壁判定はクライアント予測のため、GDScript側にも同じ規則が存在する。
+`backend/game-core/tests/movement_prediction_golden.rs` が「入力列 → 位置列」を
+fixtureとして固定し、`frontend/tests/movement_prediction_golden_test.gd` が
+同じ入力を予測側へ流して一致を検証する。片側だけを変えると必ずテストが落ちる。
+
 ## Join Ticket
 
 Matchmakerは`room_id`、プレイヤー名、有効期限をJSON化し、共有秘密鍵による

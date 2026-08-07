@@ -72,7 +72,8 @@
 ## サーバーからクライアント
 
 - `welcome`: プレイヤーID、再接続トークン、再接続だったかを返す
-- `rejected`: 定員超過などで参加を拒否する
+- `rejected`: 定員超過などで参加を拒否する。`retryable`が`true`なら、別のルームでは
+  参加できる見込みがあるため、クライアントはマッチメイキングからやり直す
 - `map_definition`: 接続時にマップの地形とスポーン地点を1回送る
 - `snapshot`: 20Hzでプレイヤー、弾、得点アイテム、試合状態を配信する
 
@@ -116,3 +117,25 @@ Snapshotの反映と入力送信を開始しない。地形本体は通常のSna
 含まれる。クライアントは`waiting`中、この情報をルーム画面へ表示する。
 
 Rust側の正式な型定義は `backend/protocols/game/src/lib.rs` を参照すること。
+
+## 通信フォーマットの固定
+
+GodotもAdminデバッグ画面も、この形式を手書きで読んでいる。GDScriptは
+`dictionary.get(key, default)` で読むため、サーバー側でフィールド名を変えても
+例外は出ず、無言でデフォルト値へ落ちる。たとえば `move_speed` が届かないと、
+クライアント予測だけが別の速度で走る。
+
+そこで代表メッセージのJSONを
+[`frontend/tests/fixtures/wire_messages_golden.json`](../frontend/tests/fixtures/wire_messages_golden.json)
+へ固定し、次の2つで守っている。
+
+- `backend/protocols/game/tests/wire_golden.rs`: Rustの出力がfixtureと一致するか
+- `frontend/tests/snapshot_contract_test.gd`: クライアントが読むキー
+  （`frontend/src/networking/snapshot_contract.gd`）がfixtureに存在するか
+
+フィールドを変更したら `make update-goldens` でfixtureを再生成し、
+Godot側の読み取りと `tools/debug-web/src/types.ts` を追従させてから
+`make test-frontend` を通すこと。
+
+クライアントは接続ごとに種類別で最初の1通を検査し、キーが欠けていれば
+`SERVER PROTOCOL MISMATCH` を表示する。無言でずれたまま動き続けないための保険である。
