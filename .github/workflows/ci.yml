@@ -1,0 +1,105 @@
+name: CI
+
+# main は保護し、変更はPR経由で入れる。pushにも反応させるのは、
+# 保護設定の適用漏れやマージ後の状態をそのまま見えるようにするため。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 同じブランチで新しい実行が始まったら、古い実行は打ち切る。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # deploy/docker/Dockerfile.dev と揃える。ずれるとCIとイメージで結果が変わる。
+  RUST_VERSION: "1.92"
+  # frontend/project.godot の config/features と揃える。
+  GODOT_VERSION: "4.7.1"
+  NODE_VERSION: "22"
+
+jobs:
+  rust:
+    name: Rust（整形・lint・テスト）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+      # キャッシュは意図的に入れていない。
+      # 計測（4コア）では fetch 11s + build&test 40s + clippy 22s = 75s。
+      # target は 1.6GB あり、復元・保存のほうが再ビルドより遅くなる。
+      # ビルド時間が延びてきたら Swatinem/rust-cache の導入を検討する。
+      - run: make fmt-check
+      - run: make lint
+      # ゴールデンfixtureの検証もここに含まれる。
+      # サーバー側の規則や通信フォーマットを変えたまま
+      # make update-goldens を忘れると、このステップで落ちる。
+      - run: make test
+
+  frontend:
+    name: Godotクライアント
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - name: Godotを取得
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --location --fail --silent --show-error --output godot.zip "$url"
+          unzip -q godot.zip
+          sudo install -m 0755 "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          rm -f godot.zip "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          godot --version
+      # test-frontend ではなく full を使う。
+      # full でないとローカルGame Serverを起動する2本がSKIPされ、
+      # 気付かないままカバレッジが落ちる。
+      - run: make test-frontend-full
+
+  web:
+    name: Adminデバッグ画面
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tools/debug-web/package-lock.json
+      - run: make web-install
+      - run: make web-check
+      # dist はコミット済みで AdminServer が埋め込む。
+      # src だけ更新してビルドを忘れると、配布される画面が古いまま残る。
+      - run: make web-dist-check
+
+  integration:
+    name: サービス間の結合
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: make config
+      - run: make build-game-server
+      # 各試験は状態を持ち、必要な再接続猶予も違う。
+      # 前提は scripts/run_server_integration_tests.sh に入っている。
+      - run: make integration-server
+      - name: Compose環境を起動
+        run: make dev
+      - run: make integration
+      - name: 失敗したらサービスのログを出す
+        if: failure()
+        run: docker compose logs --tail=200
+      - name: 後片付け
+        if: always()
+        run: docker compose down --remove-orphans
