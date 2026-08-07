@@ -1,7 +1,7 @@
 extends Node2D
 
-const WHITE := Color("#8fff9d")
-const DARK := Color("#020a05")
+const WHITE := Color("#e9f1f7")
+const DARK := Color("#080c12")
 const LALOKIN_POPPOS: Texture2D = preload(
 	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
 )
@@ -55,11 +55,11 @@ func _draw() -> void:
 
 func _item_color(item_kind: String) -> Color:
 	match item_kind:
-		"dash": return Color("#65ff83")
-		"larokin_poppos": return Color("#a4ff9f")
-		"berserk": return Color("#8dff7c")
-		"shield": return Color("#72e88a")
-		"ghost": return Color("#b0ffae")
+		"dash": return Color("#6688ff")
+		"larokin_poppos": return Color("#ff914d")
+		"berserk": return Color("#ff4f5e")
+		"shield": return Color("#a879ff")
+		"ghost": return Color("#c7a7ff")
 		_: return WHITE
 
 

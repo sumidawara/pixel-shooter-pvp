@@ -1,7 +1,7 @@
 extends Control
 
-const DARK := Color("#020a05")
-const WHITE := Color("#8fff9d")
+const DARK := Color("#080c12")
+const WHITE := Color("#e9f1f7")
 const LALOKIN_POPPOS: Texture2D = preload(
 	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
 )
@@ -23,10 +23,10 @@ func apply_player(player: Dictionary) -> void:
 
 func _draw() -> void:
 	var terminal_font := get_theme_default_font()
-	draw_rect(Rect2(0, 0, 92, 40), Color(0.002, 0.024, 0.01, 0.92))
-	draw_rect(Rect2(1, 1, 38, 38), Color("#2d7840"), false, 2.0)
+	draw_rect(Rect2(0, 0, 92, 40), Color(0.02, 0.027, 0.04, 0.92))
+	draw_rect(Rect2(1, 1, 38, 38), Color("#344252"), false, 2.0)
 	if kind.is_empty():
-		draw_string(terminal_font, Vector2(10, 24), "—", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#315f3b"))
+		draw_string(terminal_font, Vector2(10, 24), "—", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#67717e"))
 	elif kind == "larokin_poppos":
 		draw_texture_rect(LALOKIN_POPPOS, Rect2(Vector2(6, 10), Vector2(28, 20)), false)
 	else:
@@ -37,7 +37,7 @@ func _draw() -> void:
 	if kind == "dash": hint += " ×%d" % charges
 	elif shield_hp > 0: hint = "SHIELD %d" % shield_hp
 	elif berserk_left > 0.0: hint = "RAGE %.1f" % berserk_left
-	draw_string(terminal_font, Vector2(43, 30), hint, HORIZONTAL_ALIGNMENT_LEFT, 47, 8, Color("#3b7a49"))
+	draw_string(terminal_font, Vector2(43, 30), hint, HORIZONTAL_ALIGNMENT_LEFT, 47, 8, Color("#8091a3"))
 
 
 func _draw_icon(center: Vector2, item_kind: String) -> void:
@@ -72,9 +72,9 @@ func _name(item_kind: String) -> String:
 
 func _color(item_kind: String) -> Color:
 	match item_kind:
-		"dash": return Color("#65ff83")
-		"larokin_poppos": return Color("#a4ff9f")
-		"berserk": return Color("#8dff7c")
-		"shield": return Color("#72e88a")
-		"ghost": return Color("#b0ffae")
+		"dash": return Color("#6688ff")
+		"larokin_poppos": return Color("#ff914d")
+		"berserk": return Color("#ff4f5e")
+		"shield": return Color("#a879ff")
+		"ghost": return Color("#c7a7ff")
 		_: return WHITE

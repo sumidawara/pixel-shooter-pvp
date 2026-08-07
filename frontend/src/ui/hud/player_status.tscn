@@ -25,11 +25,11 @@ mouse_filter = 2
 [node name="Accent" type="ColorRect" parent="."]
 unique_name_in_owner = true
 mouse_filter = 2
-color = Color(0.38, 1, 0.5, 1)
+color = Color(0.153, 0.898, 1, 1)
 
 [node name="RankLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.67, 1, 0.7, 1)
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
 theme_override_font_sizes/font_size = 15
 text = "#1"
 horizontal_alignment = 1
@@ -52,7 +52,7 @@ mouse_filter = 2
 
 [node name="NameLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.72, 1, 0.76, 1)
+theme_override_colors/font_color = Color(0.925, 0.965, 1, 1)
 theme_override_font_sizes/font_size = 9
 text = "PLAYER"
 vertical_alignment = 1
@@ -60,7 +60,7 @@ text_overrun_behavior = 3
 
 [node name="ScoreLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.67, 1, 0.7, 1)
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
 theme_override_font_sizes/font_size = 9
 text = "500P"
 horizontal_alignment = 2
@@ -68,7 +68,7 @@ vertical_alignment = 1
 
 [node name="HpKeyLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.25, 0.56, 0.32, 1)
+theme_override_colors/font_color = Color(0.502, 0.569, 0.639, 1)
 theme_override_font_sizes/font_size = 7
 text = "HP"
 vertical_alignment = 1
@@ -76,16 +76,16 @@ vertical_alignment = 1
 [node name="HpTrack" type="ColorRect" parent="."]
 unique_name_in_owner = true
 mouse_filter = 2
-color = Color(0.04, 0.18, 0.08, 1)
+color = Color(0.157, 0.208, 0.259, 1)
 
 [node name="HpFill" type="ColorRect" parent="HpTrack"]
 unique_name_in_owner = true
 mouse_filter = 2
-color = Color(0.38, 1, 0.5, 1)
+color = Color(0.153, 0.898, 1, 1)
 
 [node name="HpValueLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.38, 0.76, 0.45, 1)
+theme_override_colors/font_color = Color(0.69, 0.757, 0.82, 1)
 theme_override_font_sizes/font_size = 7
 text = "5/5"
 horizontal_alignment = 2
@@ -93,14 +93,14 @@ vertical_alignment = 1
 
 [node name="AmmoLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.67, 1, 0.7, 1)
+theme_override_colors/font_color = Color(1, 0.902, 0.427, 1)
 theme_override_font_sizes/font_size = 8
 text = "AMMO 6/6"
 vertical_alignment = 1
 
 [node name="DashLabel" type="Label" parent="."]
 unique_name_in_owner = true
-theme_override_colors/font_color = Color(0.38, 0.76, 0.45, 1)
+theme_override_colors/font_color = Color(0.69, 0.757, 0.82, 1)
 theme_override_font_sizes/font_size = 8
 text = "DASH READY"
 horizontal_alignment = 2
@@ -109,9 +109,9 @@ vertical_alignment = 1
 [node name="DashTrack" type="ColorRect" parent="."]
 unique_name_in_owner = true
 mouse_filter = 2
-color = Color(0.04, 0.18, 0.08, 1)
+color = Color(0.157, 0.208, 0.259, 1)
 
 [node name="DashFill" type="ColorRect" parent="DashTrack"]
 unique_name_in_owner = true
 mouse_filter = 2
-color = Color(0.48, 1, 0.56, 1)
+color = Color(0.404, 0.937, 0.635, 1)

@@ -1,12 +1,12 @@
 extends CanvasLayer
 
-const PHOSPHOR_BRIGHT := Color("#a8ffae")
-const PHOSPHOR_PRIMARY := Color("#78ff8f")
-const PHOSPHOR_MID := Color("#54d873")
-const PHOSPHOR_DIM := Color("#3aaa5a")
+const CYAN := Color("#27e5ff")
+const MAGENTA := Color("#ff38c7")
+const YELLOW := Color("#ffe66d")
+const GREEN := Color("#7cff6b")
 
-## ID順に輝度差を付け、単色CRTでもプレイヤーを識別できるようにする。
-const PLAYER_COLORS := [PHOSPHOR_BRIGHT, PHOSPHOR_PRIMARY, PHOSPHOR_MID, PHOSPHOR_DIM]
+## ID順に割り当てる色。HUD、レーダー、表彰台で同じ色になるよう1箇所にまとめる。
+const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
 
 @onready var player_one_status = %PlayerOneStatus
 @onready var player_two_status = %PlayerTwoStatus
@@ -36,13 +36,13 @@ func apply_snapshot(
 	local_player: Dictionary
 ) -> void:
 	item_slot.apply_player(local_player)
-	radar_display.apply_snapshot(players, local_player_id)
 	var sorted_by_id := players.duplicate()
 	sorted_by_id.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	var colors := {}
 	for index in range(sorted_by_id.size()):
 		colors[int(sorted_by_id[index].get("id", 0))] = PLAYER_COLORS[index % PLAYER_COLORS.size()]
 
+	radar_display.apply_snapshot(players, local_player_id, colors)
 	var ranked := players.duplicate()
 	ranked.sort_custom(func(a, b):
 		var score_a := int(a.get("score", 0))

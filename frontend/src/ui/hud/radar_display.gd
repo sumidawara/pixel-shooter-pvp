@@ -8,6 +8,7 @@ const MAP_SIZE := Vector2(640.0, 360.0)
 var players: Array = []
 var local_player_id := 0
 var sweep_angle := 0.0
+var player_colors: Dictionary = {}
 
 
 func _ready() -> void:
@@ -15,9 +16,14 @@ func _ready() -> void:
     set_process(true)
 
 
-func apply_snapshot(next_players: Array, next_local_player_id: int) -> void:
+func apply_snapshot(
+    next_players: Array,
+    next_local_player_id: int,
+    next_player_colors: Dictionary = {}
+) -> void:
     players = next_players.duplicate(true)
     local_player_id = next_local_player_id
+    player_colors = next_player_colors.duplicate(true)
     queue_redraw()
 
 
@@ -49,7 +55,8 @@ func _draw() -> void:
         center + Vector2(-3, 3),
         center + Vector2(3, 3),
     ])
-    draw_colored_polygon(local_marker, PHOSPHOR)
+    var local_color: Color = player_colors.get(local_player_id, PHOSPHOR)
+    draw_colored_polygon(local_marker, local_color)
 
     for player in players:
         var id := int(player.get("id", 0))
@@ -64,7 +71,8 @@ func _draw() -> void:
         if from_center.length() > radius:
             marker = center + from_center.normalized() * radius
         var alpha := 0.95 if bool(player.get("connected", false)) else 0.35
-        draw_circle(marker, 2.0, Color(PHOSPHOR, alpha))
+        var marker_color: Color = player_colors.get(id, PHOSPHOR)
+        draw_circle(marker, 2.0, Color(marker_color, alpha))
 
     draw_string(
         get_theme_default_font(),

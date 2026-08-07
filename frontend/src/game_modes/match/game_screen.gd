@@ -10,10 +10,10 @@ const DEFAULT_DASH_DURATION := 0.13
 const DEFAULT_DASH_COOLDOWN := 1.1
 const INTERPOLATION_SPEED := 14.0
 const CORRECTION_DECAY := 18.0
-const CYAN := Color("#a8ffae")
-const MAGENTA := Color("#78ff8f")
-const YELLOW := Color("#54d873")
-const GREEN := Color("#3aaa5a")
+const CYAN := Color("#27e5ff")
+const MAGENTA := Color("#ff38c7")
+const YELLOW := Color("#ffe66d")
+const GREEN := Color("#7cff6b")
 
 const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")

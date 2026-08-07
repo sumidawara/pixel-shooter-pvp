@@ -1,10 +1,10 @@
 extends Control
 
-const PANEL_COLOR := Color("#020a05")
-const PANEL_BORDER := Color("#245c32")
-const MUTED_COLOR := Color("#3d7a49")
-const TRACK_COLOR := Color("#12351d")
-const READY_COLOR := Color("#86ff92")
+const PANEL_COLOR := Color("#09111b")
+const PANEL_BORDER := Color("#344252")
+const MUTED_COLOR := Color("#8091a3")
+const TRACK_COLOR := Color("#283542")
+const READY_COLOR := Color("#67efa2")
 
 @onready var panel: Panel = %Panel
 @onready var accent: ColorRect = %Accent

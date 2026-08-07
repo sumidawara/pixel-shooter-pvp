@@ -4,10 +4,10 @@ const PANEL := Color("#010703")
 const FLOOR_ALT := Color("#031109")
 const GRID := Color(0.10, 0.42, 0.19, 0.34)
 const GRID_MAJOR := Color(0.18, 0.68, 0.29, 0.5)
-const SOLID := Color(0.015, 0.075, 0.032, 0.92)
-const SOLID_EDGE := Color("#56e878")
-const DESTRUCTIBLE := Color(0.025, 0.11, 0.045, 0.92)
-const DESTRUCTIBLE_EDGE := Color("#a2ff9c")
+const SOLID := Color(0.01, 0.055, 0.075, 0.92)
+const SOLID_EDGE := Color("#27e5ff")
+const DESTRUCTIBLE := Color(0.1, 0.045, 0.012, 0.92)
+const DESTRUCTIBLE_EDGE := Color("#ff914d")
 
 var arena_map: ArenaMapData
 
