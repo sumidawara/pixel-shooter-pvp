@@ -12,10 +12,10 @@ signal quit_requested
 
 const CURSOR_TEXTURE: Texture2D = preload("res://assets/generated/ui/menu/cursor.png")
 const PLAYER_COLORS := [
-	Color("#27e5ff"),
-	Color("#ff38c7"),
-	Color("#ffe66d"),
-	Color("#7cff6b"),
+	Color("#a8ffae"),
+	Color("#78ff8f"),
+	Color("#54d873"),
+	Color("#3aaa5a"),
 ]
 
 @onready var title_page: Control = %TitlePage
@@ -183,7 +183,7 @@ func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int)
 	for index in range(sorted.size(), max_players):
 		var empty_label := Label.new()
 		empty_label.text = "%d  --- WAITING ---" % (index + 1)
-		empty_label.modulate = Color("#788592")
+		empty_label.modulate = Color("#315f3b")
 		room_players.add_child(empty_label)
 	room_waiting_label.text = "WAITING FOR PLAYERS  %d/%d" % [sorted.size(), max_players]
 	_update_host_controls(sorted.size(), can_start)

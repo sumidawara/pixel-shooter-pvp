@@ -1,12 +1,12 @@
 extends CanvasLayer
 
-const CYAN := Color("#27e5ff")
-const MAGENTA := Color("#ff38c7")
-const YELLOW := Color("#ffe66d")
-const GREEN := Color("#7cff6b")
+const PHOSPHOR_BRIGHT := Color("#a8ffae")
+const PHOSPHOR_PRIMARY := Color("#78ff8f")
+const PHOSPHOR_MID := Color("#54d873")
+const PHOSPHOR_DIM := Color("#3aaa5a")
 
-## ID順に割り当てる色。下部ステータスと表彰台で同じ色になるよう1箇所にまとめる。
-const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
+## ID順に輝度差を付け、単色CRTでもプレイヤーを識別できるようにする。
+const PLAYER_COLORS := [PHOSPHOR_BRIGHT, PHOSPHOR_PRIMARY, PHOSPHOR_MID, PHOSPHOR_DIM]
 
 @onready var player_one_status = %PlayerOneStatus
 @onready var player_two_status = %PlayerTwoStatus
@@ -19,9 +19,10 @@ const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
 @onready var result_label: Label = %ResultLabel
 @onready var result_podium: ResultPodium = %ResultPodium
 @onready var item_slot = %ItemSlot
+@onready var radar_display = %RadarDisplay
 
 func set_connection_status(text: String) -> void:
-	connection_label.text = text
+	connection_label.text = "// LINK  " + text
 
 
 func apply_snapshot(
@@ -35,6 +36,7 @@ func apply_snapshot(
 	local_player: Dictionary
 ) -> void:
 	item_slot.apply_player(local_player)
+	radar_display.apply_snapshot(players, local_player_id)
 	var sorted_by_id := players.duplicate()
 	sorted_by_id.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
 	var colors := {}

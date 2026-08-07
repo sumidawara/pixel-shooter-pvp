@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/hud/hud.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/player_status.tscn" id="2_status"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/generated/ui/hud/gameover.png" id="4_gameover"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/result_podium.tscn" id="5_podium"]
 [ext_resource type="Script" path="res://src/ui/hud/item_slot.gd" id="6_item_slot"]
+[ext_resource type="Script" path="res://src/ui/hud/radar_display.gd" id="7_radar"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -24,7 +25,7 @@ theme = ExtResource("3_theme")
 offset_top = 360.0
 offset_right = 640.0
 offset_bottom = 400.0
-color = Color(0.02, 0.027, 0.04, 1)
+color = Color(0.002, 0.018, 0.008, 0.98)
 
 [node name="PlayerOneStatus" parent="HUDRoot" instance=ExtResource("2_status")]
 unique_name_in_owner = true
@@ -54,6 +55,27 @@ offset_top = 361.0
 offset_right = 639.0
 offset_bottom = 399.0
 
+[node name="StatusFrame" type="Panel" parent="HUDRoot"]
+offset_left = 5.0
+offset_top = 2.0
+offset_right = 215.0
+offset_bottom = 26.0
+mouse_filter = 2
+
+[node name="TimerFrame" type="Panel" parent="HUDRoot"]
+offset_left = 218.0
+offset_top = 2.0
+offset_right = 422.0
+offset_bottom = 37.0
+mouse_filter = 2
+
+[node name="BottomRule" type="ColorRect" parent="HUDRoot"]
+offset_top = 359.0
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+color = Color(0.3, 0.9, 0.42, 0.8)
+
 [node name="MatchLabel" type="Label" parent="HUDRoot"]
 unique_name_in_owner = true
 offset_left = 235.0
@@ -71,7 +93,7 @@ offset_left = 7.0
 offset_top = 5.0
 offset_right = 210.0
 offset_bottom = 24.0
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+theme_override_colors/font_color = Color(0.24, 0.56, 0.32, 1)
 theme_override_font_sizes/font_size = 10
 text = "CONNECTED"
 
@@ -80,19 +102,28 @@ offset_left = 545.0
 offset_top = 5.0
 offset_right = 632.0
 offset_bottom = 24.0
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+theme_override_colors/font_color = Color(0.24, 0.56, 0.32, 1)
 theme_override_font_sizes/font_size = 10
 text = "ESC MENU"
 horizontal_alignment = 2
 
 [node name="ItemSlot" type="Control" parent="HUDRoot"]
 unique_name_in_owner = true
-offset_left = 540.0
-offset_top = 27.0
-offset_right = 632.0
-offset_bottom = 67.0
+offset_left = 7.0
+offset_top = 31.0
+offset_right = 99.0
+offset_bottom = 71.0
 mouse_filter = 2
 script = ExtResource("6_item_slot")
+
+[node name="RadarDisplay" type="Control" parent="HUDRoot"]
+unique_name_in_owner = true
+offset_left = 542.0
+offset_top = 29.0
+offset_right = 634.0
+offset_bottom = 119.0
+mouse_filter = 2
+script = ExtResource("7_radar")
 
 [node name="CountdownLabel" type="Label" parent="HUDRoot"]
 unique_name_in_owner = true
@@ -125,7 +156,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.02, 0.027, 0.04, 0.94)
+color = Color(0.002, 0.018, 0.008, 0.96)
 
 [node name="ResultArt" type="TextureRect" parent="HUDRoot/ResultOverlay"]
 layout_mode = 1
@@ -137,10 +168,21 @@ grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("4_gameover")
 expand_mode = 1
-modulate = Color(1, 1, 1, 0.16)
+modulate = Color(0.35, 1, 0.46, 0.1)
 
 [node name="ResultPodium" parent="HUDRoot/ResultOverlay" instance=ExtResource("5_podium")]
 unique_name_in_owner = true
+
+[node name="ReportHeader" type="Label" parent="HUDRoot/ResultOverlay"]
+offset_left = 120.0
+offset_top = 20.0
+offset_right = 520.0
+offset_bottom = 38.0
+theme_override_colors/font_color = Color(0.34, 0.78, 0.43, 1)
+theme_override_font_sizes/font_size = 9
+text = "// AFTER ACTION REPORT //"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ResultLabel" type="Label" parent="HUDRoot/ResultOverlay"]
 unique_name_in_owner = true
