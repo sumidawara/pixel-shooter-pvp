@@ -115,7 +115,17 @@ func is_wall(cell: Vector2i) -> bool:
 	return tile_at(cell) in [SOLID_WALL, DESTRUCTIBLE_WALL]
 
 
+## backend/game-core/src/arena.rs の obstacle_at と同じ規則。
+## マップ外は「壁ではない」として扱う（境界の判定は呼び出し側が行う）。
 func obstacle_at(position: Vector2, margin: float) -> bool:
+	var arena_size := size_pixels()
+	if (
+		position.x + margin < 0.0
+		or position.y + margin < 0.0
+		or position.x - margin > arena_size.x
+		or position.y - margin > arena_size.y
+	):
+		return false
 	var min_cell := Vector2i(
 		floori(maxf(position.x - margin, 0.0) / tile_size),
 		floori(maxf(position.y - margin, 0.0) / tile_size)

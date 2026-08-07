@@ -1,0 +1,4313 @@
+{
+  "frames": [
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 0.0,
+      "move_y": 0.0,
+      "note": "idle",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 0.0,
+      "move_y": 0.0,
+      "note": "idle",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 0.0,
+      "move_y": 0.0,
+      "note": "idle",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 0.0,
+      "move_y": 0.0,
+      "note": "idle",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 0.0,
+      "move_y": 0.0,
+      "note": "idle",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 82.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 85.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 87.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 90.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 92.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 95.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 97.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 100.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 102.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 105.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 107.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 110.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 112.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 115.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 117.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 120.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 122.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 125.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 127.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 130.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 132.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 135.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 137.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 140.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 142.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 145.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 147.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 150.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 152.5,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 155.0,
+          "y": 80.0
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 156.76776123046875,
+          "y": 81.76776885986328
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 158.5355224609375,
+          "y": 83.53553771972656
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 160.30328369140625,
+          "y": 85.30330657958984
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 162.071044921875,
+          "y": 87.07107543945312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 163.83880615234375,
+          "y": 88.8388442993164
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 165.6065673828125,
+          "y": 90.60661315917969
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 167.37432861328125,
+          "y": 92.37438201904297
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 169.14208984375,
+          "y": 94.14215087890625
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 170.90985107421875,
+          "y": 95.90991973876953
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 172.6776123046875,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "walk diagonal (length is clamped to 1)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 1.100000023841858,
+        "dash_time_left": 0.1133333295583725,
+        "position": {
+          "x": 181.3442840576172,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash starts",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.0833333730697632,
+        "dash_time_left": 0.09666666388511658,
+        "position": {
+          "x": 190.01095581054688,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.0666667222976685,
+        "dash_time_left": 0.07999999821186066,
+        "position": {
+          "x": 198.67762756347656,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.0500000715255737,
+        "dash_time_left": 0.06333333253860474,
+        "position": {
+          "x": 207.34429931640625,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.033333420753479,
+        "dash_time_left": 0.046666666865348816,
+        "position": {
+          "x": 216.01097106933594,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.0166667699813843,
+        "dash_time_left": 0.029999999329447746,
+        "position": {
+          "x": 224.67764282226562,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 1.0000001192092896,
+        "dash_time_left": 0.013333331793546677,
+        "position": {
+          "x": 233.3443145751953,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9833334684371948,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 242.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9666668176651001,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 244.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9500001668930054,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 247.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9333335161209106,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 249.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9166668653488159,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 252.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.9000002145767212,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 254.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.8833335638046265,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 257.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.8666669130325317,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 259.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.850000262260437,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 262.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dash rejected while on cooldown",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.8333336114883423,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 264.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.8166669607162476,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 267.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.8000003099441528,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 269.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7833336591720581,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 272.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7666670083999634,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 274.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7500003576278687,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 277.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7333337068557739,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 279.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7166670560836792,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 282.010986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.7000004053115845,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 284.510986328125,
+          "y": 97.67768859863281
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "walk right",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.6833337545394897,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 286.27874755859375,
+          "y": 99.4454574584961
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.666667103767395,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 288.0465087890625,
+          "y": 101.21322631835938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.6500004529953003,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 289.81427001953125,
+          "y": 102.98099517822266
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.6333338022232056,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 291.58203125,
+          "y": 104.74876403808594
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.6166671514511108,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 293.34979248046875,
+          "y": 106.51653289794922
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.6000005006790161,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 295.1175537109375,
+          "y": 108.2843017578125
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5833338499069214,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 296.88531494140625,
+          "y": 110.05207061767578
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5666671991348267,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 298.653076171875,
+          "y": 111.81983947753906
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5500005483627319,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 300.42083740234375,
+          "y": 113.58760833740234
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5333338975906372,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 302.1885986328125,
+          "y": 115.35537719726562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5166672468185425,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 303.95635986328125,
+          "y": 117.1231460571289
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.5000005960464478,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 305.72412109375,
+          "y": 118.89091491699219
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.48333391547203064,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 307.49188232421875,
+          "y": 120.65868377685547
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.4666672348976135,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 309.2596435546875,
+          "y": 122.42645263671875
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.4500005543231964,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 311.02740478515625,
+          "y": 124.19422149658203
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.4333338737487793,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 312.795166015625,
+          "y": 125.96199035644531
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.4166671931743622,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 314.56292724609375,
+          "y": 127.7297592163086
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.40000051259994507,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 316.3306884765625,
+          "y": 129.49752807617188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.38333383202552795,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 318.09844970703125,
+          "y": 131.26528930664062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.36666715145111084,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 319.8662109375,
+          "y": 133.03305053710938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.3500004708766937,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 321.63397216796875,
+          "y": 134.80081176757812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.3333337903022766,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 323.4017333984375,
+          "y": 136.56857299804688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.3166671097278595,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 325.16949462890625,
+          "y": 138.33633422851562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.3000004291534424,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 326.937255859375,
+          "y": 140.10409545898438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.28333374857902527,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 328.70501708984375,
+          "y": 141.87185668945312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.26666706800460815,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 330.4727783203125,
+          "y": 143.63961791992188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.25000038743019104,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 332.24053955078125,
+          "y": 145.40737915039062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.23333372175693512,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 334.00830078125,
+          "y": 147.17514038085938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.2166670560836792,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 335.77606201171875,
+          "y": 148.94290161132812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.20000039041042328,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 337.5438232421875,
+          "y": 150.71066284179688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.18333372473716736,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 339.31158447265625,
+          "y": 152.47842407226562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.16666705906391144,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 341.079345703125,
+          "y": 154.24618530273438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.15000039339065552,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 342.84710693359375,
+          "y": 156.01394653320312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.1333337277173996,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 344.6148681640625,
+          "y": 157.78170776367188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.11666706204414368,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 346.38262939453125,
+          "y": 159.54946899414062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.10000039637088776,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 348.150390625,
+          "y": 161.31723022460938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.08333373069763184,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 349.91815185546875,
+          "y": 163.08499145507812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.06666706502437592,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 351.6859130859375,
+          "y": 164.85275268554688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.050000399351119995,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 353.45367431640625,
+          "y": 166.62051391601562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.033333733677864075,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 355.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "approach the obstacle block",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.016667066141963005,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 357.721435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 3.986060619354248e-7,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 360.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 362.721435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 365.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 367.721435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 370.221435546875,
+          "y": 168.38827514648438
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "push into the wall",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 170.15603637695312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 171.92379760742188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 173.69155883789062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 175.45932006835938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 177.22708129882812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 178.99484252929688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 180.76260375976562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 182.53036499023438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 184.29812622070312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 186.06588745117188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 187.83364868164062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 189.60140991210938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 191.36917114257812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 193.13693237304688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 194.90469360351562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 196.67245483398438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 198.44021606445312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 200.20797729492188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 201.97573852539062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 203.74349975585938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 205.51126098632812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 207.27902221679688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 209.04678344726562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 210.81454467773438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 212.58230590820312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 214.35006713867188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 216.11782836914062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 217.88558959960938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 219.65335083007812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 221.42111206054688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 223.18887329101562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 224.95663452148438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 226.72439575195312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 228.49215698242188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 230.25991821289062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 232.02767944335938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 233.79544067382812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 235.56320190429688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 371.98919677734375,
+          "y": 237.33096313476562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 373.7569580078125,
+          "y": 239.09872436523438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 375.52471923828125,
+          "y": 240.86648559570312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 377.29248046875,
+          "y": 242.63424682617188
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 379.06024169921875,
+          "y": 244.40200805664062
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 380.8280029296875,
+          "y": 246.16976928710938
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 382.59576416015625,
+          "y": 247.93753051757812
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 384.363525390625,
+          "y": 249.70529174804688
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 386.13128662109375,
+          "y": 251.47305297851562
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 387.8990478515625,
+          "y": 253.24081420898438
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 389.66680908203125,
+          "y": 255.00857543945312
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 391.4345703125,
+          "y": 256.7763366699219
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 393.20233154296875,
+          "y": 258.5440979003906
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 394.9700927734375,
+          "y": 260.3118591308594
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 396.73785400390625,
+          "y": 262.0796203613281
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 398.505615234375,
+          "y": 263.8473815917969
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 400.27337646484375,
+          "y": 265.6151428222656
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 402.0411376953125,
+          "y": 267.3829040527344
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 403.80889892578125,
+          "y": 269.1506652832031
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 405.57666015625,
+          "y": 270.9184265136719
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 407.34442138671875,
+          "y": 272.6861877441406
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 274.4539489746094
+        }
+      },
+      "move_x": 0.7071067690849304,
+      "move_y": 0.7071067690849304,
+      "note": "slide along the wall (x blocked, y free)",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 273.2039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 271.9539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 270.7039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 269.4539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 268.2039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 266.9539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 265.7039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 264.4539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 263.2039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 261.9539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 260.7039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 259.4539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 258.2039489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 256.9539489746094
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 1.0,
+      "dash_charges": 0,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "berserk halves move speed",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": false,
+      "berserk_left": 0.0,
+      "dash_charges": 0,
+      "dash_pressed": true,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 255.70394897460938
+        }
+      },
+      "move_x": 1.0,
+      "move_y": 0.0,
+      "note": "dead players do not move",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 5,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.1133333295583725,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 247.0372772216797
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash ignores the cooldown",
+      "use_item_pressed": true
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.09666666388511658,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.07999999821186066,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.06333333253860474,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.046666666865348816,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.029999999329447746,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.013333331793546677,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    },
+    {
+      "alive": true,
+      "berserk_left": 0.0,
+      "dash_charges": 4,
+      "dash_pressed": false,
+      "expected": {
+        "dash_cooldown_left": 0.0,
+        "dash_time_left": 0.0,
+        "position": {
+          "x": 409.1121826171875,
+          "y": 238.37060546875
+        }
+      },
+      "move_x": 0.0,
+      "move_y": -1.0,
+      "note": "item dash continues then ends",
+      "use_item_pressed": false
+    }
+  ],
+  "gameplay": {
+    "dash_cooldown": 1.100000023841858,
+    "dash_duration": 0.12999999523162842,
+    "dash_speed": 520.0,
+    "move_speed": 150.0
+  },
+  "generated_by": "backend/game-core/tests/movement_prediction_golden.rs",
+  "map": {
+    "height": 11,
+    "id": "classic_arena",
+    "item_spawn_points": [
+      [
+        4,
+        4
+      ],
+      [
+        10,
+        4
+      ],
+      [
+        16,
+        4
+      ],
+      [
+        16,
+        6
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        4,
+        6
+      ]
+    ],
+    "name": "Classic Arena",
+    "revision": "2",
+    "schema_version": 1,
+    "spawn_points": [
+      [
+        2,
+        2
+      ],
+      [
+        17,
+        8
+      ],
+      [
+        17,
+        2
+      ],
+      [
+        2,
+        8
+      ]
+    ],
+    "tile_size": 32,
+    "tiles": [
+      "####################",
+      "#..................#",
+      "#..................#",
+      "#..................#",
+      "#.....###...###....#",
+      "#.....###...###....#",
+      "#.....###...###....#",
+      "#..................#",
+      "#..................#",
+      "#..................#",
+      "####################"
+    ],
+    "width": 20
+  },
+  "schema_version": 1,
+  "start_position": {
+    "x": 80.0,
+    "y": 80.0
+  },
+  "tick_rate": 60.0
+}

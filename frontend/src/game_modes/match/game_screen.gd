@@ -3,7 +3,6 @@ extends Node2D
 signal exit_requested
 signal map_load_failed(reason: String)
 
-const PLAYER_RADIUS := 12.0
 const DEFAULT_MOVE_SPEED := 150.0
 const DEFAULT_DASH_SPEED := 520.0
 const DEFAULT_DASH_DURATION := 0.13
@@ -56,12 +55,9 @@ var dash_speed := DEFAULT_DASH_SPEED
 var dash_duration := DEFAULT_DASH_DURATION
 var dash_cooldown := DEFAULT_DASH_COOLDOWN
 
-# ローカルプレイヤーの入力予測。
-var predicted_position := Vector2.ZERO
-var predicted_dash_time := 0.0
-var predicted_dash_cooldown := 0.0
-var predicted_dash_direction := Vector2.ZERO
-var prediction_ready := false
+# ローカルプレイヤーの入力予測。規則の実体は MovementPredictor にあり、
+# サーバーとの一致は frontend/tests/movement_prediction_golden_test.gd が検証する。
+var predictor := MovementPredictor.new()
 var pending_inputs: Array = []
 var prediction_visual_offset := Vector2.ZERO
 
@@ -89,7 +85,7 @@ func _ready() -> void:
 
 func expect_map() -> void:
 	map_ready = false
-	prediction_ready = false
+	predictor.invalidate()
 	pending_inputs.clear()
 
 
@@ -111,7 +107,7 @@ func resume_session(id: int) -> void:
 	player_id = id
 	session_active = true
 	hud.visible = true
-	prediction_ready = false
+	predictor.invalidate()
 	pending_inputs.clear()
 
 
@@ -128,7 +124,7 @@ func end_session() -> void:
 	players.clear()
 	players_by_id.clear()
 	phase = "waiting"
-	prediction_ready = false
+	predictor.invalidate()
 	pending_inputs.clear()
 	prediction_visual_offset = Vector2.ZERO
 	remote_render_positions.clear()
@@ -220,8 +216,8 @@ func _physics_process(delta: float) -> void:
 		else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	)
 	var origin := (
-		predicted_position
-		if prediction_ready
+		predictor.position
+		if predictor.ready
 		else arena_map.size_pixels() * 0.5
 	)
 	var aim := (get_viewport().get_mouse_position() - origin).normalized()
@@ -237,7 +233,7 @@ func _physics_process(delta: float) -> void:
 	}
 	if _is_playing_phase() and not input_blocked:
 		pending_inputs.append(input_record)
-		_simulate_predicted_input(input_record)
+		predictor.simulate(input_record)
 	else:
 		pending_inputs.clear()
 	NetworkClient.send_input({
@@ -268,7 +264,7 @@ func _on_map_definition_received(definition: Dictionary) -> void:
 	arena_map = next_map
 	map_ready = true
 	arena_view.set_arena_map(arena_map)
-	prediction_ready = false
+	predictor.set_map(arena_map)
 	pending_inputs.clear()
 
 
@@ -294,6 +290,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	dash_speed = float(snapshot.get("dash_speed", DEFAULT_DASH_SPEED))
 	dash_duration = float(snapshot.get("dash_duration", DEFAULT_DASH_DURATION))
 	dash_cooldown = float(snapshot.get("dash_cooldown", DEFAULT_DASH_COOLDOWN))
+	predictor.set_gameplay(move_speed, dash_speed, dash_duration, dash_cooldown)
 	_sync_players()
 	_sync_bullets(next_bullets)
 	_sync_items(next_items)
@@ -410,8 +407,8 @@ func _update_player_views() -> void:
 				"move_left", "move_right", "move_up", "move_down"
 			).length_squared() > 0.01
 			player_views[id].position = (
-				predicted_position + prediction_visual_offset
-				if prediction_ready
+				predictor.position + prediction_visual_offset
+				if predictor.ready
 				else _to_vector(player.get("position", {}))
 			)
 		else:
@@ -492,75 +489,24 @@ func _capture_snapshot_effects(
 
 
 func _reconcile_local_player(player: Dictionary, server_position: Vector2) -> void:
-	var old_visual_position := predicted_position + prediction_visual_offset
+	var old_visual_position := predictor.position + prediction_visual_offset
 	var acknowledged_sequence := int(player.get("last_input_sequence", 0))
 	var remaining_inputs: Array = []
 	for input_record in pending_inputs:
 		if int(input_record.get("sequence", 0)) > acknowledged_sequence:
 			remaining_inputs.append(input_record)
 	pending_inputs = remaining_inputs
-	predicted_position = server_position
-	predicted_dash_time = float(player.get("dash_time_left", 0.0))
-	predicted_dash_cooldown = float(player.get("dash_cooldown_left", 0.0))
-	prediction_ready = true
+	# サーバーの確定状態へ巻き戻し、まだ処理されていない入力だけを再適用する。
+	predictor.reset_to(
+		server_position,
+		float(player.get("dash_time_left", 0.0)),
+		float(player.get("dash_cooldown_left", 0.0)),
+		bool(player.get("alive", true)),
+		float(player.get("berserk_left", 0.0))
+	)
 	for input_record in pending_inputs:
-		_simulate_predicted_input(input_record)
-	prediction_visual_offset = old_visual_position - predicted_position
-
-
-func _simulate_predicted_input(input_record: Dictionary) -> void:
-	if not prediction_ready:
-		return
-	var delta := float(input_record.get("delta", 0.0))
-	var movement: Vector2 = input_record.get("movement", Vector2.ZERO)
-	predicted_dash_cooldown = maxf(predicted_dash_cooldown - delta, 0.0)
-	if (
-		bool(input_record.get("use_item_pressed", false))
-		and str(input_record.get("held_kind", "")) == "dash"
-		and movement.length_squared() > 0.001
-	):
-		predicted_dash_direction = movement.normalized()
-		predicted_dash_time = dash_duration
-	if (
-		bool(input_record.get("dash_pressed", false))
-		and predicted_dash_cooldown <= 0.0
-		and movement.length_squared() > 0.001
-	):
-		predicted_dash_direction = movement.normalized()
-		predicted_dash_time = dash_duration
-		predicted_dash_cooldown = dash_cooldown
-	var direction := movement
-	var speed := move_speed * (0.5 if _local_berserk_active() else 1.0)
-	if predicted_dash_time > 0.0:
-		predicted_dash_time = maxf(predicted_dash_time - delta, 0.0)
-		direction = predicted_dash_direction
-		speed = dash_speed
-	_move_predicted_with_collision(direction * speed * delta)
-
-
-func _move_predicted_with_collision(delta: Vector2) -> void:
-	var next := predicted_position
-	next.x += delta.x
-	if _valid_player_position(next):
-		predicted_position.x = next.x
-	next = predicted_position
-	next.y += delta.y
-	if _valid_player_position(next):
-		predicted_position.y = next.y
-
-
-func _valid_player_position(position: Vector2) -> bool:
-	if arena_map == null:
-		return false
-	var arena_size := arena_map.size_pixels()
-	if (
-		position.x < PLAYER_RADIUS
-		or position.x > arena_size.x - PLAYER_RADIUS
-		or position.y < PLAYER_RADIUS
-		or position.y > arena_size.y - PLAYER_RADIUS
-	):
-		return false
-	return not arena_map.obstacle_at(position, PLAYER_RADIUS)
+		predictor.simulate(input_record)
+	prediction_visual_offset = old_visual_position - predictor.position
 
 
 func _player_color(id: int) -> Color:
@@ -590,7 +536,3 @@ func _local_held_item_kind() -> String:
 		return ""
 	var held = players_by_id[player_id].get("held_item")
 	return str(held.get("kind", "")) if typeof(held) == TYPE_DICTIONARY else ""
-
-
-func _local_berserk_active() -> bool:
-	return players_by_id.has(player_id) and float(players_by_id[player_id].get("berserk_left", 0.0)) > 0.0
