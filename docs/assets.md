@@ -18,6 +18,17 @@
 元の素材は `ri-rehi/App/resources/` 以下にあります。本作ではレベル制度や
 ダンジョン要素は引き継がず、モノトーンのドット絵とUI表現だけを利用します。
 
+## 書き出し
+
+`frontend/assets/aseprite/` のAseprite原本が正であり、
+`frontend/assets/generated/` のPNGは `make assets-build` で書き出す。
+原本を編集したら書き出し直してコミットする。
+
+書き出しに失敗してもPNG自体は生成されるため、透明なまま気付かずに
+コミットされうる（実際に lalokinpoppos.png が alpha=7/255 で入っていた）。
+`frontend/tests/sprite_assets_test.gd` が生成物に不透明な画素があるかを
+検査するので、`make test-frontend` を通しておくこと。
+
 ## 効果音
 
 `frontend/src/shared/audio/` の効果音は本作向けに生成した短い波形です。
