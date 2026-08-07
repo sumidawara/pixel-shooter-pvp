@@ -3,4 +3,5 @@
 [ext_resource type="Script" path="res://src/combat/items/larokin_poppos_view.gd" id="1_script"]
 
 [node name="LarokinPopposView" type="Node2D"]
+z_index = 4
 script = ExtResource("1_script")

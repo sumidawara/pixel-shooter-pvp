@@ -2,6 +2,9 @@ extends Control
 
 const DARK := Color("#080c12")
 const WHITE := Color("#e9f1f7")
+const LALOKIN_POPPOS: Texture2D = preload(
+	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
+)
 
 var kind := ""
 var charges := 0
@@ -23,6 +26,8 @@ func _draw() -> void:
 	draw_rect(Rect2(1, 1, 38, 38), Color("#344252"), false, 2.0)
 	if kind.is_empty():
 		draw_string(ThemeDB.fallback_font, Vector2(10, 24), "—", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#67717e"))
+	elif kind == "larokin_poppos":
+		draw_texture_rect(LALOKIN_POPPOS, Rect2(Vector2(6, 10), Vector2(28, 20)), false)
 	else:
 		_draw_icon(Vector2(20, 20), kind)
 	var title := "EMPTY" if kind.is_empty() else _name(kind)

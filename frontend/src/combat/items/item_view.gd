@@ -2,6 +2,9 @@ extends Node2D
 
 const WHITE := Color("#e9f1f7")
 const DARK := Color("#080c12")
+const LALOKIN_POPPOS: Texture2D = preload(
+	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
+)
 
 @onready var points_label: Label = %PointsLabel
 
@@ -40,11 +43,13 @@ func _draw() -> void:
 		draw_circle(offset + Vector2(3, -3), 1.5, DARK)
 	elif kind == "berserk":
 		draw_colored_polygon(PackedVector2Array([offset+Vector2(-7,8),offset+Vector2(-4,-2),offset,offset+Vector2(2,-10),offset+Vector2(8,0),offset+Vector2(6,8)]), color)
+	elif kind == "larokin_poppos":
+		draw_texture_rect(LALOKIN_POPPOS, Rect2(offset + Vector2(-12, -9), Vector2(24, 18)), false)
 	else:
 		draw_circle(offset, 9, color)
 		draw_rect(Rect2(offset + Vector2(-5, -2), Vector2(3, 3)), DARK)
 		draw_rect(Rect2(offset + Vector2(2, -2), Vector2(3, 3)), DARK)
-	if kind != "ghost":
+	if kind != "ghost" and kind != "larokin_poppos":
 		draw_rect(Rect2(offset + Vector2(-2, -2), Vector2(4, 4)), WHITE)
 
 

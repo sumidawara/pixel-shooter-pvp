@@ -9,6 +9,10 @@
       "output": "generated/actors/player/player_run.png"
     },
     {
+      "source": "aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite",
+      "output": "generated/actors/lalokinpoppos/lalokinpoppos.png"
+    },
+    {
       "source": "aseprite/effects/sparkle.aseprite",
       "output": "generated/effects/sparkle.png"
     },
