@@ -11,8 +11,9 @@ use crate::{
 };
 
 use super::{
+    damage::{apply_damage, award_kill, can_be_hit},
     is_playing_phase,
-    score::{add_points, subtract_points},
+    score::add_points,
 };
 
 const BERSERK_SECONDS: f32 = 3.0;
@@ -20,6 +21,7 @@ const LAROKIN_COUNT: usize = 10;
 const LAROKIN_SPEED: f32 = 230.0;
 const LAROKIN_TELEGRAPH_SECONDS: f32 = 0.7;
 const LAROKIN_RADIUS: f32 = 8.0;
+const LAROKIN_DAMAGE: i32 = 1;
 
 /// 出現、取得、スロット使用を1tick内で決定的に処理する。
 pub(crate) fn update_items(
@@ -163,10 +165,10 @@ pub(crate) fn update_items(
             .iter_mut()
             .find(|player| player.id == target_id)
             .and_then(|mut target| target.held_item.take());
-        if let Some(stolen) = stolen {
-            if let Some(mut user) = players.iter_mut().find(|player| player.id == user_id) {
-                user.held_item = Some(stolen);
-            }
+        if let Some(stolen) = stolen
+            && let Some(mut user) = players.iter_mut().find(|player| player.id == user_id)
+        {
+            user.held_item = Some(stolen);
         }
     }
     for (owner_id, (_, target_position)) in larokin_uses {
@@ -196,21 +198,13 @@ pub(crate) fn update_larokin_poppos(
         attacker.position += velocity * dt;
         let mut victim_id = None;
         for mut player in &mut players {
-            if !player.alive || player.id == attacker.owner_id || player.invulnerable_left > 0.0 {
+            if !can_be_hit(&player, attacker.owner_id) {
                 continue;
             }
             let distance = PLAYER_RADIUS + LAROKIN_RADIUS;
             if player.position.distance_squared(attacker.position) <= distance * distance {
-                if player.shield_hp > 0 {
-                    player.shield_hp -= 1;
-                } else {
-                    player.hp -= 1;
-                    player.invulnerable_left = settings.gameplay.hit_invulnerable_seconds;
-                }
-                if player.hp <= 0 {
-                    player.alive = false;
-                    player.respawn_left = settings.gameplay.respawn_seconds;
-                    player.shooting = false;
+                let outcome = apply_damage(&mut player, LAROKIN_DAMAGE, &settings.gameplay);
+                if outcome.killed {
                     victim_id = Some(player.id);
                 }
                 commands.entity(entity).despawn();
@@ -221,16 +215,6 @@ pub(crate) fn update_larokin_poppos(
             award_kill(&mut players, attacker.owner_id, victim_id, &state);
         } else if attacker.life_left <= 0.0 {
             commands.entity(entity).despawn();
-        }
-    }
-}
-
-fn award_kill(players: &mut Query<&mut Player>, owner_id: u64, victim_id: u64, state: &MatchState) {
-    for mut player in players.iter_mut() {
-        if player.id == owner_id {
-            player.score = add_points(player.score, state.room_settings.kill_points);
-        } else if player.id == victim_id {
-            player.score = subtract_points(player.score, state.room_settings.death_penalty);
         }
     }
 }
@@ -358,10 +342,7 @@ mod tests {
         advance_one_tick(app.world_mut());
 
         let user = app.world().get::<Player>(user_entity).expect("item user");
-        let near_target = app
-            .world()
-            .get::<Player>(near_entity)
-            .expect("near target");
+        let near_target = app.world().get::<Player>(near_entity).expect("near target");
         let far_target = app.world().get::<Player>(far_entity).expect("far target");
         assert_eq!(
             user.held_item,

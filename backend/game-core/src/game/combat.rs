@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
+    damage::{apply_damage, award_kill, can_be_hit},
     is_playing_phase,
-    score::{add_points, subtract_points},
 };
 
 /// 射撃入力とクールダウンを確認し、Bullet Entityを生成するSystem。
@@ -100,23 +100,15 @@ pub(crate) fn move_and_hit_bullets(
         let mut killed_player_id = None;
         let owner_id = bullet.owner_id;
         for mut player in &mut players {
-            if !player.alive || player.id == owner_id || player.invulnerable_left > 0.0 {
+            if !can_be_hit(&player, owner_id) {
                 continue;
             }
             // 円同士の当たり判定。sqrtを避けるため距離も半径も二乗して比較する。
             let hit_distance = PLAYER_RADIUS + BULLET_RADIUS;
             if player.position.distance_squared(bullet.position) <= hit_distance * hit_distance {
-                if player.shield_hp > 0 {
-                    player.shield_hp = (player.shield_hp - bullet.damage).max(0);
-                } else {
-                    player.hp -= bullet.damage;
-                }
-                player.invulnerable_left = settings.gameplay.hit_invulnerable_seconds;
+                let outcome = apply_damage(&mut player, bullet.damage, &settings.gameplay);
                 hit = true;
-                if player.hp <= 0 {
-                    player.alive = false;
-                    player.respawn_left = settings.gameplay.respawn_seconds;
-                    player.shooting = false;
+                if outcome.killed {
                     killed_player_id = Some(player.id);
                 }
                 break;
@@ -126,16 +118,7 @@ pub(crate) fn move_and_hit_bullets(
             // 1つの弾は1回だけダメージを与える。
             commands.entity(entity).despawn();
             if let Some(victim_id) = killed_player_id {
-                // 撃破者へ加点し、死亡したプレイヤーからペナルティを引く。
-                // 得点は負数も取り得るためi32で保持し、極端な設定でも飽和演算する。
-                for mut player in &mut players {
-                    if player.id == owner_id {
-                        player.score = add_points(player.score, state.room_settings.kill_points);
-                    } else if player.id == victim_id {
-                        player.score =
-                            subtract_points(player.score, state.room_settings.death_penalty);
-                    }
-                }
+                award_kill(&mut players, owner_id, victim_id, &state);
             }
         }
     }

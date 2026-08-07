@@ -2,6 +2,7 @@
 
 mod combat;
 mod cpu;
+mod damage;
 mod items;
 mod match_flow;
 mod movement;
@@ -182,14 +183,8 @@ mod tests {
             state.start_requested = true;
             state.room_settings.match_seconds = 2.0;
         }
-        let first_entity = app
-            .world_mut()
-            .spawn(test_player(1, false, Some(101)))
-            .id();
-        let second_entity = app
-            .world_mut()
-            .spawn(test_player(2, false, Some(102)))
-            .id();
+        let first_entity = app.world_mut().spawn(test_player(1, false, Some(101))).id();
+        let second_entity = app.world_mut().spawn(test_player(2, false, Some(102))).id();
 
         advance_one_tick(app.world_mut());
 
