@@ -9,6 +9,10 @@ signal snapshot_received(snapshot: Dictionary)
 
 const START_RETRY_SECONDS := 0.35
 const START_MAX_ATTEMPTS := 3
+## 割り当てられたルームが埋まった／始まっていた場合に、別のルームを取り直す回数。
+## AdminServerは試合中のルームを避けて割り当てるが、heartbeat間隔ぶんの
+## すれ違いは残るため、クライアント側にも復帰手段を用意する。
+const MATCHMAKE_MAX_ATTEMPTS := 3
 
 var socket := WebSocketPeer.new()
 var server_url := NetworkConfig.DEFAULT_GAME_SERVER_URL
@@ -24,24 +28,38 @@ var start_retry_left := 0.0
 var start_attempts := 0
 var matchmaking_request: HTTPRequest
 var connection_generation := 0
+# 直近のマッチメイキング先。空ならURL直指定の接続なので取り直しはしない。
+var matchmaker_url := ""
+var matchmake_attempts := 0
+# 接続ごとに、種類別で最初の1通だけプロトコル契約を検査する。
+# 毎フレーム検査するとSnapshot処理の負荷になるため、初回だけで十分。
+var checked_message_types: Dictionary = {}
 
 
 func connect_to_server(url: String, requested_name: String) -> void:
 	_begin_connection_attempt()
 	_prepare_player_name(requested_name)
+	matchmaker_url = ""
+	matchmake_attempts = 0
 	join_ticket = ""
 	_connect_websocket(url)
 
 
 func connect_via_matchmaker(url: String, requested_name: String) -> void:
+	matchmake_attempts = 0
+	_request_room(url, requested_name)
+
+
+func _request_room(url: String, requested_name: String) -> void:
 	_begin_connection_attempt()
 	var generation := connection_generation
 	_prepare_player_name(requested_name)
-	var matchmaker_url := url.strip_edges().trim_suffix("/")
+	matchmaker_url = url.strip_edges().trim_suffix("/")
 	if matchmaker_url.is_empty():
 		matchmaker_url = NetworkConfig.DEFAULT_MATCHMAKER_URL
 	if not matchmaker_url.begins_with("http://") and not matchmaker_url.begins_with("https://"):
 		matchmaker_url = "http://" + matchmaker_url
+	matchmake_attempts += 1
 	status_changed.emit("FINDING ROOM...")
 	matchmaking_request = HTTPRequest.new()
 	add_child(matchmaking_request)
@@ -108,6 +126,9 @@ func disconnect_from_server() -> void:
 	join_ticket = ""
 	start_request_pending = false
 	start_attempts = 0
+	# 次に接続するときは、ルーム取り直しの回数を最初から数え直す。
+	matchmaker_url = ""
+	matchmake_attempts = 0
 	if is_instance_valid(matchmaking_request):
 		matchmaking_request.cancel_request()
 		matchmaking_request.queue_free()
@@ -122,6 +143,7 @@ func disconnect_from_server() -> void:
 
 func _begin_connection_attempt() -> void:
 	connection_generation += 1
+	checked_message_types.clear()
 	if socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		socket.close()
 	socket = WebSocketPeer.new()
@@ -226,17 +248,27 @@ func _receive(text: String) -> void:
 	var message = JSON.parse_string(text)
 	if typeof(message) != TYPE_DICTIONARY:
 		return
-	match message.get("type", ""):
+	var message_type := str(message.get("type", ""))
+	match message_type:
 		"welcome":
+			_check_contract(message_type, SnapshotContract.validate_welcome(message))
 			player_id = int(message.get("player_id", 0))
 			reconnect_token = str(message.get("reconnect_token", ""))
 			var reconnected := bool(message.get("reconnected", false))
 			status_changed.emit("RECONNECTED" if reconnected else "CONNECTED")
 			welcome_received.emit(player_id, reconnected)
 		"rejected":
+			_check_contract(message_type, SnapshotContract.validate_rejected(message))
 			var reason := str(message.get("reason", "Connection rejected"))
 			connection_requested = false
 			socket.close()
+			# 満室・試合開始済みなど、別のルームなら入れる拒否は取り直す。
+			# ここで諦めると、空いているGameServerがあってもプレイヤーは
+			# エラー表示のまま行き止まりになる。
+			if bool(message.get("retryable", false)) and _can_retry_matchmaking():
+				status_changed.emit("ROOM WAS FULL — FINDING ANOTHER...")
+				_request_room(matchmaker_url, player_name)
+				return
 			status_changed.emit(reason)
 			rejected.emit(reason)
 		"map_definition":
@@ -244,13 +276,39 @@ func _receive(text: String) -> void:
 			if typeof(map_definition) != TYPE_DICTIONARY:
 				status_changed.emit("INVALID MAP DEFINITION")
 				return
+			_check_contract(
+				message_type, SnapshotContract.validate_map_definition(map_definition)
+			)
 			map_definition_received.emit(map_definition)
 		"map_catalog":
 			var maps = message.get("maps", [])
 			if typeof(maps) == TYPE_ARRAY:
 				map_catalog_received.emit(maps)
 		"snapshot":
+			_check_contract(message_type, SnapshotContract.validate_snapshot(message))
 			if start_request_pending and str(message.get("phase", "waiting")) != "waiting":
 				start_request_pending = false
 				status_changed.emit("MATCH STARTING")
 			snapshot_received.emit(message)
+
+
+func _can_retry_matchmaking() -> bool:
+	return not matchmaker_url.is_empty() and matchmake_attempts < MATCHMAKE_MAX_ATTEMPTS
+
+
+## サーバーとクライアントの通信フォーマットのずれを、無言の誤動作ではなく
+## 目に見える異常として表に出す。
+##
+## 欠けたキーは `get(key, default)` で既定値に落ちるため、たとえば move_speed が
+## 届かないとクライアント予測だけが別の速度で走り、原因が特定しづらいズレになる。
+func _check_contract(message_type: String, missing: PackedStringArray) -> void:
+	if checked_message_types.has(message_type):
+		return
+	checked_message_types[message_type] = true
+	if missing.is_empty():
+		return
+	push_error(
+		"protocol mismatch: サーバーの%sに必要なフィールドが欠けている: %s"
+		% [message_type, ", ".join(missing)]
+	)
+	status_changed.emit("SERVER PROTOCOL MISMATCH (%s)" % message_type)

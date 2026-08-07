@@ -29,13 +29,13 @@ pub enum ItemKind {
     Ghost,
 }
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
     Join {
@@ -61,7 +61,7 @@ pub enum ClientMessage {
     StartMatch,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
     Welcome {
@@ -71,6 +71,12 @@ pub enum ServerMessage {
     },
     Rejected {
         reason: String,
+        /// 別のルームなら参加できる見込みがあるか。
+        ///
+        /// 満室や試合開始済みは「このルームがだめ」なだけなので、クライアントは
+        /// マッチメイキングからやり直せる。Join Ticketの不備は再試行しても直らない。
+        #[serde(default)]
+        retryable: bool,
     },
     MapDefinition {
         map: MapDefinition,
@@ -81,7 +87,7 @@ pub enum ServerMessage {
     Snapshot(Box<Snapshot>),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Snapshot {
     pub tick: u64,
     pub phase: MatchPhase,
@@ -99,7 +105,7 @@ pub struct Snapshot {
     pub room: RoomSnapshot,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MapDefinition {
     pub schema_version: u32,
     pub id: String,
@@ -113,7 +119,7 @@ pub struct MapDefinition {
     pub item_spawn_points: Vec<[usize; 2]>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoomSettings {
     #[serde(default = "default_map_id")]
     pub map_id: String,
@@ -149,7 +155,7 @@ fn default_map_id() -> String {
     "classic_arena".into()
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoomSnapshot {
     pub host_player_id: Option<u64>,
     pub can_start: bool,
@@ -157,7 +163,7 @@ pub struct RoomSnapshot {
     pub settings: RoomSettings,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MatchPhase {
     #[default]
@@ -168,7 +174,7 @@ pub enum MatchPhase {
     MatchFinished,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerSnapshot {
     pub id: u64,
     pub name: String,
@@ -196,7 +202,7 @@ pub struct PlayerSnapshot {
     pub last_input_sequence: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct BulletSnapshot {
     pub id: u64,
     pub owner_id: u64,
@@ -205,7 +211,7 @@ pub struct BulletSnapshot {
     pub damage: i32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ItemSnapshot {
     pub id: u64,
     pub position: Vec2,
@@ -213,13 +219,13 @@ pub struct ItemSnapshot {
     pub kind: ItemKind,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct HeldItemSnapshot {
     pub kind: ItemKind,
     pub charges: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct LarokinPopposSnapshot {
     pub id: u64,
     pub owner_id: u64,

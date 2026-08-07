@@ -1,0 +1,207 @@
+{
+  "generated_by": "backend/protocols/game/tests/wire_golden.rs",
+  "messages": {
+    "map_catalog": {
+      "maps": [
+        {
+          "id": "classic_arena",
+          "name": "Classic Arena"
+        },
+        {
+          "id": "crossroads",
+          "name": "Crossroads"
+        }
+      ],
+      "type": "map_catalog"
+    },
+    "map_definition": {
+      "map": {
+        "height": 3,
+        "id": "wire_golden",
+        "item_spawn_points": [
+          [
+            1,
+            1
+          ]
+        ],
+        "name": "Wire Golden",
+        "revision": "1",
+        "schema_version": 1,
+        "spawn_points": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "tile_size": 32,
+        "tiles": [
+          "####",
+          "#..#",
+          "####"
+        ],
+        "width": 4
+      },
+      "type": "map_definition"
+    },
+    "rejected": {
+      "reason": "The match has already started.",
+      "retryable": true,
+      "type": "rejected"
+    },
+    "snapshot": {
+      "bullets": [
+        {
+          "damage": 2,
+          "id": 42,
+          "owner_id": 1,
+          "position": {
+            "x": 120.5,
+            "y": 80.0
+          },
+          "velocity": {
+            "x": 340.0,
+            "y": 0.0
+          }
+        }
+      ],
+      "dash_cooldown": 1.100000023841858,
+      "dash_duration": 0.12999999523162842,
+      "dash_speed": 520.0,
+      "items": [
+        {
+          "id": 7,
+          "kind": "energy_cell",
+          "points": 20,
+          "position": {
+            "x": 320.0,
+            "y": 144.0
+          }
+        }
+      ],
+      "larokin_poppos": [
+        {
+          "id": 3,
+          "owner_id": 1,
+          "position": {
+            "x": 40.0,
+            "y": 176.0
+          },
+          "telegraph_left": 0.3499999940395355,
+          "velocity": {
+            "x": 230.0,
+            "y": 0.0
+          }
+        }
+      ],
+      "move_speed": 150.0,
+      "phase": "running",
+      "players": [
+        {
+          "aim": {
+            "x": 1.0,
+            "y": 0.0
+          },
+          "alive": true,
+          "ammo": 3,
+          "berserk_left": 1.5,
+          "connected": true,
+          "dash_cooldown_left": 0.75,
+          "dash_time_left": 0.05000000074505806,
+          "dashing": true,
+          "held_item": {
+            "charges": 4,
+            "kind": "dash"
+          },
+          "hp": 4,
+          "id": 1,
+          "invulnerable_left": 0.5,
+          "is_cpu": false,
+          "last_input_sequence": 987,
+          "max_ammo": 6,
+          "max_hp": 5,
+          "name": "Player 1",
+          "position": {
+            "x": 80.0,
+            "y": 80.0
+          },
+          "reconnect_grace_left": 0.0,
+          "reload_left": 0.0,
+          "reloading": false,
+          "respawn_left": 0.0,
+          "score": 120,
+          "shield_hp": 2
+        },
+        {
+          "aim": {
+            "x": -1.0,
+            "y": 0.0
+          },
+          "alive": false,
+          "ammo": 0,
+          "berserk_left": 0.0,
+          "connected": true,
+          "dash_cooldown_left": 0.0,
+          "dash_time_left": 0.0,
+          "dashing": false,
+          "held_item": null,
+          "hp": 0,
+          "id": 2,
+          "invulnerable_left": 0.0,
+          "is_cpu": true,
+          "last_input_sequence": 0,
+          "max_ammo": 6,
+          "max_hp": 5,
+          "name": "CPU-2",
+          "position": {
+            "x": 560.0,
+            "y": 272.0
+          },
+          "reconnect_grace_left": 0.0,
+          "reload_left": 1.2000000476837158,
+          "reloading": true,
+          "respawn_left": 1.75,
+          "score": -25,
+          "shield_hp": 0
+        }
+      ],
+      "reconnect_grace_left": 12.25,
+      "room": {
+        "can_start": false,
+        "host_player_id": 1,
+        "max_players": 4,
+        "settings": {
+          "death_penalty": 25,
+          "item_points": 20,
+          "item_spawn_interval": 5.0,
+          "kill_points": 100,
+          "map_id": "classic_arena",
+          "match_seconds": 120.0,
+          "max_items": 3
+        }
+      },
+      "tick": 1234,
+      "time_left": 87.5,
+      "type": "snapshot",
+      "winner_id": 2
+    },
+    "welcome": {
+      "player_id": 1,
+      "reconnect_token": "0123456789abcdef0123456789abcdef",
+      "reconnected": false,
+      "type": "welcome"
+    }
+  },
+  "schema_version": 1
+}
