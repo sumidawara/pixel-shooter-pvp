@@ -163,12 +163,26 @@ fn broadcast(network: &mut Network, text: String) {
     }
 }
 
+/// 別のルームでも解決しない理由でJoinを拒否する。
 pub(super) fn reject_join(network: &Network, connection_id: u64, reason: &str) {
     send_to(
         network,
         connection_id,
         &ServerMessage::Rejected {
             reason: reason.into(),
+            retryable: false,
+        },
+    );
+}
+
+/// このルームの都合でJoinを拒否する。クライアントは別のルームを取り直せる。
+pub(super) fn reject_join_retryable(network: &Network, connection_id: u64, reason: &str) {
+    send_to(
+        network,
+        connection_id,
+        &ServerMessage::Rejected {
+            reason: reason.into(),
+            retryable: true,
         },
     );
 }

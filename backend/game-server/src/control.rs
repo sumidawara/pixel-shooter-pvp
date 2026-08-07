@@ -21,6 +21,7 @@ use pixel_shooter_admin_protocol::{
     StepRequest,
 };
 use pixel_shooter_game_core::{MatchState, Player};
+use pixel_shooter_protocol::MatchPhase;
 use serde::Serialize;
 use tokio::{net::TcpListener, sync::oneshot};
 
@@ -143,6 +144,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
         room_id: None,
         player_count: 0,
         tick: 0,
+        accepting_players: false,
         simulation_mode: SimulationMode::Realtime,
         pending_steps: 0,
         input_scenario: None,
@@ -235,6 +237,7 @@ async fn report_to_admin(
                 status: state.status,
                 room_id: state.room_id,
                 player_count: state.player_count,
+                accepting_players: state.accepting_players,
                 tick: state.tick,
                 simulation_mode: state.simulation_mode,
             };
@@ -353,7 +356,7 @@ pub(crate) fn process_commands(
             ControlCommand::Allocate(request, reply) => {
                 let result = if allocation.status == GameServerStatus::Available
                     && players.is_empty()
-                    && state.phase == pixel_shooter_protocol::MatchPhase::Waiting
+                    && state.phase == MatchPhase::Waiting
                 {
                     allocation.status = GameServerStatus::Allocated;
                     allocation.room_id = Some(request.room_id);
@@ -469,10 +472,7 @@ pub(crate) fn publish_state(
     let player_count = players.iter().len();
     if allocation.status == GameServerStatus::Allocated {
         allocation.had_players |= player_count > 0;
-        if allocation.had_players
-            && player_count == 0
-            && state.phase == pixel_shooter_protocol::MatchPhase::Waiting
-        {
+        if allocation.had_players && player_count == 0 && state.phase == MatchPhase::Waiting {
             allocation.status = GameServerStatus::Available;
             allocation.room_id = None;
             allocation.had_players = false;
@@ -507,6 +507,10 @@ fn build_state(
         status: allocation.status,
         room_id: allocation.room_id.clone(),
         player_count,
+        // network::process_network の Join 受理条件と同じ判定を、そのまま外へ公開する。
+        // ここがずれると、AdminServerが参加できないルームへ案内してしまう。
+        accepting_players: state.phase == MatchPhase::Waiting
+            && player_count < pixel_shooter_game_core::MAX_PLAYERS,
         tick: state.tick,
         simulation_mode: simulation.mode,
         pending_steps: simulation.pending_steps,

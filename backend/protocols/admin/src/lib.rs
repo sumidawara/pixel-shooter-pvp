@@ -44,6 +44,13 @@ pub struct GameServerHeartbeat {
     pub status: GameServerStatus,
     pub room_id: Option<String>,
     pub player_count: usize,
+    /// このルームが今すぐ新しい参加者を受け入れられるか。
+    ///
+    /// 割当先を決めるのはAdminServerだが、参加可否を決めるのはGameServerの
+    /// 試合フェーズと人数である。ここを載せないと、AdminServerは走行中のルームへ
+    /// 案内してしまい、プレイヤーはGameServerに拒否されて行き止まりになる。
+    #[serde(default)]
+    pub accepting_players: bool,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
 }
@@ -56,6 +63,9 @@ pub struct GameServerView {
     pub status: GameServerStatus,
     pub room_id: Option<String>,
     pub player_count: usize,
+    pub accepting_players: bool,
+    /// 参加確定前の割当を含めて、この時点で埋まっているとみなす席数。
+    pub reserved_players: usize,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
     pub healthy: bool,
@@ -145,6 +155,8 @@ pub struct ControlState {
     pub status: GameServerStatus,
     pub room_id: Option<String>,
     pub player_count: usize,
+    #[serde(default)]
+    pub accepting_players: bool,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
     pub pending_steps: u64,

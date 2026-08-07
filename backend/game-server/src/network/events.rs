@@ -13,7 +13,9 @@ use crate::{config::ServerSettings, control::AllocationState, maps::MapCatalog};
 
 use super::{
     Network, NetworkEvent,
-    snapshot::{reject_join, send_map_catalog, send_map_definition, send_to},
+    snapshot::{
+        reject_join, reject_join_retryable, send_map_catalog, send_map_definition, send_to,
+    },
 };
 
 /// 通信イベントをゲーム世界へ反映するSystem。
@@ -166,24 +168,21 @@ pub(crate) fn process_network(
                     name = claims.player_name;
                 }
 
+                // 満室と試合開始済みは「このルームがだめ」なだけなので、
+                // クライアントが別のルームを取り直せるよう再試行可能で返す。
                 if occupied_slots.len() >= MAX_PLAYERS {
-                    send_to(
+                    reject_join_retryable(
                         &network,
                         connection_id,
-                        &ServerMessage::Rejected {
-                            reason: "The room already has four players. Reconnect with your token."
-                                .into(),
-                        },
+                        "The room already has four players. Reconnect with your token.",
                     );
                     continue;
                 }
                 if state.phase != MatchPhase::Waiting {
-                    send_to(
+                    reject_join_retryable(
                         &network,
                         connection_id,
-                        &ServerMessage::Rejected {
-                            reason: "The match has already started.".into(),
-                        },
+                        "The match has already started.",
                     );
                     continue;
                 }

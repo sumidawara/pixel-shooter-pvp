@@ -97,6 +97,13 @@ export type SnapshotEnvelope = Snapshot & {
   type: "snapshot";
 };
 
+export type RejectedEnvelope = {
+  type: "rejected";
+  reason: string;
+  /** 別のルームなら参加できる見込みがあるか。 */
+  retryable: boolean;
+};
+
 export type GameServer = {
   server_id: string;
   public_url: string;
@@ -104,6 +111,10 @@ export type GameServer = {
   status: "available" | "allocated";
   room_id: string | null;
   player_count: number;
+  /** このルームが今すぐ新しい参加者を受け入れられるか。 */
+  accepting_players: boolean;
+  /** 参加確定前の割当を含めて、埋まっているとみなす席数。 */
+  reserved_players: number;
   tick: number;
   simulation_mode: "realtime" | "paused";
   healthy: boolean;
@@ -149,6 +160,7 @@ export type ControlState = {
   status: "available" | "allocated";
   room_id: string | null;
   player_count: number;
+  accepting_players: boolean;
   tick: number;
   simulation_mode: "realtime" | "paused";
   pending_steps: number;
