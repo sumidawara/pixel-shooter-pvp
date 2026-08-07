@@ -7,16 +7,20 @@ signal add_cpu_requested
 signal remove_cpu_requested(player_id: int)
 signal start_match_requested
 signal room_settings_changed(settings: Dictionary)
+signal crt_preset_changed(preset_id: String)
 signal leave_room_requested
 signal quit_requested
 
 const CURSOR_TEXTURE: Texture2D = preload("res://assets/generated/ui/menu/cursor.png")
 const PLAYER_COLORS := [
-	Color("#a8ffae"),
-	Color("#78ff8f"),
-	Color("#54d873"),
-	Color("#3aaa5a"),
+	Color("#27e5ff"),
+	Color("#ff38c7"),
+	Color("#ffe66d"),
+	Color("#7cff6b"),
 ]
+const CRT_PRESET_IDS := ["weak", "standard", "strong"]
+const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
+
 
 @onready var title_page: Control = %TitlePage
 @onready var play_page: Control = %PlayPage
@@ -29,6 +33,7 @@ const PLAYER_COLORS := [
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
 @onready var player_name_input: LineEdit = %PlayerNameInput
+@onready var crt_preset_option: OptionButton = %CrtPresetOption
 @onready var volume_slider: HSlider = %VolumeSlider
 @onready var status_label: Label = %StatusLabel
 @onready var room_address_label: Label = %RoomAddressLabel
@@ -54,6 +59,7 @@ var selected_map_id := "classic_arena"
 
 func _ready() -> void:
 	Input.set_custom_mouse_cursor(CURSOR_TEXTURE, Input.CURSOR_ARROW, Vector2(12, 12))
+	_configure_crt_preset_option()
 	is_web = OS.has_feature("web")
 	_load_local_settings()
 	server_input.text = NetworkConfig.initial_connection_url()
@@ -73,6 +79,7 @@ func _bind_buttons() -> void:
 	%TitleBackButton.pressed.connect(show_title)
 	%JoinBackButton.pressed.connect(_leave_join_page)
 	%CreateBackButton.pressed.connect(_leave_room_to_play)
+	crt_preset_option.item_selected.connect(_on_crt_preset_selected)
 	%SettingsBackButton.pressed.connect(_save_settings_and_return)
 	create_room_button.pressed.connect(_request_create_room)
 	join_button.pressed.connect(_on_join_button_pressed)
@@ -293,16 +300,46 @@ func _on_map_selected(index: int) -> void:
 	selected_map_id = str(map_option.get_item_metadata(index))
 	_emit_room_settings()
 
+func _configure_crt_preset_option() -> void:
+	crt_preset_option.clear()
+	for index in range(CRT_PRESET_IDS.size()):
+		crt_preset_option.add_item(CRT_PRESET_LABELS[index])
+		crt_preset_option.set_item_metadata(index, CRT_PRESET_IDS[index])
+	crt_preset_option.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+
+
+func get_crt_preset() -> String:
+	if crt_preset_option.item_count == 0:
+		return "standard"
+	var preset_id := str(crt_preset_option.get_item_metadata(crt_preset_option.selected))
+	return preset_id if preset_id in CRT_PRESET_IDS else "standard"
+
+
+func _select_crt_preset(preset_id: String) -> void:
+	var normalized_id := preset_id if preset_id in CRT_PRESET_IDS else "standard"
+	for index in range(crt_preset_option.item_count):
+		if str(crt_preset_option.get_item_metadata(index)) == normalized_id:
+			crt_preset_option.select(index)
+			return
+	crt_preset_option.select(1)
+
+
+func _on_crt_preset_selected(_index: int) -> void:
+	crt_preset_changed.emit(get_crt_preset())
+
 
 func _load_local_settings() -> void:
 	var config := ConfigFile.new()
 	var default_name := "Player-%03d" % (OS.get_process_id() % 1000)
+	var crt_preset_id := "standard"
 	if config.load("user://client.cfg") == OK:
 		player_name_input.text = str(config.get_value("player", "name", default_name))
 		volume_slider.value = float(config.get_value("audio", "volume", 80.0))
+		crt_preset_id = str(config.get_value("display", "crt_preset", "standard"))
 	else:
 		player_name_input.text = default_name
 		volume_slider.value = 80.0
+	_select_crt_preset(crt_preset_id)
 	_apply_volume()
 	volume_slider.value_changed.connect(func(_value: float): _apply_volume())
 
@@ -311,6 +348,7 @@ func _save_settings_and_return() -> void:
 	var config := ConfigFile.new()
 	config.set_value("player", "name", player_name_input.text)
 	config.set_value("audio", "volume", volume_slider.value)
+	config.set_value("display", "crt_preset", get_crt_preset())
 	config.save("user://client.cfg")
 	show_title()
 

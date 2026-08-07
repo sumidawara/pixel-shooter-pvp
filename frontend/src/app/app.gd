@@ -1,8 +1,39 @@
 extends Node
 
+const CRT_PRESETS := {
+	"weak": {
+		"phosphor_tint_strength": 0.08,
+		"curvature": 0.018,
+		"scanline_strength": 0.08,
+		"bloom_strength": 0.18,
+		"ghost_strength": 0.05,
+		"noise_strength": 0.008,
+		"flicker_strength": 0.003,
+	},
+	"standard": {
+		"phosphor_tint_strength": 0.18,
+		"curvature": 0.045,
+		"scanline_strength": 0.18,
+		"bloom_strength": 0.34,
+		"ghost_strength": 0.16,
+		"noise_strength": 0.028,
+		"flicker_strength": 0.018,
+	},
+	"strong": {
+		"phosphor_tint_strength": 0.32,
+		"curvature": 0.07,
+		"scanline_strength": 0.28,
+		"bloom_strength": 0.5,
+		"ghost_strength": 0.26,
+		"noise_strength": 0.05,
+		"flicker_strength": 0.03,
+	},
+}
+
 @onready var menu_screen := %MenuScreen
 @onready var game_screen := %GameScreen
 @onready var host_server := %HostServerController
+@onready var crt_post_process: ColorRect = $CRTDisplay/PostProcess
 
 var hosting_room := false
 var joined_room := false
@@ -19,6 +50,7 @@ func _ready() -> void:
 	menu_screen.remove_cpu_requested.connect(NetworkClient.remove_cpu)
 	menu_screen.start_match_requested.connect(NetworkClient.start_match)
 	menu_screen.room_settings_changed.connect(NetworkClient.update_room_settings)
+	menu_screen.crt_preset_changed.connect(_apply_crt_preset)
 	menu_screen.leave_room_requested.connect(_leave_room)
 	menu_screen.quit_requested.connect(_quit_game)
 	game_screen.exit_requested.connect(_leave_room)
@@ -30,9 +62,20 @@ func _ready() -> void:
 	NetworkClient.map_catalog_received.connect(menu_screen.set_available_maps)
 	NetworkClient.rejected.connect(_on_rejected)
 	NetworkClient.snapshot_received.connect(_on_snapshot_received)
+	_apply_crt_preset(menu_screen.get_crt_preset())
 	_show_menu()
 	if OS.get_environment("PIXEL_SHOOTER_AUTOCONNECT") == "1":
 		menu_screen.request_connection()
+
+
+func _apply_crt_preset(preset_id: String) -> void:
+	var material := crt_post_process.material as ShaderMaterial
+	if material == null:
+		return
+	var normalized_id := preset_id if CRT_PRESETS.has(preset_id) else "standard"
+	var parameters: Dictionary = CRT_PRESETS[normalized_id]
+	for parameter_name in parameters:
+		material.set_shader_parameter(parameter_name, parameters[parameter_name])
 
 
 func _on_join_requested(server_url: String, player_name: String) -> void:
