@@ -310,6 +310,13 @@ pub(super) fn choose_score_item_spawn(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pixel_shooter_protocol::MatchPhase;
+
+    use crate::{
+        game::test_support::{test_app, test_player},
+        model::{HeldItem, LarokinPoppos, Player},
+        schedule::advance_one_tick,
+    };
 
     #[test]
     fn item_rotation_keeps_energy_cells_common() {
@@ -317,5 +324,114 @@ mod tests {
         assert_eq!(item_kind_for_id(2), ItemKind::EnergyCell);
         assert_eq!(item_kind_for_id(3), ItemKind::Dash);
         assert_eq!(item_kind_for_id(7), ItemKind::Ghost);
+    }
+
+    #[test]
+    fn ghost_steals_from_nearest_living_item_holder() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+
+        let mut user = test_player(1, Some(101));
+        user.position = Vec2::new(100.0, 100.0);
+        user.use_item_requested = true;
+        user.held_item = Some(HeldItem {
+            kind: ItemKind::Ghost,
+            charges: 1,
+        });
+        let user_entity = app.world_mut().spawn(user).id();
+
+        let mut near_target = test_player(2, Some(102));
+        near_target.position = Vec2::new(130.0, 100.0);
+        near_target.held_item = Some(HeldItem {
+            kind: ItemKind::Shield,
+            charges: 1,
+        });
+        let near_entity = app.world_mut().spawn(near_target).id();
+
+        let mut far_target = test_player(3, Some(103));
+        far_target.position = Vec2::new(300.0, 100.0);
+        far_target.held_item = Some(HeldItem {
+            kind: ItemKind::Berserk,
+            charges: 1,
+        });
+        let far_entity = app.world_mut().spawn(far_target).id();
+
+        advance_one_tick(app.world_mut());
+
+        let user = app.world().get::<Player>(user_entity).expect("item user");
+        let near_target = app
+            .world()
+            .get::<Player>(near_entity)
+            .expect("near target");
+        let far_target = app.world().get::<Player>(far_entity).expect("far target");
+        assert_eq!(
+            user.held_item,
+            Some(HeldItem {
+                kind: ItemKind::Shield,
+                charges: 1,
+            })
+        );
+        assert_eq!(near_target.held_item, None);
+        assert_eq!(
+            far_target.held_item,
+            Some(HeldItem {
+                kind: ItemKind::Berserk,
+                charges: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn larokin_targets_lowest_id_score_leader_and_spawns_ten_attackers() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+
+        let mut user = test_player(1, Some(101));
+        user.position = Vec2::new(320.0, 180.0);
+        user.use_item_requested = true;
+        user.held_item = Some(HeldItem {
+            kind: ItemKind::LarokinPoppos,
+            charges: 1,
+        });
+        let user_entity = app.world_mut().spawn(user).id();
+
+        let mut lower_score = test_player(2, Some(102));
+        lower_score.position = Vec2::new(320.0, 80.0);
+        lower_score.score = 80;
+        app.world_mut().spawn(lower_score);
+
+        let leader_position = Vec2::new(500.0, 180.0);
+        let mut lower_id_leader = test_player(3, Some(103));
+        lower_id_leader.position = leader_position;
+        lower_id_leader.score = 100;
+        app.world_mut().spawn(lower_id_leader);
+
+        let mut higher_id_leader = test_player(4, Some(104));
+        higher_id_leader.position = Vec2::new(100.0, 180.0);
+        higher_id_leader.score = 100;
+        app.world_mut().spawn(higher_id_leader);
+
+        advance_one_tick(app.world_mut());
+
+        let attackers: Vec<(u64, Vec2, Vec2)> = {
+            let world = app.world_mut();
+            let mut query = world.query::<&LarokinPoppos>();
+            query
+                .iter(world)
+                .map(|attacker| (attacker.owner_id, attacker.position, attacker.velocity))
+                .collect()
+        };
+        assert_eq!(attackers.len(), 10);
+        for (owner_id, position, velocity) in attackers {
+            assert_eq!(owner_id, 1);
+            let expected_direction = (leader_position - position).normalize_or_zero();
+            assert!(velocity.normalize_or_zero().distance(expected_direction) < 0.0001);
+        }
+        assert_eq!(
+            app.world()
+                .get::<Player>(user_entity)
+                .expect("item user")
+                .held_item,
+            None
+        );
+        assert_eq!(app.world().resource::<MatchState>().next_larokin_id, 10);
     }
 }

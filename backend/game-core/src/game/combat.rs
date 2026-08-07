@@ -140,3 +140,135 @@ pub(crate) fn move_and_hit_bullets(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use bevy::prelude::{App, Entity, Vec2};
+    use pixel_shooter_protocol::MatchPhase;
+
+    use crate::{
+        arena::ArenaMap,
+        game::test_support::{test_app, test_player},
+        model::{Bullet, Player},
+        schedule::advance_one_tick,
+    };
+
+    fn spawn_player(app: &mut App, id: u64, slot: usize) -> Entity {
+        let position = app.world().resource::<ArenaMap>().spawn_position(slot);
+        let mut player = test_player(id, Some(100 + id));
+        player.slot = slot;
+        player.position = position;
+        app.world_mut().spawn(player).id()
+    }
+
+    fn spawn_bullet(app: &mut App, owner_id: u64, position: Vec2, damage: i32) {
+        app.world_mut().spawn(Bullet {
+            id: 1,
+            owner_id,
+            position,
+            velocity: Vec2::ZERO,
+            life_left: 1.0,
+            damage,
+        });
+    }
+
+    fn bullet_count(app: &mut App) -> usize {
+        let world = app.world_mut();
+        let mut bullets = world.query::<&Bullet>();
+        bullets.iter(world).count()
+    }
+
+    #[test]
+    fn normal_bullet_hit_damages_player_and_despawns() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        spawn_player(&mut app, 1, 0);
+        let target_entity = spawn_player(&mut app, 2, 1);
+        let target_position = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player")
+            .position;
+        spawn_bullet(&mut app, 1, target_position, 1);
+
+        advance_one_tick(app.world_mut());
+
+        let target = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player");
+        assert_eq!(target.hp, 4);
+        assert!(target.alive);
+        assert_eq!(bullet_count(&mut app), 0);
+    }
+
+    #[test]
+    fn lethal_bullet_awards_kill_and_death_scores_once() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        let owner_entity = spawn_player(&mut app, 1, 0);
+        let target_entity = spawn_player(&mut app, 2, 1);
+        app.world_mut()
+            .get_mut::<Player>(target_entity)
+            .expect("target player")
+            .hp = 1;
+        let target_position = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player")
+            .position;
+        spawn_bullet(&mut app, 1, target_position, 1);
+
+        advance_one_tick(app.world_mut());
+        advance_one_tick(app.world_mut());
+
+        let owner = app
+            .world()
+            .get::<Player>(owner_entity)
+            .expect("owner player");
+        let target = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player");
+        assert_eq!(owner.score, 100);
+        assert_eq!(target.score, -25);
+        assert!(!target.alive);
+        assert_eq!(bullet_count(&mut app), 0);
+    }
+
+    #[test]
+    fn shield_absorbs_damage_and_invulnerability_blocks_followup_hit() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        spawn_player(&mut app, 1, 0);
+        let target_entity = spawn_player(&mut app, 2, 1);
+        app.world_mut()
+            .get_mut::<Player>(target_entity)
+            .expect("target player")
+            .shield_hp = 2;
+        let target_position = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player")
+            .position;
+        spawn_bullet(&mut app, 1, target_position, 1);
+
+        advance_one_tick(app.world_mut());
+
+        let target = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player");
+        assert_eq!(target.hp, 5);
+        assert_eq!(target.shield_hp, 1);
+        assert!(target.invulnerable_left > 0.0);
+
+        spawn_bullet(&mut app, 1, target_position, 1);
+        advance_one_tick(app.world_mut());
+
+        let target = app
+            .world()
+            .get::<Player>(target_entity)
+            .expect("target player");
+        assert_eq!(target.hp, 5);
+        assert_eq!(target.shield_hp, 1);
+        assert_eq!(bullet_count(&mut app), 1);
+    }
+}

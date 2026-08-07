@@ -8,6 +8,9 @@ mod movement;
 mod respawn;
 mod score;
 
+#[cfg(test)]
+mod test_support;
+
 use pixel_shooter_protocol::MatchPhase;
 
 pub(crate) use combat::{fire_bullets, move_and_hit_bullets};
@@ -164,5 +167,79 @@ mod tests {
         let state = app.world().resource::<MatchState>();
         assert_eq!(state.phase, MatchPhase::Waiting);
         assert_eq!(state.host_player_id, None);
+    }
+
+    #[test]
+    fn match_runs_through_all_timed_phases_and_resets_players() {
+        let mut app = super::test_support::test_app(MatchPhase::Waiting, 1.0);
+        {
+            let mut settings = app.world_mut().resource_mut::<GameSettings>();
+            settings.match_rules.countdown_seconds = 2.0;
+            settings.match_rules.match_finished_seconds = 2.0;
+        }
+        {
+            let mut state = app.world_mut().resource_mut::<MatchState>();
+            state.start_requested = true;
+            state.room_settings.match_seconds = 2.0;
+        }
+        let first_entity = app
+            .world_mut()
+            .spawn(test_player(1, false, Some(101)))
+            .id();
+        let second_entity = app
+            .world_mut()
+            .spawn(test_player(2, false, Some(102)))
+            .id();
+
+        advance_one_tick(app.world_mut());
+
+        let state = app.world().resource::<MatchState>();
+        assert_eq!(state.phase, MatchPhase::Countdown);
+        assert_eq!(state.phase_time_left, 2.0);
+
+        advance_one_tick(app.world_mut());
+        advance_one_tick(app.world_mut());
+
+        let state = app.world().resource::<MatchState>();
+        assert_eq!(state.phase, MatchPhase::Running);
+        assert_eq!(state.phase_time_left, 2.0);
+
+        app.world_mut()
+            .get_mut::<Player>(first_entity)
+            .expect("first player")
+            .score = 10;
+        app.world_mut()
+            .get_mut::<Player>(second_entity)
+            .expect("second player")
+            .score = 5;
+        advance_one_tick(app.world_mut());
+        advance_one_tick(app.world_mut());
+
+        let state = app.world().resource::<MatchState>();
+        assert_eq!(state.phase, MatchPhase::MatchFinished);
+        assert_eq!(state.phase_time_left, 2.0);
+        assert_eq!(state.match_winner_id, Some(1));
+
+        advance_one_tick(app.world_mut());
+        advance_one_tick(app.world_mut());
+
+        let state = app.world().resource::<MatchState>();
+        assert_eq!(state.phase, MatchPhase::Waiting);
+        assert_eq!(state.phase_time_left, 0.0);
+        assert_eq!(state.match_winner_id, None);
+        assert_eq!(
+            app.world()
+                .get::<Player>(first_entity)
+                .expect("first player")
+                .score,
+            0
+        );
+        assert_eq!(
+            app.world()
+                .get::<Player>(second_entity)
+                .expect("second player")
+                .score,
+            0
+        );
     }
 }
