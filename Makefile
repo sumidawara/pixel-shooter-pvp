@@ -12,18 +12,18 @@ SSH ?= ssh
 
 SERVICE ?=
 RELEASE_TARGET ?= macos
-# ローカルGame Serverのバイナリを子プロセスとして起動するGodotテスト。
-# 事前に make build-game-server が必要なので、他のテストと分けて扱う。
-FRONTEND_SERVER_TESTS ?= join_room_flow_test room_flow_test
 GAME_SERVER_BINARY ?= target/debug/pixel-shooter-server
+# 実行時エラーでquit()へ到達しないGodotテストを打ち切る。実測で最長は約10秒。
+FRONTEND_TEST_TIMEOUT ?= 120
 SSH_HOST ?=
 WAIT_SECONDS ?= 30
 
 .PHONY: help doctor setup \
-	dev up rebuild rebuild-release build-images config stop down restart reload-maps ps logs wait integration urls tunnel \
+	dev up rebuild rebuild-release build-images config stop down restart reload-maps ps logs wait \
+	integration integration-server urls tunnel \
 	build build-game-server check test test-frontend test-frontend-full update-goldens fmt fmt-check lint verify \
 	run-game-server run-matchmaker run-admin-server \
-	web-install web-build web-check web-dev \
+	web-install web-build web-check web-dist-check web-dev \
 	assets-bootstrap assets-build assets-watch godot godot-assets sfx release
 
 ##@ 基本
@@ -122,6 +122,12 @@ wait: ## Matchmaker、Admin Server、Game Serverの準備完了を待機
 integration: wait ## 起動中のCompose環境に対して制御面の統合試験を実行
 	$(NODE) scripts/control_plane_test.mjs
 
+# 各試験は状態を持つため、1本ごとにサーバーを作り直す必要がある。
+# 前提はスクリプト側にまとめてある。
+integration-server: ## 単体GameServerに対する統合試験（要 make build-game-server）
+	NODE="$(NODE)" GAME_SERVER_BIN="$(GAME_SERVER_BINARY)" \
+		scripts/run_server_integration_tests.sh
+
 urls: ## ローカル開発用URLを表示
 	@printf 'Matchmaker:  http://127.0.0.1:8080\n'
 	@printf 'Admin debug: http://127.0.0.1:8081/debug/\n'
@@ -165,36 +171,11 @@ update-goldens: ## クライアント契約テストの期待値を再生成
 	UPDATE_WIRE_GOLDEN=1 $(CARGO) test --locked \
 		-p pixel-shooter-protocol --test wire_golden
 
-# Godotのテストはグローバルクラス名の解決にインポート済みのプロジェクトを必要とする。
-# 新規チェックアウトでも動くよう、毎回インポートしてから実行する。
-# GDScriptはpush_errorでも終了コードを変えないため、出力を検査して失敗を判定する。
+# 前提（インポート、待受サーバー、合否判定、タイムアウト）はスクリプト側にまとめてある。
 test-frontend: ## Godotクライアントのテストを実行（要GODOT_BIN）
-	@$(GODOT_BIN) --headless --path frontend --import >/dev/null 2>&1 || true
-	@failed=0; skipped=''; \
-	for test in frontend/tests/*_test.gd; do \
-		name=$$(basename "$$test" .gd); \
-		case " $(FRONTEND_SERVER_TESTS) " in \
-		*" $$name "*) \
-			if [ ! -x "$(GAME_SERVER_BINARY)" ]; then \
-				skipped="$$skipped $$name"; \
-				printf '  SKIP %s\n' "$$name"; \
-				continue; \
-			fi;; \
-		esac; \
-		output=$$($(GODOT_BIN) --headless --path frontend --script "res://tests/$$name.gd" 2>&1); \
-		if [ $$? -ne 0 ] || printf '%s' "$$output" | grep -q "SCRIPT ERROR\|^ERROR:"; then \
-			printf '  FAIL %s\n%s\n' "$$name" "$$output"; \
-			failed=1; \
-		else \
-			printf '  ok   %s\n' "$$name"; \
-		fi; \
-	done; \
-	if [ -n "$$skipped" ]; then \
-		printf '\n未実行:%s\n' "$$skipped"; \
-		printf 'ローカルGame Serverを起動するテストのため、先に make build-game-server が必要。\n'; \
-		printf 'CIでは make test-frontend-full を使い、未実行を残さないこと。\n'; \
-	fi; \
-	exit $$failed
+	@GODOT_BIN="$(GODOT_BIN)" GAME_SERVER_BIN="$(GAME_SERVER_BINARY)" \
+		FRONTEND_TEST_TIMEOUT="$(FRONTEND_TEST_TIMEOUT)" \
+		scripts/run_frontend_tests.sh
 
 test-frontend-full: build-game-server test-frontend ## Godotテストをローカルサーバー込みで実行
 
@@ -228,6 +209,19 @@ web-build: ## Adminデバッグ画面をビルド
 
 web-check: ## Adminデバッグ画面を型検査
 	$(NPM) --prefix tools/debug-web run check
+
+# tools/debug-web/dist はコミット済みで、AdminServerが include_bytes! で埋め込む。
+# srcを直してビルドを忘れると、配布されるデバッグ画面だけが古いまま残る。
+# Viteのビルドは再現可能なので、差分の有無で陳腐化を判定できる。
+web-dist-check: ## コミット済みのデバッグ画面が最新のsrcから作られているか確認
+	@$(MAKE) --no-print-directory web-build
+	@if ! git diff --quiet -- tools/debug-web/dist; then \
+		printf 'tools/debug-web/dist が src と一致しない。\n'; \
+		printf 'make web-build の結果をコミットすること。\n'; \
+		git --no-pager diff --stat -- tools/debug-web/dist; \
+		exit 1; \
+	fi
+	@printf 'tools/debug-web/dist は src と一致している。\n'
 
 web-dev: ## Adminデバッグ画面のVite開発サーバーを起動
 	$(NPM) --prefix tools/debug-web run dev
