@@ -8,7 +8,10 @@ use serde::Serialize;
 
 use crate::model::MAX_PLAYERS;
 
+mod generator;
 mod navigation;
+
+pub use generator::RANDOM_MAP_ID;
 
 const CLASSIC_ARENA_JSON: &str = include_str!("../../maps/classic_arena.json");
 const MAX_MAP_WIDTH: usize = 256;

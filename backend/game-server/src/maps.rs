@@ -7,7 +7,7 @@ use std::{
 };
 
 use bevy::prelude::Resource;
-use pixel_shooter_game_core::ArenaMap;
+use pixel_shooter_game_core::{ArenaMap, RANDOM_MAP_ID};
 use pixel_shooter_protocol::MapSummary;
 
 #[derive(Resource)]
@@ -70,6 +70,11 @@ impl MapCatalog {
         let mut by_id = BTreeMap::new();
         for map in maps {
             let id = map.id().to_owned();
+            // 「毎回作る」はマップIDの形で伝えているため、実在のマップが
+            // 同じIDを名乗ると、選んでも自動生成にすり替わってしまう。
+            if id == RANDOM_MAP_ID {
+                return Err(format!("{RANDOM_MAP_ID} is reserved for generated maps"));
+            }
             if by_id.insert(id.clone(), map).is_some() {
                 return Err(format!("duplicate map id: {id}"));
             }
@@ -96,6 +101,10 @@ impl MapCatalog {
         self.maps.get(id)
     }
 
+    /// ロビーの一覧。末尾に自動生成の選択肢を足す。
+    ///
+    /// 生成したマップをカタログへ入れて配らないのは、選ぶたびに中身が変わる
+    /// ものだから。IDだけを選択肢として見せ、実体は選ばれたときに作る。
     pub(crate) fn summaries(&self) -> Vec<MapSummary> {
         self.maps
             .values()
@@ -103,6 +112,10 @@ impl MapCatalog {
                 id: map.id().into(),
                 name: map.name().into(),
             })
+            .chain(std::iter::once(MapSummary {
+                id: RANDOM_MAP_ID.into(),
+                name: "RANDOM (NEW EACH MATCH)".into(),
+            }))
             .collect()
     }
 }
@@ -118,7 +131,9 @@ mod tests {
             MapCatalog::load_directory(&directory, "classic_arena").expect("checked-in maps");
         let summaries = catalog.summaries();
 
-        assert_eq!(summaries.len(), 4);
+        // 手書き4枚 + 自動生成の選択肢。
+        assert_eq!(summaries.len(), 5);
+        assert!(summaries.iter().any(|map| map.id == RANDOM_MAP_ID));
         assert!(summaries.iter().any(|map| map.id == "crossroads"));
         assert!(summaries.iter().any(|map| map.id == "four_fortresses"));
         assert!(summaries.iter().any(|map| map.id == "open_range"));

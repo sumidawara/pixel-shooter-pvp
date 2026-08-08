@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use bevy::prelude::*;
 use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{
-    ArenaMap, MAX_PLAYERS, MatchState, Player, apply_network_player_input,
+    ArenaMap, MAX_PLAYERS, MatchState, Player, RANDOM_MAP_ID, apply_network_player_input,
 };
 use pixel_shooter_protocol::{ClientMessage, MatchPhase, ServerMessage};
 
@@ -302,13 +302,25 @@ pub(crate) fn process_network(
                 {
                     let requested_map_id = room_settings.map_id.clone();
                     let mut next_settings = settings.game.sanitize_room_settings(room_settings);
-                    let selected_map = map_catalog
-                        .get(&requested_map_id)
-                        .cloned()
-                        .unwrap_or_else(|| map.clone());
+                    let selected_map = if requested_map_id == RANDOM_MAP_ID {
+                        // 既に生成済みなら作り直さない。ここは得点や試合時間を
+                        // 変えるたびにも届くため、毎回作り直すと数値をいじった
+                        // だけで全員の画面のマップが差し替わる。
+                        if map.id() == RANDOM_MAP_ID {
+                            map.clone()
+                        } else {
+                            ArenaMap::generate(rand::random())
+                        }
+                    } else {
+                        map_catalog
+                            .get(&requested_map_id)
+                            .cloned()
+                            .unwrap_or_else(|| map.clone())
+                    };
                     next_settings.map_id = selected_map.id().into();
 
-                    if selected_map.id() != map.id() {
+                    // 自動生成はIDが同じままなので、版まで見ないと差し替えを取りこぼす。
+                    if selected_map.id() != map.id() || selected_map.revision() != map.revision() {
                         *map = selected_map;
                         for (_, mut player) in &mut players {
                             player.position = map.spawn_position(player.slot);
@@ -388,6 +400,22 @@ pub(crate) fn process_network(
                     ));
                     active_player_count += 1;
                     println!("CPU player {player_id} automatically added for match start");
+                }
+                // 「毎回作る」を選んでいる場合は、試合ごとに地形を作り直す。
+                // 同じ地形を繰り返すなら手書きのマップを選べばよく、
+                // 自動生成を選ぶ理由は毎回違う場所で遊べることにある。
+                if state.room_settings.map_id == RANDOM_MAP_ID {
+                    *map = ArenaMap::generate(rand::random());
+                    for (_, mut player) in &mut players {
+                        // 差し替え前の位置が新しい地形の壁の中ということがある。
+                        player.position = map.spawn_position(player.slot);
+                        player.movement = Vec2::ZERO;
+                        player.shooting = false;
+                        if let Some(player_connection_id) = player.connection_id {
+                            send_map_definition(&network, player_connection_id, &map);
+                        }
+                    }
+                    println!("generated a random arena (revision {})", map.revision());
                 }
                 state.start_requested = true;
                 println!(
