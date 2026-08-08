@@ -105,6 +105,22 @@ Aseprite原本を保存してコミットするだけでよい。書き出し工
 `frontend/tests/sprite_assets_test.gd` が、解析結果と可視性を検査する。
 詳細は [`assets.md`](assets.md)。
 
+### CREATE ROOM でホストしたサーバーを調べる
+
+同梱のGameServerを子プロセスとして起動するため、出力は端末からGodotを
+起動していないと見えない。配布版では見えないので、ログをファイルへ残している。
+
+```text
+Linux   ~/.local/share/godot/app_userdata/Pixel Shooter PvP/server.log
+macOS   ~/Library/Application Support/Godot/app_userdata/Pixel Shooter PvP/server.log
+```
+
+サーバーが落ちた場合は「HOSTED SERVER STOPPED」と終了コードが出る。
+以前は「SERVER OFFLINE — RETRYING」としか出ず、通信の問題と区別できなかった。
+
+`server.json` はカレントディレクトリの次に実行ファイルの隣を見る。
+配布物では `dist/server/server.json` が読まれる。
+
 ## CIでは守れないもの
 
 仕組みで閉じられない範囲を把握しておく。

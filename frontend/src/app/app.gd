@@ -57,6 +57,7 @@ func _ready() -> void:
 	game_screen.map_load_failed.connect(_on_map_load_failed)
 	host_server.server_started.connect(_on_local_server_started)
 	host_server.server_failed.connect(_on_local_server_failed)
+	host_server.server_exited.connect(_on_local_server_exited)
 	NetworkClient.status_changed.connect(_on_status_changed)
 	NetworkClient.welcome_received.connect(_on_welcome_received)
 	NetworkClient.map_catalog_received.connect(menu_screen.set_available_maps)
@@ -146,6 +147,18 @@ func _on_local_server_failed(reason: String) -> void:
 	hosting_room = false
 	menu_screen.set_connecting(false)
 	menu_screen.set_status(reason)
+
+
+## ホストしたサーバーが起動後に落ちた。
+##
+## そのままだと「SERVER OFFLINE — RETRYING」と出て再接続を試み続け、
+## 通信の問題なのかサーバーが死んだのか区別できない。部屋を畳んで理由を伝える。
+func _on_local_server_exited(exit_code: int) -> void:
+	push_error(
+		"hosted server exited with code %d; log: %s" % [exit_code, host_server.log_path]
+	)
+	_leave_room()
+	menu_screen.set_status("HOSTED SERVER STOPPED (CODE %d) — SEE server.log" % exit_code)
 
 
 func _on_welcome_received(player_id: int, reconnected: bool) -> void:

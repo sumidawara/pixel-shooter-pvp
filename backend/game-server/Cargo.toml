@@ -17,3 +17,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 tokio-tungstenite = "0.28"
+
+# 標準出力をログファイルへ向けるために使う（logging.rs）。
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
