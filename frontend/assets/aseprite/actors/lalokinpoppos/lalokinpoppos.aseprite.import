@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://b0wkvxm4l57or"
+path="res://.godot/imported/lalokinpoppos.aseprite-21e6325988ad2240e538d17abf9ca87a.res"
+
+[deps]
+
+source_file="res://assets/aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite"
+dest_files=["res://.godot/imported/lalokinpoppos.aseprite-21e6325988ad2240e538d17abf9ca87a.res"]
+
+[params]
+

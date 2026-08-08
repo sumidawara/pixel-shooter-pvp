@@ -11,7 +11,7 @@ signal crt_preset_changed(preset_id: String)
 signal leave_room_requested
 signal quit_requested
 
-const CURSOR_TEXTURE: Texture2D = preload("res://assets/generated/ui/menu/cursor.png")
+const CURSOR_TEXTURE: Texture2D = preload("res://assets/aseprite/ui/menu/cursor.aseprite")
 const PLAYER_COLORS := [
 	Color("#27e5ff"),
 	Color("#ff38c7"),

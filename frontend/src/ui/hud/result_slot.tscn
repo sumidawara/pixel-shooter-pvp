@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/ui/hud/result_slot.gd" id="1_script"]
 [ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" path="res://assets/generated/actors/player/player_stand.png" id="3_figure"]
+[ext_resource type="Texture2D" path="res://assets/aseprite/actors/player/player_stand.aseprite" id="3_figure"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox"]
 bg_color = Color(0.067, 0.09, 0.133, 0.96)

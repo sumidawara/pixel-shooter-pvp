@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://cnetiatjd2nld"
+path="res://.godot/imported/sparkle.aseprite-684d1aa59cf4fdc599d8fa6a70f53ca1.res"
+
+[deps]
+
+source_file="res://assets/aseprite/effects/sparkle.aseprite"
+dest_files=["res://.godot/imported/sparkle.aseprite-684d1aa59cf4fdc599d8fa6a70f53ca1.res"]
+
+[params]
+
