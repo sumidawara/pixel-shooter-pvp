@@ -33,6 +33,9 @@ Compose環境を要する統合試験は含めていない。所要時間を1〜
 | `web` | Adminデバッグ画面の型検査と、`dist` の陳腐化検査 |
 | `integration` | 単体GameServerとCompose環境に対する統合試験 |
 
+ジョブ名はブランチ保護のrequired checkとして完全一致で指定するため、
+ASCIIの短い名前にしてある。日本語や全角記号を混ぜると指定を誤りやすい。
+
 ### 前提はスクリプトへ入れる
 
 統合試験とGodotテストには、守らないと結果が信用できなくなる前提がある。
@@ -116,13 +119,29 @@ make assets-build
 
 ## main の保護設定
 
-GitHubのSettings → Branches → Add branch protection rule で `main` に対して設定する。
+GitHubのSettings → Rules → Rulesets（新しいUI）、または
+Settings → Branches → Branch protection rules（旧UI）で `main` に対して設定する。
+
+### 設定する順番
+
+required checkは、GitHubが「実際に報告されたことのあるチェック名」からしか
+選べない。CIを一度も走らせていない状態では候補が空になるため、順番が要る。
+
+1. ブランチをpushしてPRを作る
+2. CIが走り、4つのチェックが報告される
+3. そのうえでルールを作り、報告されたチェック名を必須に指定する
+
+存在しないチェック名を必須にすると、PRは
+`Expected — Waiting for status to be reported` のまま永久に止まる。
+必ず実際に走った名前を指定すること。
+
+### 設定内容
 
 - Require a pull request before merging
-- Require status checks to pass before merging
-  - 必須にするチェック: `Rust（整形・lint・テスト）` / `Godotクライアント` /
-    `Adminデバッグ画面` / `サービス間の結合`
+- Require status checks to pass
+  - 必須にするチェック: `rust` / `frontend` / `web` / `integration`
   - Require branches to be up to date before merging
-- Do not allow bypassing the above settings
+- Block force pushes
+- Restrict deletions
 
 force pushと履歴改変、protected branchへの直接pushは行わない。
