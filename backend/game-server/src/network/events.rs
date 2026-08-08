@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use bevy::prelude::*;
 use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{
-    ArenaMap, MAX_PLAYERS, MatchState, Player, RANDOM_MAP_ID, apply_network_player_input,
+    ArenaMap, CpuLevel, MAX_PLAYERS, MatchState, Player, RANDOM_MAP_ID, apply_network_player_input,
 };
 use pixel_shooter_protocol::{ClientMessage, MatchPhase, ServerMessage};
 
@@ -199,6 +199,7 @@ pub(crate) fn process_network(
                     player_id,
                     Some(connection_id),
                     PlayerKind::Human,
+                    CpuLevel::default(),
                     token.clone(),
                     slot,
                     sanitize_name(&name, player_id),
@@ -250,13 +251,17 @@ pub(crate) fn process_network(
                     player_id,
                     None,
                     PlayerKind::Cpu,
+                    CpuLevel::from_number(state.room_settings.cpu_level),
                     String::new(),
                     slot,
                     format!("CPU-{}", slot + 1),
                     &settings,
                     &map,
                 ));
-                println!("CPU player {player_id} added in slot {slot}");
+                println!(
+                    "CPU player {player_id} added in slot {slot} at level {}",
+                    state.room_settings.cpu_level
+                );
             }
             NetworkEvent::Message(connection_id, ClientMessage::RemoveCpu { player_id }) => {
                 if !is_host_connection(connection_id, &state, &players)
@@ -371,6 +376,7 @@ pub(crate) fn process_network(
                             player_id,
                             None,
                             PlayerKind::Dummy,
+                            CpuLevel::default(),
                             String::new(),
                             slot,
                             format!("DUMMY-{}", slot + 1),
@@ -392,6 +398,7 @@ pub(crate) fn process_network(
                         player_id,
                         None,
                         PlayerKind::Cpu,
+                        CpuLevel::from_number(state.room_settings.cpu_level),
                         String::new(),
                         slot,
                         format!("CPU-{}", slot + 1),
@@ -456,6 +463,7 @@ fn new_player(
     id: u64,
     connection_id: Option<u64>,
     kind: PlayerKind,
+    cpu_level: CpuLevel,
     reconnect_token: String,
     slot: usize,
     name: String,
@@ -467,6 +475,7 @@ fn new_player(
         connection_id,
         is_cpu: kind != PlayerKind::Human,
         is_dummy: kind == PlayerKind::Dummy,
+        cpu_level,
         reconnect_token,
         reconnect_grace_left: 0.0,
         slot,

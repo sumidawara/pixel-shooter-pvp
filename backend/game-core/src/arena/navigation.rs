@@ -35,6 +35,21 @@ impl ArenaMap {
         })
     }
 
+    /// 2点のあいだに壁が無いか。体の大きさは考えない。
+    ///
+    /// 「見えるか」に`has_clear_player_path`を使ってはいけない。あちらは体が
+    /// 通れるかを見るので、幅1タイルの通路では中心から少しずれただけで
+    /// 通らない判定になる。通路の多い地形では、CPUがほとんど何も見えなくなる。
+    pub(crate) fn has_line_of_sight(&self, start: Vec2, end: Vec2) -> bool {
+        let distance = start.distance(end);
+        let sample_distance = (self.tile_size * 0.25).max(1.0);
+        let steps = (distance / sample_distance).ceil().max(1.0) as usize;
+        (0..=steps).all(|step| {
+            let position = start.lerp(end, step as f32 / steps as f32);
+            !self.obstacle_at(position, 0.0)
+        })
+    }
+
     /// A*で壁を避ける経路を求め、開始地点を除くウェイポイント列へ変換する。
     pub(crate) fn find_player_path(&self, start: Vec2, end: Vec2) -> Option<Vec<Vec2>> {
         let start_cell = self.grid_position(start)?;

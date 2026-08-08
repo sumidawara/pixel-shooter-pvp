@@ -3,6 +3,12 @@
 use bevy::prelude::*;
 use pixel_shooter_protocol::{BULLET_RADIUS, PLAYER_RADIUS};
 
+/// バーサク中に弾が速くなる倍率。
+///
+/// CPUの偏差撃ちが同じ値を見る必要があるため、ここに置いて共有する。
+/// 2箇所に書くと、片方だけ変えたときにCPUの狙いが静かにずれる。
+pub(super) const BERSERK_BULLET_SPEED_MULTIPLIER: f32 = 1.3;
+
 use crate::{
     arena::ArenaMap,
     model::{Bullet, MatchState, Player},
@@ -50,7 +56,13 @@ pub(crate) fn fire_bullets(
             id: state.next_bullet_id,
             owner_id: player.id,
             position: player.position + aim * (PLAYER_RADIUS + 6.0),
-            velocity: aim * settings.gameplay.bullet_speed * if berserk { 1.3 } else { 1.0 },
+            velocity: aim
+                * settings.gameplay.bullet_speed
+                * if berserk {
+                    BERSERK_BULLET_SPEED_MULTIPLIER
+                } else {
+                    1.0
+                },
             life_left: if berserk { 2.6 } else { 2.0 },
             damage: if berserk { 2 } else { 1 },
         });

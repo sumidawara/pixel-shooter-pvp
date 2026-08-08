@@ -603,6 +603,21 @@ theme_override_font_sizes/font_size = 10
 text = "PRACTICE ALONE: DUMMIES, ALL ITEMS, NO TIME LIMIT"
 autowrap_mode = 2
 
+[node name="CpuLevelRow" type="HBoxContainer" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+
+[node name="CpuLevelLabel" type="Label" parent="CreatePage/RulesPanel/Margin/Content/CpuLevelRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CPU LEVEL"
+
+[node name="CpuLevelOption" type="OptionButton" parent="CreatePage/RulesPanel/Margin/Content/CpuLevelRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+action_mode = 0
+
 [node name="MapRow" type="HBoxContainer" parent="CreatePage/RulesPanel/Margin/Content"]
 layout_mode = 2
 

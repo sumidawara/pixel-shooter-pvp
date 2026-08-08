@@ -3,6 +3,8 @@
 use bevy::prelude::*;
 use pixel_shooter_protocol::{ItemKind, MatchPhase, RoomSettings};
 
+use crate::cpu_skill::CpuLevel;
+
 pub const MAX_PLAYERS: usize = 4;
 
 /// 試合全体で1つだけ存在する状態。
@@ -46,6 +48,11 @@ pub struct Player {
     ///
     /// `is_cpu`と併用する。接続を持たない点は同じで、AIが動かさない点だけが違う。
     pub is_dummy: bool,
+    /// CPUの強さ。人間とダミーでは使われない。
+    ///
+    /// ルームの設定ではなくプレイヤー自身に持たせるのは、途中で設定が変わっても
+    /// 既に居るCPUの強さが入れ替わらないようにするため。
+    pub cpu_level: CpuLevel,
     pub reconnect_token: String,
     pub reconnect_grace_left: f32,
     pub slot: usize,

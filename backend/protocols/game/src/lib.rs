@@ -137,6 +137,15 @@ pub struct RoomSettings {
     /// ダミーを倒しても得点は動かない。
     #[serde(default)]
     pub sandbox: bool,
+    /// このルームで追加するCPUの強さ（1〜4）。
+    ///
+    /// 数値の中身はサーバーが持つ。クライアントは番号だけを選ぶ。
+    #[serde(default = "default_cpu_level")]
+    pub cpu_level: u8,
+}
+
+fn default_cpu_level() -> u8 {
+    3
 }
 
 impl Default for RoomSettings {
@@ -150,6 +159,7 @@ impl Default for RoomSettings {
             item_spawn_interval: 5.0,
             max_items: 3,
             sandbox: false,
+            cpu_level: default_cpu_level(),
         }
     }
 }

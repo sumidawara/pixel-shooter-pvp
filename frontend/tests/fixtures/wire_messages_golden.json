@@ -201,6 +201,7 @@
         "host_player_id": 1,
         "max_players": 4,
         "settings": {
+          "cpu_level": 4,
           "death_penalty": 25,
           "item_points": 20,
           "item_spawn_interval": 5.0,

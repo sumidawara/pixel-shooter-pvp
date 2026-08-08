@@ -28,6 +28,9 @@
     "item_spawn_interval": 5.0,
     "max_items": 3
   },
+  "cpu": {
+    "levels": []
+  },
   "gameplay": {
     "move_speed": 150.0,
     "bullet_speed": 340.0,

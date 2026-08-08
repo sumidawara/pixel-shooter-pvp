@@ -18,6 +18,16 @@ const PLAYER_COLORS := [
 	Color("#ffe66d"),
 	Color("#7cff6b"),
 ]
+## CPUの強さの選択肢。数値の中身はサーバーが持ち、ここは番号だけを選ぶ。
+##
+## 名前を付けているのは、番号だけだと何が変わるのか分からないため。
+const CPU_LEVEL_LABELS := [
+	"1  ROOKIE",
+	"2  REGULAR",
+	"3  VETERAN",
+	"4  ACE",
+]
+
 ## この操作を押したら、Play画面のフォーカスを最初の行から始める。
 const FOCUS_START_ACTIONS := [
 	"ui_up", "ui_down", "ui_focus_next", "ui_focus_prev", "ui_accept",
@@ -56,6 +66,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var item_points_input: SpinBox = %ItemPointsInput
 @onready var max_items_input: SpinBox = %MaxItemsInput
 @onready var sandbox_check: CheckBox = %SandboxCheck
+@onready var cpu_level_option: OptionButton = %CpuLevelOption
 
 var is_web := false
 var is_room_host := false
@@ -101,7 +112,9 @@ func _bind_buttons() -> void:
 
 
 func _bind_room_settings() -> void:
+	_configure_cpu_level_option()
 	map_option.item_selected.connect(_on_map_selected)
+	cpu_level_option.item_selected.connect(func(_index: int): _emit_room_settings())
 	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
 	for input in [
 		match_seconds_input,
@@ -236,6 +249,7 @@ func get_room_settings() -> Dictionary:
 		"item_spawn_interval": 5.0,
 		"max_items": int(max_items_input.value),
 		"sandbox": sandbox_check.button_pressed,
+		"cpu_level": cpu_level_option.selected + 1,
 	}
 
 
@@ -297,6 +311,7 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 		start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	map_option.disabled = not is_room_host
 	sandbox_check.disabled = not is_room_host
+	cpu_level_option.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -324,6 +339,7 @@ func _apply_room_settings(settings: Dictionary) -> void:
 	item_points_input.value = float(settings.get("item_points", 20))
 	max_items_input.value = float(settings.get("max_items", 3))
 	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
+	cpu_level_option.select(clampi(int(settings.get("cpu_level", 3)) - 1, 0, CPU_LEVEL_LABELS.size() - 1))
 	applying_room_snapshot = false
 
 
@@ -359,6 +375,14 @@ func _select_map(map_id: String) -> void:
 func _on_map_selected(index: int) -> void:
 	selected_map_id = str(map_option.get_item_metadata(index))
 	_emit_room_settings()
+
+## CPUの強さの選択肢を並べる。
+func _configure_cpu_level_option() -> void:
+	cpu_level_option.clear()
+	for label in CPU_LEVEL_LABELS:
+		cpu_level_option.add_item(label)
+	cpu_level_option.select(2)
+
 
 func _configure_crt_preset_option() -> void:
 	crt_preset_option.clear()
