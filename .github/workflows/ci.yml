@@ -1,13 +1,24 @@
 name: CI
 
-# main は保護し、変更はPR経由で入れる。pushにも反応させるのは、
-# 保護設定の適用漏れやマージ後の状態をそのまま見えるようにするため。
+# PRだけで走らせる。
+#
+# pull_request は「PRブランチをbaseへマージした結果」(refs/pull/N/merge) を
+# 検査するので、マージ後のmainはこの時点で検査済みになる。
+# push: main を足すと同じ内容をもう一度回すだけになるため置いていない。
+#
+# これは main の保護で
+#   - Require a pull request before merging
+#   - Require status checks to pass
+#   - Require branches to be up to date before merging
+# が有効であることが前提。最後の1つが無いと、CIが緑になった後にmainが進んでも
+# そのままマージでき、その組み合わせを誰も検査しないまま入る。
+#
+# mainからデプロイする、あるいは「このコミットで緑だった」という記録を
+# 残したくなったら、push: branches: [main] を戻す。
 on:
   pull_request:
-  push:
-    branches: [main]
 
-# 同じブランチで新しい実行が始まったら、古い実行は打ち切る。
+# 同じPRで新しい実行が始まったら、古い実行は打ち切る。
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
