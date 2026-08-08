@@ -26,12 +26,41 @@ func _run() -> void:
 	await _check_death_is_noticed()
 	_check_missing_binary_message_lists_paths()
 
+	await _check_failed_hosting_leaves_the_room_screen()
+
 	if not _failures.is_empty():
 		push_error("host server:\n  " + "\n  ".join(_failures))
 		quit(1)
 		return
 	print("host server: 失敗経路と生存監視が期待どおりだった")
 	quit(0)
+
+
+## 起動できなかったとき、操作できないルーム画面に取り残されないこと。
+##
+## ルーム画面は起動を待たずに開くため、失敗しても閉じないと
+## ADD CPU も START GAME も効かない画面で詰む。
+func _check_failed_hosting_leaves_the_room_screen() -> void:
+	var main_scene: PackedScene = load("res://src/app/main.tscn")
+	var main = main_scene.instantiate()
+	root.add_child(main)
+	await process_frame
+
+	var menu = main.get_node("MenuScreen")
+	# CREATE ROOM と同じ順序で、先にルーム画面を開いてから失敗させる。
+	menu.show_room(true, "ws://127.0.0.1:9001")
+	if not menu.create_page.visible:
+		_failures.append("検査の前提が崩れている: ルーム画面が開かない")
+	main._on_local_server_failed("PORT 9001 IS ALREADY IN USE")
+	await process_frame
+
+	if menu.create_page.visible:
+		_failures.append("起動に失敗してもルーム画面に留まっている")
+	if not menu.status_label.text.contains("9001"):
+		_failures.append("理由が表示されていない: %s" % menu.status_label.text)
+
+	main.queue_free()
+	await process_frame
 
 
 ## 制御APIのポートだけが埋まっている場合も、起動前に気付くこと。

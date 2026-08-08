@@ -143,10 +143,14 @@ func _on_local_server_started(url: String) -> void:
 	NetworkClient.connect_to_server(url, NetworkClient.player_name)
 
 
+## 同梱サーバーを起動できなかった。
+##
+## ルーム画面は起動を待たずに開いているため、ここで戻さないと
+## 何も操作できない画面に取り残される。
 func _on_local_server_failed(reason: String) -> void:
 	hosting_room = false
 	menu_screen.set_connecting(false)
-	menu_screen.set_status(reason)
+	menu_screen.show_room_failed(reason)
 
 
 ## ホストしたサーバーが起動後に落ちた。

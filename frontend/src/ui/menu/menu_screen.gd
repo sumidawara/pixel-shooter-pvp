@@ -112,6 +112,16 @@ func show_join() -> void:
 	_show_page(join_page)
 
 
+## ルームを開けなかったので、選択画面へ戻す。
+##
+## ルーム画面に残すと、ADD CPU も START GAME も効かない画面で詰む。
+## 原因は status に出るが、そこから抜ける手段が LEAVE ROOM しかない状態になる。
+func show_room_failed(reason: String) -> void:
+	is_room_host = false
+	_show_page(play_page)
+	set_status(reason)
+
+
 func show_room(hosting: bool, address: String) -> void:
 	is_room_host = hosting
 	_show_page(create_page)
