@@ -28,8 +28,8 @@ Adminデバッグ画面の型検査と、Godotクライアントのテストを�
 make verify
 ```
 
-`make test-frontend`はローカルGame Serverを起動する2本を`SKIP`として明示する。
-CIなど未実行を残したくない場面では`make test-frontend-full`を使う。
+`make test-frontend`はGameServerのバイナリが無いと2本を`SKIP`として明示する。
+未実行を残したくない場面では`make test-frontend-full`を使う。
 
 サーバー側のゲーム規則や通信フォーマットを変更した場合は、クライアントとの
 契約テストの期待値を再生成し、Godot側を追従させる。
@@ -38,6 +38,18 @@ CIなど未実行を残したくない場面では`make test-frontend-full`を�
 make update-goldens
 make test-frontend
 ```
+
+サービス間の結合はCompose環境と単体GameServerに対して確認する。
+
+```sh
+make build-game-server
+make integration-server
+make dev
+make integration
+```
+
+ブランチ運用、変更の種類ごとの手順、CIが見る範囲と見られない範囲は
+[`docs/development-flow.md`](docs/development-flow.md)にまとめている。
 
 通常の開発では、Admin Server、Matchmaker、Game Server 2台をまとめて起動する。
 
@@ -237,7 +249,7 @@ make release RELEASE_TARGET=pck
 - `backend/admin-server/`: サーバープール管理、Control中継、デバッグ画面
 - `backend/protocols/game/`: GodotとGameServer間のゲーム通信型
 - `backend/protocols/admin/`: サーバー間の管理通信型とTicket署名
-- `docs/`: プロトコル、ゲームルール、バックエンド構成
+- `docs/`: プロトコル、ゲームルール、バックエンド構成、開発フロー
 - `docker-compose.yml`: 固定数GameServerプールの開発構成
 - `Makefile`: 開発、検査、Compose操作、リリースの共通コマンド
 - `server.json`: サーバーの運用・ゲーム設定
