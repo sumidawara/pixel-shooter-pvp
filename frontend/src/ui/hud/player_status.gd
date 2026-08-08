@@ -37,7 +37,11 @@ func apply_player(
 	_apply_panel_style(color, is_local)
 
 	var display_name := str(player.get("name", "P"))
-	if bool(player.get("is_cpu", false)):
+	# 撃ち返してくるCPUと、撃ち返してこない的を見分けられるようにする。
+	# どちらも is_cpu なので、印が同じだと画面の上では区別がつかない。
+	if bool(player.get("is_dummy", false)):
+		display_name += "-"
+	elif bool(player.get("is_cpu", false)):
 		display_name += "*"
 	name_label.text = display_name
 	rank_label.text = "#%d" % rank

@@ -60,7 +60,9 @@ pub(crate) fn update_cpu_players(
     let step = settings.gameplay.move_speed * clock.delta_seconds();
 
     for mut cpu in &mut players {
-        if !cpu.is_cpu || !cpu.alive {
+        // ダミーはCPUではあるが、狙いも移動も持たない。ここで除くのは
+        // 経路探索の対象からも外すため（動かないので経路は要らない）。
+        if !cpu.is_cpu || cpu.is_dummy || !cpu.alive {
             continue;
         }
         let Some((enemy_id, enemy_position, _)) = targets

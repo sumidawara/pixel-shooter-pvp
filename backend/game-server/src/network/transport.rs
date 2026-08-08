@@ -5,11 +5,10 @@ use std::{collections::VecDeque, time::Duration};
 use crossbeam_channel::Sender;
 use futures_util::{SinkExt, StreamExt};
 use pixel_shooter_protocol::ClientMessage;
-use tokio::{
-    net::{TcpListener, TcpStream},
-    sync::mpsc,
-};
+use tokio::{net::TcpStream, sync::mpsc};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
+
+use crate::bind::listen_with_search;
 
 use super::{ClientSenders, NetworkEvent, NetworkThreadSettings, snapshot::should_drop_packet};
 
@@ -17,22 +16,35 @@ use super::{ClientSenders, NetworkEvent, NetworkThreadSettings, snapshot::should
 ///
 /// 非同期通信をBevyのSystem内で待つとゲーム更新が止まるため、
 /// 通信は別スレッド、ゲーム計算はBevyのメインスレッドと役割を分ける。
+/// `bind_result` へ実際に開けたアドレスを返してから、接続の受け付けを始める。
+/// 設定によっては希望した番号と違うため、返ってきた方を接続先として扱う。
+///
+/// 以前はここで結果を返さずスレッドを起こしていたため、呼び出し側は待受に
+/// 成功したものとして「listening on ...」を表示し、その直後にこのスレッドが
+/// bind に失敗してプロセスごと終了していた。ログだけ見ると起動したように
+/// 読めてしまい、原因にたどり着けない。
 pub(super) fn start_network_thread(
     events: Sender<NetworkEvent>,
     clients: ClientSenders,
     settings: NetworkThreadSettings,
+    bind_result: Sender<Result<String, String>>,
 ) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
         runtime.block_on(async move {
-            let listener = match TcpListener::bind(&settings.bind_address).await {
-                Ok(listener) => listener,
+            let listener = match listen_with_search(
+                &settings.bind_address,
+                settings.port_search_range,
+            )
+            .await
+            {
+                Ok((listener, address)) => {
+                    let _ = bind_result.send(Ok(address));
+                    listener
+                }
                 Err(error) => {
-                    eprintln!(
-                        "could not bind WebSocket server to {}: {error}",
-                        settings.bind_address
-                    );
-                    std::process::exit(1);
+                    let _ = bind_result.send(Err(format!("WebSocket server: {error}")));
+                    return;
                 }
             };
             let mut next_client_id = 1_u64;

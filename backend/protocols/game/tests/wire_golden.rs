@@ -101,6 +101,7 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                         max_hp: 5,
                         score: 120,
                         is_cpu: false,
+                        is_dummy: false,
                         connected: true,
                         reconnect_grace_left: 0.0,
                         alive: true,
@@ -124,13 +125,14 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                     },
                     PlayerSnapshot {
                         id: 2,
-                        name: "CPU-2".into(),
+                        name: "DUMMY-2".into(),
                         position: vec2(560.0, 272.0),
                         aim: vec2(-1.0, 0.0),
                         hp: 0,
                         max_hp: 5,
                         score: -25,
                         is_cpu: true,
+                        is_dummy: true,
                         connected: true,
                         reconnect_grace_left: 0.0,
                         alive: false,
@@ -183,7 +185,12 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                     host_player_id: Some(1),
                     can_start: false,
                     max_players: 4,
-                    settings: RoomSettings::default(),
+                    // 練習場のON側を固定する。既定のOFFだけだと、
+                    // 設定が届かなくなっても気付けない。
+                    settings: RoomSettings {
+                        sandbox: true,
+                        ..RoomSettings::default()
+                    },
                 },
             })),
         ),

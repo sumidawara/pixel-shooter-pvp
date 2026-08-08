@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
     damage::{apply_damage, award_kill, can_be_hit},
-    is_playing_phase,
+    is_playing_phase, sandbox,
     score::add_points,
 };
 
@@ -45,7 +45,12 @@ pub(crate) fn update_items(
     }
 
     state.item_spawn_left = (state.item_spawn_left - dt).max(0.0);
-    if state.item_spawn_left <= 0.0 {
+    if state.item_spawn_left <= 0.0 && state.room_settings.sandbox {
+        // 練習場では抽選も個数上限も使わない。全種類が常に置いてある状態を保つ。
+        let present: Vec<ItemKind> = items.iter().map(|(_, item)| item.kind).collect();
+        sandbox::restock_items(&mut commands, &map, &mut state, &present);
+        state.item_spawn_left = sandbox::ITEM_RESTOCK_SECONDS;
+    } else if state.item_spawn_left <= 0.0 {
         if items.iter().len() < state.room_settings.max_items as usize {
             let player_positions: Vec<_> = players
                 .iter()

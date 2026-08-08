@@ -48,6 +48,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var death_penalty_input: SpinBox = %DeathPenaltyInput
 @onready var item_points_input: SpinBox = %ItemPointsInput
 @onready var max_items_input: SpinBox = %MaxItemsInput
+@onready var sandbox_check: CheckBox = %SandboxCheck
 
 var is_web := false
 var is_room_host := false
@@ -92,6 +93,7 @@ func _bind_buttons() -> void:
 
 func _bind_room_settings() -> void:
 	map_option.item_selected.connect(_on_map_selected)
+	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -110,6 +112,25 @@ func show_title() -> void:
 
 func show_join() -> void:
 	_show_page(join_page)
+
+
+## ルームを開けなかったので、選択画面へ戻す。
+##
+## ルーム画面に残すと、ADD CPU も START GAME も効かない画面で詰む。
+## 原因は status に出るが、そこから抜ける手段が LEAVE ROOM しかない状態になる。
+func show_room_failed(reason: String) -> void:
+	is_room_host = false
+	_show_page(play_page)
+	set_status(reason)
+
+
+## 実際に使っている接続先を表示し直す。
+##
+## ルーム画面はサーバーの起動を待たずに開くので、希望のポートが埋まって
+## 別の番号になった場合、最初に出した表示が嘘になる。
+## 他の人はこの表示を見て JOIN ROOM に入力するため、必ず合わせる。
+func set_room_address(address: String) -> void:
+	room_address_label.text = address
 
 
 func show_room(hosting: bool, address: String) -> void:
@@ -205,6 +226,7 @@ func get_room_settings() -> Dictionary:
 		"item_points": int(item_points_input.value),
 		"item_spawn_interval": 5.0,
 		"max_items": int(max_items_input.value),
+		"sandbox": sandbox_check.button_pressed,
 	}
 
 
@@ -236,8 +258,13 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 	add_cpu_button.disabled = player_count >= 4
 	remove_cpu_button.disabled = last_cpu_id == 0
 	start_button.disabled = not can_start
-	start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
+	# 練習場では空きスロットが的で埋まるので、相手のCPUは足されない。
+	if sandbox_check.button_pressed:
+		start_button.text = "START SANDBOX"
+	else:
+		start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	map_option.disabled = not is_room_host
+	sandbox_check.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -264,6 +291,7 @@ func _apply_room_settings(settings: Dictionary) -> void:
 	death_penalty_input.value = float(settings.get("death_penalty", 25))
 	item_points_input.value = float(settings.get("item_points", 20))
 	max_items_input.value = float(settings.get("max_items", 3))
+	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
 	applying_room_snapshot = false
 
 

@@ -7,6 +7,7 @@ mod items;
 mod match_flow;
 mod movement;
 mod respawn;
+mod sandbox;
 mod score;
 
 #[cfg(test)]
@@ -20,6 +21,7 @@ pub(crate) use items::{update_ghost_thieves, update_items, update_larokin_poppos
 pub(crate) use match_flow::update_match;
 pub(crate) use movement::move_players;
 pub(crate) use respawn::update_respawns;
+pub(crate) use sandbox::update_sandbox_dummies;
 
 pub(super) fn is_playing_phase(phase: MatchPhase) -> bool {
     phase == MatchPhase::Running
@@ -52,6 +54,7 @@ mod tests {
             id,
             connection_id,
             is_cpu,
+            is_dummy: false,
             reconnect_token: String::new(),
             reconnect_grace_left: 0.0,
             slot: id as usize - 1,

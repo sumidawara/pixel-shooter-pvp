@@ -115,6 +115,10 @@ Linux   ~/.local/share/godot/app_userdata/Pixel Shooter PvP/server.log
 macOS   ~/Library/Application Support/Godot/app_userdata/Pixel Shooter PvP/server.log
 ```
 
+希望のポートが埋まっている場合は、空いている番号を順に探して開く。
+番号が変わったときは「PORT 9001 WAS BUSY — HOSTING ON 9002」と表示し、
+ルーム画面の接続先も実際の値へ更新する。他の人はその表示を見て入るため。
+
 サーバーが落ちた場合は「HOSTED SERVER STOPPED」と終了コードが出る。
 以前は「SERVER OFFLINE — RETRYING」としか出ず、通信の問題と区別できなかった。
 

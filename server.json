@@ -1,6 +1,7 @@
 {
   "network": {
     "bind_address": "127.0.0.1:9001",
+    "port_search_range": 20,
     "tick_rate": 60.0,
     "snapshot_every_ticks": 3,
     "simulated_latency_ms": 0,
@@ -8,6 +9,7 @@
   },
   "control": {
     "bind_address": "127.0.0.1:9101",
+    "port_search_range": 20,
     "control_url": "http://127.0.0.1:9101",
     "server_id": "local-game-1",
     "public_url": "ws://127.0.0.1:9001",

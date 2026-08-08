@@ -145,6 +145,7 @@
           "id": 1,
           "invulnerable_left": 0.5,
           "is_cpu": false,
+          "is_dummy": false,
           "last_input_sequence": 987,
           "max_ammo": 6,
           "max_hp": 5,
@@ -177,10 +178,11 @@
           "id": 2,
           "invulnerable_left": 0.0,
           "is_cpu": true,
+          "is_dummy": true,
           "last_input_sequence": 0,
           "max_ammo": 6,
           "max_hp": 5,
-          "name": "CPU-2",
+          "name": "DUMMY-2",
           "position": {
             "x": 560.0,
             "y": 272.0
@@ -205,7 +207,8 @@
           "kill_points": 100,
           "map_id": "classic_arena",
           "match_seconds": 120.0,
-          "max_items": 3
+          "max_items": 3,
+          "sandbox": true
         }
       },
       "tick": 1234,

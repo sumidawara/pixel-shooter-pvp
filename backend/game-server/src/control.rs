@@ -23,9 +23,9 @@ use pixel_shooter_admin_protocol::{
 use pixel_shooter_game_core::{MatchState, Player};
 use pixel_shooter_protocol::MatchPhase;
 use serde::Serialize;
-use tokio::{net::TcpListener, sync::oneshot};
+use tokio::sync::oneshot;
 
-use crate::config::ServerSettings;
+use crate::{bind::listen_with_search, config::ServerSettings};
 
 pub(crate) type SharedGameSnapshot = Arc<RwLock<Option<String>>>;
 type CommandResult = Result<ControlState, String>;
@@ -41,6 +41,8 @@ enum ControlCommand {
 
 #[derive(Resource)]
 pub(crate) struct ControlPlane {
+    /// 実際に開けた制御APIのアドレス。開けなかった場合は`None`。
+    pub(crate) bind_address: Option<String>,
     commands: Receiver<ControlCommand>,
     shared_state: Arc<RwLock<ControlState>>,
     snapshot: SharedGameSnapshot,
@@ -136,8 +138,14 @@ struct ErrorBody {
     error: String,
 }
 
+/// 制御APIを開始する。実際に開けたアドレスは`ControlPlane::bind_address`に入る。
+///
+/// 制御APIが開けなくても対戦そのものは成立するため、失敗しても起動は続ける。
+/// ただし黙って落ちると管理機能だけが死んでいることに気付けないので、
+/// 結果が返るまで待って理由を表示する。
 pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
     let (command_tx, command_rx) = unbounded();
+    let (bind_tx, bind_rx) = unbounded();
     let shared_state = Arc::new(RwLock::new(ControlState {
         server_id: settings.control.server_id.clone(),
         status: GameServerStatus::Available,
@@ -152,6 +160,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
     let snapshot = Arc::new(RwLock::new(None));
     start_http_thread(
         settings.control.bind_address.clone(),
+        settings.control.port_search_range,
         settings.control.admin_url.clone(),
         GameServerRegistration {
             server_id: settings.control.server_id.clone(),
@@ -163,8 +172,22 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
             shared_state: shared_state.clone(),
             snapshot: snapshot.clone(),
         },
+        bind_tx,
     );
+    let bind_address = match bind_rx.recv() {
+        Ok(Ok(address)) => Some(address),
+        Ok(Err(error)) => {
+            eprintln!("{error}");
+            eprintln!("control API is unavailable; the match itself still runs");
+            None
+        }
+        Err(_) => {
+            eprintln!("control thread stopped before binding");
+            None
+        }
+    };
     ControlPlane {
+        bind_address,
         commands: command_rx,
         shared_state,
         snapshot,
@@ -173,9 +196,11 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
 
 fn start_http_thread(
     bind_address: String,
+    port_search_range: u32,
     admin_url: String,
     registration: GameServerRegistration,
     state: HttpState,
+    bind_result: Sender<Result<String, String>>,
 ) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("control Tokio runtime");
@@ -187,13 +212,15 @@ fn start_http_thread(
                     state.shared_state.clone(),
                 ));
             }
-            let listener = match TcpListener::bind(&bind_address).await {
-                Ok(listener) => listener,
-                Err(error) => {
-                    eprintln!("could not bind control server to {bind_address}: {error}");
-                    return;
-                }
-            };
+            let (listener, bind_address) =
+                match listen_with_search(&bind_address, port_search_range).await {
+                    Ok(opened) => opened,
+                    Err(error) => {
+                        let _ = bind_result.send(Err(format!("control server: {error}")));
+                        return;
+                    }
+                };
+            let _ = bind_result.send(Ok(bind_address.clone()));
             let app = Router::new()
                 .route("/internal/health", get(health))
                 .route("/internal/state", get(current_state))
@@ -205,7 +232,6 @@ fn start_http_thread(
                 .route("/internal/debug/scenario", post(load_scenario))
                 .route("/internal/debug/scenario/clear", post(clear_scenario))
                 .with_state(state);
-            println!("GameServer control API listening on http://{bind_address}");
             if let Err(error) = axum::serve(listener, app).await {
                 eprintln!("control server stopped: {error}");
             }

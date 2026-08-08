@@ -57,6 +57,8 @@ impl Plugin for GameCorePlugin {
                     game::update_match,
                     game::update_cpu_players,
                     apply_player_input_overrides,
+                    // 練習場の的は、どの入力経路を通っても動かないようにする。
+                    game::update_sandbox_dummies,
                     game::update_items,
                     game::move_players,
                     game::fire_bullets,

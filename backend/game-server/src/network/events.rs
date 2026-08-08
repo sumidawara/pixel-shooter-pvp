@@ -198,7 +198,7 @@ pub(crate) fn process_network(
                 commands.spawn(new_player(
                     player_id,
                     Some(connection_id),
-                    false,
+                    PlayerKind::Human,
                     token.clone(),
                     slot,
                     sanitize_name(&name, player_id),
@@ -249,7 +249,7 @@ pub(crate) fn process_network(
                 commands.spawn(new_player(
                     player_id,
                     None,
-                    true,
+                    PlayerKind::Cpu,
                     String::new(),
                     slot,
                     format!("CPU-{}", slot + 1),
@@ -341,8 +341,35 @@ pub(crate) fn process_network(
                     .iter()
                     .filter(|(_, player)| player.is_cpu || player.connection_id.is_some())
                     .count();
-                // ホスト1人だけでも開始できるよう、対戦相手のCPUを自動で補う。
-                if active_player_count == 1 {
+                // 練習場では、空いているスロットをすべて的で埋める。
+                // 撃つ相手が要るのは対戦と同じだが、ここで要るのは撃ち返さない相手。
+                //
+                // 的をプレイヤーとして置いているのは、Ghost（他人の持ち物を奪う）と
+                // ラロキンポッポス（得点1位を狙う）が、プレイヤーしか対象にできないため。
+                // 別種のEntityにすると、この2つだけ練習場で試せなくなる。
+                if state.room_settings.sandbox {
+                    while occupied_slots.len() < MAX_PLAYERS {
+                        let slot = (0..MAX_PLAYERS)
+                            .find(|slot| !occupied_slots.contains(slot))
+                            .expect("free sandbox slot");
+                        occupied_slots.push(slot);
+                        state.next_player_id += 1;
+                        let player_id = state.next_player_id;
+                        commands.spawn(new_player(
+                            player_id,
+                            None,
+                            PlayerKind::Dummy,
+                            String::new(),
+                            slot,
+                            format!("DUMMY-{}", slot + 1),
+                            &settings,
+                            &map,
+                        ));
+                        active_player_count += 1;
+                        println!("sandbox dummy {player_id} added in slot {slot}");
+                    }
+                } else if active_player_count == 1 {
+                    // ホスト1人だけでも開始できるよう、対戦相手のCPUを自動で補う。
                     let slot = (0..MAX_PLAYERS)
                         .find(|slot| !occupied_slots.contains(slot))
                         .expect("automatic CPU slot");
@@ -352,7 +379,7 @@ pub(crate) fn process_network(
                     commands.spawn(new_player(
                         player_id,
                         None,
-                        true,
+                        PlayerKind::Cpu,
                         String::new(),
                         slot,
                         format!("CPU-{}", slot + 1),
@@ -384,11 +411,23 @@ fn is_host_connection(
     })
 }
 
+/// 生成するプレイヤーの種別。
+///
+/// `is_cpu` と `is_dummy` の bool を2つ並べて渡すと、呼び出し側で
+/// `true, false` と `true, true` を取り違えても型では気付けない。
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PlayerKind {
+    Human,
+    Cpu,
+    /// 動かず撃ち返さない的。練習場でのみ置く。
+    Dummy,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn new_player(
     id: u64,
     connection_id: Option<u64>,
-    is_cpu: bool,
+    kind: PlayerKind,
     reconnect_token: String,
     slot: usize,
     name: String,
@@ -398,7 +437,8 @@ fn new_player(
     Player {
         id,
         connection_id,
-        is_cpu,
+        is_cpu: kind != PlayerKind::Human,
+        is_dummy: kind == PlayerKind::Dummy,
         reconnect_token,
         reconnect_grace_left: 0.0,
         slot,

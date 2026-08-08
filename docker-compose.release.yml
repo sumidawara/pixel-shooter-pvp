@@ -39,6 +39,10 @@ services:
     environment:
       PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
       PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
+      # ポート番号は ports: と public_url で外へ約束している。
+      # 空きを探して勝手にずらされると、その約束と食い違って誰も繋がらない。
+      PIXEL_SHOOTER_PORT_SEARCH_RANGE: "0"
+      PIXEL_SHOOTER_CONTROL_PORT_SEARCH_RANGE: "0"
       PIXEL_SHOOTER_CONTROL_URL: http://game-server-1:9101
       PIXEL_SHOOTER_PUBLIC_URL: ${PIXEL_SHOOTER_GAME_SERVER_1_PUBLIC_URL:-wss://game1.pvp.es.sumidawara.uk}
       PIXEL_SHOOTER_SERVER_ID: game-server-1
@@ -65,6 +69,10 @@ services:
     environment:
       PIXEL_SHOOTER_BIND_ADDR: 0.0.0.0:9001
       PIXEL_SHOOTER_CONTROL_BIND_ADDR: 0.0.0.0:9101
+      # ポート番号は ports: と public_url で外へ約束している。
+      # 空きを探して勝手にずらされると、その約束と食い違って誰も繋がらない。
+      PIXEL_SHOOTER_PORT_SEARCH_RANGE: "0"
+      PIXEL_SHOOTER_CONTROL_PORT_SEARCH_RANGE: "0"
       PIXEL_SHOOTER_CONTROL_URL: http://game-server-2:9101
       PIXEL_SHOOTER_PUBLIC_URL: ${PIXEL_SHOOTER_GAME_SERVER_2_PUBLIC_URL:-wss://game2.pvp.es.sumidawara.uk}
       PIXEL_SHOOTER_SERVER_ID: game-server-2

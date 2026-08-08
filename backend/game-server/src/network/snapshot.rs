@@ -65,6 +65,7 @@ pub(crate) fn broadcast_snapshot(
                 max_hp: settings.game.gameplay.max_hp,
                 score: player.score,
                 is_cpu: player.is_cpu,
+                is_dummy: player.is_dummy,
                 connected: player.is_cpu || player.connection_id.is_some(),
                 reconnect_grace_left: player.reconnect_grace_left,
                 alive: player.alive,

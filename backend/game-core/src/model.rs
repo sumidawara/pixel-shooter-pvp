@@ -42,6 +42,10 @@ pub struct Player {
     pub connection_id: Option<u64>,
     /// trueなら通信接続を持たず、サーバーのAI Systemが操作する。
     pub is_cpu: bool,
+    /// trueなら動かず撃ち返さない的。サンドボックスで威力を確かめるために置く。
+    ///
+    /// `is_cpu`と併用する。接続を持たない点は同じで、AIが動かさない点だけが違う。
+    pub is_dummy: bool,
     pub reconnect_token: String,
     pub reconnect_grace_left: f32,
     pub slot: usize,
