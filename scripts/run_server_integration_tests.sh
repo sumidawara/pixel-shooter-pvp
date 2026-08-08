@@ -57,6 +57,11 @@ start_server() {
   local grace="$1"
   local log="$2"
   # 環境変数の前置は展開前に確定している必要があるため、分岐して書く。
+  # 試験スクリプトへ ws://127.0.0.1:${test_port} を渡す以上、ポートは固定でなければ
+  # ならない。空きを探して別の番号で開かれると、待受はできているのに誰も繋がらない
+  # という、原因の分かりにくい失敗になる。使用中なら、はっきり落ちる方がよい。
+  export PIXEL_SHOOTER_PORT_SEARCH_RANGE=0
+  export PIXEL_SHOOTER_CONTROL_PORT_SEARCH_RANGE=0
   if [[ -n "${grace}" ]]; then
     PIXEL_SHOOTER_BIND_ADDR="127.0.0.1:${test_port}" \
     PIXEL_SHOOTER_CONTROL_BIND_ADDR="127.0.0.1:${control_port}" \

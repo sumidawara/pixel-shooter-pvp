@@ -46,8 +46,12 @@ cd "${repository_root}"
 has_server=0
 if [[ -x "${game_server_bin}" ]]; then
   has_server=1
+  # 試験は ${manual_server_port} 番へ繋ぎに行くので、空きを探させない。
+  # 別の番号で開かれると、起動はしているのに繋がらない失敗になる。
   PIXEL_SHOOTER_BIND_ADDR="127.0.0.1:${manual_server_port}" \
   PIXEL_SHOOTER_CONTROL_BIND_ADDR="127.0.0.1:${manual_control_port}" \
+  PIXEL_SHOOTER_PORT_SEARCH_RANGE=0 \
+  PIXEL_SHOOTER_CONTROL_PORT_SEARCH_RANGE=0 \
     "${game_server_bin}" >/dev/null 2>&1 &
   manual_pid=$!
   waited=0
