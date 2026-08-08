@@ -216,11 +216,19 @@ Godotの「エディター → エクスポートテンプレートの管理」�
 インストールした後、次のコマンドで配布物を作成する。
 
 ```sh
-make release RELEASE_TARGET=linux
+make release
 ```
 
-`macos`、`windows`、`server`も指定できる。GodotがPATHにない場合は`GODOT_BIN`で
+`RELEASE_TARGET`で対象を選べる。既定は`linux`。GodotがPATHにない場合は`GODOT_BIN`で
 実行ファイルを指定する。出力はGit管理外の`dist/`に作られる。
+
+| 対象 | 状態 |
+| --- | --- |
+| `linux` | 動作確認済み |
+| `windows` | クライアントはLinuxからも書き出せるが、GameServerがホスト向けのまま同梱される。Windows上でビルドするか、クロスコンパイルの対応が必要 |
+| `macos` | プロジェクト設定が足りず現状書き出せない（arm64を含むにはETC2 ASTCの取り込みが必要）。署名も macOS 実機が要る |
+| `pck` | ゲームデータだけ。エクスポートテンプレート不要 |
+| `server` | GameServerだけ。Godot不要 |
 
 Linux版の生成物は次のようになる。クライアントは同じ階層の`server/`から
 GameServerを探すので、この配置のまま配布する。

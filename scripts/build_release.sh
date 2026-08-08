@@ -20,7 +20,7 @@
 # macOSだけは配置が違い、.app の中へ入れる。アプリを1つ配れば済むようにするため。
 #
 # 使い方:
-#   ./scripts/build_release.sh [macos|windows|linux|pck|server]
+#   ./scripts/build_release.sh [linux|windows|macos|pck|server]   （既定: linux）
 #   make release RELEASE_TARGET=linux
 #
 # Godotが必要なのはクライアントを書き出すときだけ。server は要らない。
@@ -28,10 +28,13 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 distribution_dir="${project_root}/dist"
-# macOSではGodotをアプリとして入れるのが普通で、PATHに無いことが多い。
-# その既定値を置いておき、他の環境では GODOT_BIN か PATH で指定する。
-godot_binary="${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}"
-target_name="${1:-macos}"
+# 既定はPATH上の godot。コマンド名でも絶対パスでも受け付ける（下で解決する）。
+# macOSでアプリとして入れている場合は、PATHに無いので GODOT_BIN で指定する:
+#   GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot
+godot_binary="${GODOT_BIN:-godot}"
+# 既定はlinux。現状これだけが最後まで通る（macOSは設定不足で失敗し、
+# windowsはホスト向けサーバーが同梱される）。
+target_name="${1:-linux}"
 
 # 書き出す対象を決める。preset は frontend/export_presets.cfg の名前と一致させる。
 case "${target_name}" in
@@ -51,8 +54,8 @@ case "${target_name}" in
     # ゲームデータだけを固めて、中身が壊れていないかを見るための対象。
     # 実行ファイルを作らないのでエクスポートテンプレートが要らず、
     # テンプレートを入れていない環境でも確認できる。
-    # preset はどれでもよいが、既定の対象に合わせて macOS を使う。
-    preset="macOS"
+    # preset はどれでもよいが、既定の対象に合わせて Linux を使う。
+    preset="Linux"
     output="${distribution_dir}/PixelShooterPvP.pck"
     ;;
   server)
@@ -61,7 +64,7 @@ case "${target_name}" in
     output=""
     ;;
   *)
-    echo "Usage: $0 [macos|windows|linux|pck|server]" >&2
+    echo "Usage: $0 [linux|windows|macos|pck|server]" >&2
     exit 2
     ;;
 esac
@@ -76,6 +79,8 @@ if [[ "${target_name}" != "server" ]]; then
     echo "Godot was not found: ${godot_binary}" >&2
     echo "PATHへ通すか、GODOT_BIN で実行ファイルを指定する。" >&2
     echo "  make release RELEASE_TARGET=${target_name} GODOT_BIN=/path/to/godot" >&2
+    echo "  macOSでアプリとして入れている場合:" >&2
+    echo "    GODOT_BIN=/Applications/Godot.app/Contents/MacOS/Godot" >&2
     exit 1
   fi
   godot_binary="${resolved_godot}"

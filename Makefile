@@ -10,7 +10,9 @@ NPM ?= npm
 SSH ?= ssh
 
 SERVICE ?=
-RELEASE_TARGET ?= macos
+# 既定はlinux。macOSはプロジェクト設定が足りず現状書き出せず、
+# windowsはサーバーがホスト向けのまま同梱されるため、確実に通るものを既定にする。
+RELEASE_TARGET ?= linux
 GAME_SERVER_BINARY ?= target/debug/pixel-shooter-server
 # 実行時エラーでquit()へ到達しないGodotテストを打ち切る。実測で最長は約10秒。
 FRONTEND_TEST_TIMEOUT ?= 120
@@ -36,7 +38,7 @@ help: ## 利用できる開発コマンドを表示
 	@printf '  make dev\n'
 	@printf '  make logs SERVICE=matchmaker\n'
 	@printf '  make tunnel SSH_HOST=backend-host\n'
-	@printf '  make release RELEASE_TARGET=macos\n'
+	@printf '  make release RELEASE_TARGET=linux\n'
 
 ##@ 初期設定
 
@@ -241,5 +243,5 @@ sfx: ## 効果音を再生成
 
 ##@ リリース
 
-release: ## 配布物を作成（RELEASE_TARGET=macos|windows|linux|pck|server）
+release: ## 配布物を作成（RELEASE_TARGET=linux|windows|macos|pck|server、既定はlinux）
 	GODOT_BIN="$(GODOT_BIN)" ./scripts/build_release.sh "$(RELEASE_TARGET)"
