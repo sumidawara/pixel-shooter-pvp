@@ -31,6 +31,8 @@ pub(super) struct OutboundMessage {
 
 #[derive(Resource)]
 pub(crate) struct Network {
+    /// 実際に開けた待受アドレス。設定次第で希望した番号と違う。
+    pub(crate) bind_address: String,
     pub(super) events: Receiver<NetworkEvent>,
     pub(super) clients: ClientSenders,
     pub(super) simulated_latency: Duration,
@@ -47,6 +49,7 @@ pub(super) enum NetworkEvent {
 
 pub(super) struct NetworkThreadSettings {
     pub(super) bind_address: String,
+    pub(super) port_search_range: u32,
     pub(super) simulated_latency: Duration,
     pub(super) simulated_loss_percent: u32,
 }
@@ -56,6 +59,7 @@ pub(super) struct NetworkThreadSettings {
 ///
 /// 待受できたことを確かめてから返すので、呼び出し側は
 /// 「listening」と表示してよい状態かどうかを判断できる。
+/// 実際に開けたアドレスは`Network::bind_address`に入る。
 pub(crate) fn start(
     settings: &ServerSettings,
     game_snapshot: SharedGameSnapshot,
@@ -69,18 +73,20 @@ pub(crate) fn start(
         clients.clone(),
         NetworkThreadSettings {
             bind_address: settings.network.bind_address.clone(),
+            port_search_range: settings.network.port_search_range,
             simulated_latency,
             simulated_loss_percent: settings.network.simulated_loss_percent,
         },
         bind_tx,
     );
     // 待受の成否が返るまで待つ。返らない場合はスレッドが起動前に落ちている。
-    match bind_rx.recv() {
-        Ok(Ok(())) => {}
+    let bind_address = match bind_rx.recv() {
+        Ok(Ok(address)) => address,
         Ok(Err(error)) => return Err(error),
         Err(_) => return Err("network thread stopped before binding".into()),
-    }
+    };
     Ok(Network {
+        bind_address,
         events: event_rx,
         clients,
         simulated_latency,

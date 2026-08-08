@@ -12,10 +12,12 @@
 //! - Commands: Entityの作成・削除を予約する仕組み。
 //!
 //! モジュール構成:
+//! - `bind`: 待受ポートの決定（空きの探索）
 //! - `config`: server.jsonと環境変数
 //! - `network`: WebSocket通信
 //! - `server_runtime`: 通信と実時間ランナーをGameTickへ接続
 
+mod bind;
 mod config;
 mod control;
 mod logging;
@@ -66,6 +68,44 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    // 空きを探した結果、希望した番号と違うことがある。
+    // 以降はどこも「実際に開けた方」を見るよう、設定を実態へ合わせる。
+    let requested_address = std::mem::replace(
+        &mut settings.network.bind_address,
+        network.bind_address.clone(),
+    );
+    if requested_address != settings.network.bind_address {
+        println!(
+            "{requested_address} was busy; opened {} instead",
+            settings.network.bind_address
+        );
+        // 公開先を他所へ知らせている場合、番号がずれると誰も繋がらなくなる。
+        // 黙って動かすと原因の分からない接続失敗になるため、ここで言う。
+        if let Some((_, requested_port)) = requested_address.rsplit_once(':')
+            && settings
+                .control
+                .public_url
+                .ends_with(&format!(":{requested_port}"))
+        {
+            eprintln!(
+                "warning: public_url ({}) still points at the old port; \
+                 set port_search_range to 0 when the port is published elsewhere",
+                settings.control.public_url
+            );
+        }
+    }
+    if let Some(control_address) = &control_plane.bind_address {
+        println!("GameServer control API listening on http://{control_address}");
+    }
+
+    // 実際の接続先をファイルへ残す。CREATE ROOM で起動した側は、
+    // 番号を探し直さずにこれを読んで接続先を知る。
+    if let Some(path) = command_line_value("--address-file").filter(|path| !path.is_empty())
+        && let Err(error) = std::fs::write(&path, &settings.network.bind_address)
+    {
+        eprintln!("could not write {path}: {error}");
+    }
 
     println!(
         "Pixel Shooter server listening on ws://{}",

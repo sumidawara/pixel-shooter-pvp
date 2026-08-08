@@ -23,6 +23,9 @@ PIXEL_SHOOTER_JOIN_SECRET='replace-with-a-long-random-secret' \
 | `9002` | GameServer 2 WebSocket |
 
 GameServerのControl API（コンテナ内9101番）はホストへ公開しない。
+Compose構成では`PIXEL_SHOOTER_PORT_SEARCH_RANGE`を`0`にしてポートを固定する。
+上表の番号と`PIXEL_SHOOTER_PUBLIC_URL`で外へ約束しているため、
+空きを探して勝手にずれると誰も接続できなくなる（[サーバー設定](server-settings.md)）。
 固定台数を変える場合は対象のComposeファイルへGameServerサービスを追加し、
 一意な`PIXEL_SHOOTER_SERVER_ID`、外部`PIXEL_SHOOTER_PUBLIC_URL`、
 内部`PIXEL_SHOOTER_CONTROL_URL`を設定する。
