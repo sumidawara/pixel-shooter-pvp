@@ -21,11 +21,12 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	await _check_control_port_collision_is_reported()
+	await _check_control_port_collision_is_avoided()
 	await _check_server_starts_and_writes_a_log()
 	await _check_death_is_noticed()
 	_check_missing_binary_message_lists_paths()
 
+	await _check_busy_port_falls_back_to_a_free_one()
 	await _check_failed_hosting_leaves_the_room_screen()
 
 	if not _failures.is_empty():
@@ -34,6 +35,51 @@ func _run() -> void:
 		return
 	print("host server: 失敗経路と生存監視が期待どおりだった")
 	quit(0)
+
+
+## 希望のポートが埋まっていても、空いている番号で開けること。
+##
+## 配布版を遊ぶ人にとってポート番号は本来どうでもよく、埋まっているだけで
+## 部屋を作れないのは行き止まりになる。
+func _check_busy_port_falls_back_to_a_free_one() -> void:
+	# 希望のポートと、その制御APIポートの両方を塞ぐ。
+	var blockers: Array[TCPServer] = []
+	for blocked in [GAME_PORT, GAME_PORT + HostServerController.CONTROL_PORT_OFFSET]:
+		var blocker := TCPServer.new()
+		if blocker.listen(blocked, NetworkConfig.LOCAL_SERVER_HOST) != OK:
+			_failures.append("検査用にポート%dを確保できなかった" % blocked)
+			return
+		blockers.append(blocker)
+
+	var controller = HostServerController.new()
+	root.add_child(controller)
+	var started: Array[String] = []
+	var moved: Array[int] = []
+	controller.server_started.connect(func(url: String) -> void: started.append(url))
+	controller.port_changed.connect(
+		func(_requested: int, used: int) -> void: moved.append(used)
+	)
+	controller.server_failed.connect(
+		func(text: String) -> void: _failures.append("空きがあるのに失敗した: %s" % text)
+	)
+
+	controller.start_server(GAME_PORT)
+	await process_frame
+
+	if started.is_empty():
+		_failures.append("希望のポートが埋まっていると起動できない")
+	elif started[0].ends_with(":%d" % GAME_PORT):
+		_failures.append("塞いだはずのポートで起動している: %s" % started[0])
+	if moved.is_empty():
+		_failures.append("ポートを変えたことが伝わらない。他の人が接続先を知れない")
+	elif not started.is_empty() and not started[0].contains(str(moved[0])):
+		_failures.append("通知した番号と実際の接続先が違う: %s / %d" % [started[0], moved[0]])
+
+	controller.stop_server()
+	controller.queue_free()
+	for blocker in blockers:
+		blocker.stop()
+	await process_frame
 
 
 ## 起動できなかったとき、操作できないルーム画面に取り残されないこと。
@@ -63,11 +109,12 @@ func _check_failed_hosting_leaves_the_room_screen() -> void:
 	await process_frame
 
 
-## 制御APIのポートだけが埋まっている場合も、起動前に気付くこと。
+## 制御APIのポートだけが埋まっている場合も、そこでは開かないこと。
 ##
 ## 以前は --debug-bind を渡しておらず制御APIは常に9101だった。衝突しても
 ## サーバーは起動を続けるため、管理機能だけが黙って死んでいた。
-func _check_control_port_collision_is_reported() -> void:
+## 今はゲーム用と制御API用が両方空いている組を選ぶ。
+func _check_control_port_collision_is_avoided() -> void:
 	var control_port := GAME_PORT + HostServerController.CONTROL_PORT_OFFSET
 	var blocker := TCPServer.new()
 	if blocker.listen(control_port, NetworkConfig.LOCAL_SERVER_HOST) != OK:
@@ -76,19 +123,20 @@ func _check_control_port_collision_is_reported() -> void:
 
 	var controller = HostServerController.new()
 	root.add_child(controller)
-	# GDScriptのラムダはローカル変数を値でキャプチャするため、
-	# 受け取った値は配列などの参照型へ入れないと外から読めない。
-	var reasons: Array[String] = []
-	controller.server_failed.connect(func(text: String) -> void: reasons.append(text))
+	var started: Array[String] = []
+	controller.server_started.connect(func(url: String) -> void: started.append(url))
+	controller.server_failed.connect(
+		func(text: String) -> void: _failures.append("空きがあるのに失敗した: %s" % text)
+	)
 	controller.start_server(GAME_PORT)
 	await process_frame
 
-	if reasons.is_empty():
-		_failures.append("制御APIのポートが埋まっているのに起動しようとした")
-	elif not reasons[0].contains(str(control_port)):
-		_failures.append("どのポートが埋まっているか示していない: %s" % reasons[0])
-	if controller.owns_server():
-		_failures.append("起動に失敗したのにプロセスを掴んでいる")
+	if started.is_empty():
+		_failures.append("制御APIのポートが埋まっているだけで起動できない")
+	elif started[0].ends_with(":%d" % GAME_PORT):
+		_failures.append(
+			"制御APIが埋まっているのにその組で起動した: %s" % started[0]
+		)
 
 	blocker.stop()
 	controller.stop_server()

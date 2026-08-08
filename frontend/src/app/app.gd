@@ -58,6 +58,7 @@ func _ready() -> void:
 	host_server.server_started.connect(_on_local_server_started)
 	host_server.server_failed.connect(_on_local_server_failed)
 	host_server.server_exited.connect(_on_local_server_exited)
+	host_server.port_changed.connect(_on_local_server_port_changed)
 	NetworkClient.status_changed.connect(_on_status_changed)
 	NetworkClient.welcome_received.connect(_on_welcome_received)
 	NetworkClient.map_catalog_received.connect(menu_screen.set_available_maps)
@@ -139,8 +140,17 @@ func _on_create_requested(player_name: String, port: int, settings: Dictionary) 
 
 
 func _on_local_server_started(url: String) -> void:
+	# 希望のポートが埋まっていると別の番号になる。表示を実際の接続先へ合わせる。
+	menu_screen.set_room_address(url)
 	await get_tree().create_timer(0.35).timeout
 	NetworkClient.connect_to_server(url, NetworkClient.player_name)
+
+
+## 希望のポートが埋まっていたので別の番号で開いた。
+##
+## 他の人はルーム画面の接続先を見て入るので、黙って変えると入れなくなる。
+func _on_local_server_port_changed(requested: int, used: int) -> void:
+	menu_screen.set_status("PORT %d WAS BUSY — HOSTING ON %d" % [requested, used])
 
 
 ## 同梱サーバーを起動できなかった。

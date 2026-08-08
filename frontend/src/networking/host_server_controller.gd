@@ -9,12 +9,19 @@ signal server_started(url: String)
 signal server_failed(reason: String)
 ## 起動には成功したが、その後に落ちた。
 signal server_exited(exit_code: int)
+## 希望のポートが埋まっていたので、別の番号で開いた。
+signal port_changed(requested: int, used: int)
 
 ## 制御APIの待受ポートは、ゲーム用ポートからこの値だけずらして決める。
 ## 既定の 9001 / 9101 と同じ関係にしてある。
 const CONTROL_PORT_OFFSET := 100
 ## 生存確認の間隔。落ちたことに気付くのが目的なので、細かく見る必要はない。
 const LIVENESS_CHECK_SECONDS := 0.5
+## 希望のポートが埋まっていたときに、いくつ先まで空きを探すか。
+##
+## 配布版を遊ぶ人にとって、ポート番号は本来どうでもよい。埋まっているだけで
+## 部屋を作れなくなるより、空いている所で開いて番号を見せるほうがよい。
+const PORT_SEARCH_RANGE := 20
 
 var server_pid := -1
 var log_path := ""
@@ -28,15 +35,17 @@ func start_server(port: int) -> void:
 		server_failed.emit("CREATE ROOM IS NOT AVAILABLE IN WEB BUILDS")
 		return
 
-	var control_port := port + CONTROL_PORT_OFFSET
-	# ゲーム用と制御API用の両方を確認する。制御APIだけ衝突した場合、
-	# サーバーは起動を続けてしまい、気付かないまま管理機能だけが死ぬ。
-	for probe_port in [port, control_port]:
-		if not _port_is_free(probe_port):
-			server_failed.emit(
-				"PORT %d IS ALREADY IN USE — STOP THE OTHER SERVER OR JOIN IT" % probe_port
-			)
-			return
+	# 希望のポートから順に、ゲーム用と制御API用が両方空いている組を探す。
+	# 制御APIだけ衝突した場合もサーバーは起動を続けてしまい、
+	# 気付かないまま管理機能だけが死ぬため、両方を見る。
+	var chosen_port := _find_free_port(port)
+	if chosen_port < 0:
+		server_failed.emit(
+			"NO FREE PORT BETWEEN %d AND %d — CLOSE SOME APPS OR CHANGE THE PORT IN SETTINGS"
+			% [port, port + PORT_SEARCH_RANGE - 1]
+		)
+		return
+	var control_port := chosen_port + CONTROL_PORT_OFFSET
 
 	var server_path := _find_server_executable()
 	if server_path.is_empty():
@@ -50,7 +59,7 @@ func start_server(port: int) -> void:
 	server_pid = OS.create_process(
 		server_path,
 		[
-			"--bind", NetworkConfig.local_server_bind_address(port),
+			"--bind", NetworkConfig.local_server_bind_address(chosen_port),
 			"--debug-bind", NetworkConfig.local_server_bind_address(control_port),
 			"--log-file", log_path,
 		],
@@ -61,7 +70,10 @@ func start_server(port: int) -> void:
 		server_failed.emit("COULD NOT START THE RUST SERVER\n%s" % server_path)
 		return
 	_liveness_left = LIVENESS_CHECK_SECONDS
-	server_started.emit(NetworkConfig.local_game_server_url(port))
+	if chosen_port != port:
+		# 番号が変わったことは伝える。他の人が入るときに必要になる。
+		port_changed.emit(port, chosen_port)
+	server_started.emit(NetworkConfig.local_game_server_url(chosen_port))
 
 
 func stop_server() -> void:
@@ -92,6 +104,18 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	stop_server()
+
+
+## ゲーム用と制御API用が両方空いている番号を、希望の値から順に探す。
+## 見つからなければ -1。
+func _find_free_port(preferred: int) -> int:
+	for offset in range(PORT_SEARCH_RANGE):
+		var candidate := preferred + offset
+		if candidate + CONTROL_PORT_OFFSET > 65535:
+			break
+		if _port_is_free(candidate) and _port_is_free(candidate + CONTROL_PORT_OFFSET):
+			return candidate
+	return -1
 
 
 func _port_is_free(port: int) -> bool:

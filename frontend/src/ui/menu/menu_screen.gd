@@ -122,6 +122,15 @@ func show_room_failed(reason: String) -> void:
 	set_status(reason)
 
 
+## 実際に使っている接続先を表示し直す。
+##
+## ルーム画面はサーバーの起動を待たずに開くので、希望のポートが埋まって
+## 別の番号になった場合、最初に出した表示が嘘になる。
+## 他の人はこの表示を見て JOIN ROOM に入力するため、必ず合わせる。
+func set_room_address(address: String) -> void:
+	room_address_label.text = address
+
+
 func show_room(hosting: bool, address: String) -> void:
 	is_room_host = hosting
 	_show_page(create_page)
