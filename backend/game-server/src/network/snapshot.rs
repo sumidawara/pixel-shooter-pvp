@@ -2,13 +2,13 @@
 
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{ecs::system::SystemParam, prelude::*};
 use pixel_shooter_game_core::{
-    ArenaMap, Bullet, LarokinPoppos, MAX_PLAYERS, MatchState, Player, ScoreItem,
+    ArenaMap, Bullet, GhostThief, LarokinPoppos, MAX_PLAYERS, MatchState, Player, ScoreItem,
 };
 use pixel_shooter_protocol::{
-    BulletSnapshot, HeldItemSnapshot, ItemSnapshot, LarokinPopposSnapshot, MapSummary, MatchPhase,
-    PlayerSnapshot, RoomSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
+    BulletSnapshot, GhostThiefSnapshot, HeldItemSnapshot, ItemSnapshot, LarokinPopposSnapshot,
+    MapSummary, MatchPhase, PlayerSnapshot, RoomSnapshot, ServerMessage, Snapshot, Vec2 as NetVec2,
 };
 use tokio_tungstenite::tungstenite::Message;
 
@@ -16,15 +16,24 @@ use crate::config::ServerSettings;
 
 use super::{Network, OutboundMessage};
 
+/// 試合中だけ存在し、Snapshotへ載せるEntity群。
+///
+/// 種類が増えるたびにSystemの引数が伸びると読めなくなるので、まとめて渡す。
+#[derive(SystemParam)]
+pub(crate) struct ArenaEntities<'w, 's> {
+    bullets: Query<'w, 's, &'static Bullet>,
+    items: Query<'w, 's, &'static ScoreItem>,
+    larokin_poppos: Query<'w, 's, &'static LarokinPoppos>,
+    ghost_thieves: Query<'w, 's, &'static GhostThief>,
+}
+
 /// 現在のゲーム状態を全Godotクライアントへ送るSystem。
 pub(crate) fn broadcast_snapshot(
     state: Res<MatchState>,
     settings: Res<ServerSettings>,
     mut network: ResMut<Network>,
     players: Query<&Player>,
-    bullets: Query<&Bullet>,
-    items: Query<&ScoreItem>,
-    larokin_poppos: Query<&LarokinPoppos>,
+    arena: ArenaEntities,
 ) {
     let reconnect_grace_left = players
         .iter()
@@ -78,7 +87,8 @@ pub(crate) fn broadcast_snapshot(
             })
             .collect(),
         bullets: if state.phase == MatchPhase::Running {
-            bullets
+            arena
+                .bullets
                 .iter()
                 .map(|bullet| BulletSnapshot {
                     id: bullet.id,
@@ -92,7 +102,8 @@ pub(crate) fn broadcast_snapshot(
             Vec::new()
         },
         items: if state.phase == MatchPhase::Running {
-            items
+            arena
+                .items
                 .iter()
                 .map(|item| ItemSnapshot {
                     id: item.id,
@@ -105,7 +116,8 @@ pub(crate) fn broadcast_snapshot(
             Vec::new()
         },
         larokin_poppos: if state.phase == MatchPhase::Running {
-            larokin_poppos
+            arena
+                .larokin_poppos
                 .iter()
                 .map(|attacker| LarokinPopposSnapshot {
                     id: attacker.id,
@@ -113,6 +125,23 @@ pub(crate) fn broadcast_snapshot(
                     position: net_vec(attacker.position),
                     velocity: net_vec(attacker.velocity),
                     telegraph_left: attacker.telegraph_left,
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
+        ghost_thieves: if state.phase == MatchPhase::Running {
+            arena
+                .ghost_thieves
+                .iter()
+                .map(|thief| GhostThiefSnapshot {
+                    id: thief.id,
+                    owner_id: thief.owner_id,
+                    target_id: thief.target_id,
+                    from: net_vec(thief.from),
+                    to: net_vec(thief.to),
+                    stolen_kind: thief.stolen_kind,
+                    progress: thief.progress(),
                 })
                 .collect()
         } else {

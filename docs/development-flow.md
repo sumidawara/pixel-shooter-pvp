@@ -7,10 +7,30 @@
 
 ```text
 ブランチを切る
-  └─ 作業してcommit
-      └─ push すると CI が走る
+  └─ 作業してcommit・push
+      └─ PRを作ると CI が走る
           └─ 緑になったら PR をマージ（マージは人間が行う）
 ```
+
+CIはPRでのみ走らせている。`pull_request` は「PRブランチをbaseへマージした結果」を
+検査するため、マージ後のmainはこの時点で検査済みになる。マージ後にもう一度
+走らせても同じ内容を繰り返すだけなので、`push: main` は置いていない。
+
+そのぶん **Require branches to be up to date before merging を有効にしておく**
+必要がある。無いと、CIが緑になった後にmainが進んでもマージでき、
+その組み合わせを誰も検査しないまま入る。
+
+## ツールチェーン
+
+Rustの版は [`rust-toolchain.toml`](../rust-toolchain.toml) で固定している。
+rustup がこれを見て自動で切り替えるため、手元で版を指定する必要はない。
+
+Dockerイメージのタグ（`deploy/docker/Dockerfile*`）とCIの `RUST_VERSION` は
+そこから自動では決まらないので、版を上げるときは3箇所とも直す。
+ずれていないことは `cargo test` が検査する。
+
+Godot（4.7.1）とNode（22）の版は、それぞれ `frontend/project.godot` の
+`config/features` と `.github/workflows/ci.yml` に書いてある。
 
 ## ローカルで通すもの
 

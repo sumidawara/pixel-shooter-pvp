@@ -102,6 +102,7 @@ pub struct Snapshot {
     pub bullets: Vec<BulletSnapshot>,
     pub items: Vec<ItemSnapshot>,
     pub larokin_poppos: Vec<LarokinPopposSnapshot>,
+    pub ghost_thieves: Vec<GhostThiefSnapshot>,
     pub room: RoomSnapshot,
 }
 
@@ -223,6 +224,24 @@ pub struct ItemSnapshot {
 pub struct HeldItemSnapshot {
     pub kind: ItemKind,
     pub charges: u32,
+}
+
+/// Ghost使用時の奪取演出。
+///
+/// 誰が誰から何を奪ったかはサーバーだけが知っている。クライアントに
+/// 「所持アイテムが移動した」という状態差分から推測させると、
+/// 同じtickに複数の変化が起きたときに取り違える。事実として配信する。
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct GhostThiefSnapshot {
+    pub id: u64,
+    pub owner_id: u64,
+    pub target_id: u64,
+    pub from: Vec2,
+    pub to: Vec2,
+    pub stolen_kind: ItemKind,
+    /// 演出の進み具合(0.0〜1.0)。所要時間はサーバーが持ち、
+    /// クライアントは描き方だけを決める。定数を二重に持たないため。
+    pub progress: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

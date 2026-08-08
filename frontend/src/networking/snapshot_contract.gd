@@ -29,6 +29,7 @@ const SNAPSHOT_KEYS: Array[String] = [
 	"bullets",
 	"items",
 	"larokin_poppos",
+	"ghost_thieves",
 	"room",
 ]
 
@@ -60,6 +61,9 @@ const PLAYER_KEYS: Array[String] = [
 const BULLET_KEYS: Array[String] = ["id", "owner_id", "position", "velocity"]
 const ITEM_KEYS: Array[String] = ["id", "position", "points", "kind"]
 const LAROKIN_KEYS: Array[String] = ["id", "position", "telegraph_left"]
+const GHOST_THIEF_KEYS: Array[String] = [
+	"id", "owner_id", "target_id", "from", "to", "stolen_kind", "progress",
+]
 const ROOM_KEYS: Array[String] = ["host_player_id", "can_start", "max_players", "settings"]
 const ROOM_SETTINGS_KEYS: Array[String] = [
 	"map_id",
@@ -114,6 +118,15 @@ static func validate_snapshot(snapshot: Dictionary) -> PackedStringArray:
 	_require_first(
 		snapshot.get("larokin_poppos"), LAROKIN_KEYS, "snapshot.larokin_poppos[0]", missing
 	)
+	_require_first(
+		snapshot.get("ghost_thieves"), GHOST_THIEF_KEYS, "snapshot.ghost_thieves[0]", missing
+	)
+	# from / to はVec2なので、中身まで見る。
+	var thieves = snapshot.get("ghost_thieves")
+	if typeof(thieves) == TYPE_ARRAY and not thieves.is_empty() \
+			and typeof(thieves[0]) == TYPE_DICTIONARY:
+		_require_vector(thieves[0].get("from"), "snapshot.ghost_thieves[0].from", missing)
+		_require_vector(thieves[0].get("to"), "snapshot.ghost_thieves[0].to", missing)
 
 	var room = snapshot.get("room")
 	if typeof(room) == TYPE_DICTIONARY:

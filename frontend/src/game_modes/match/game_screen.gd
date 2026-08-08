@@ -18,11 +18,13 @@ const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")
 const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
 const LAROKIN_VIEW_SCENE := preload("res://src/combat/items/larokin_poppos_view.tscn")
+const GHOST_THIEF_VIEW_SCENE := preload("res://src/combat/items/ghost_thief_view.tscn")
 
 @onready var world: Node2D = %World
 @onready var arena_view = $World/Arena
 @onready var item_layer: Node2D = %ItemLayer
 @onready var larokin_layer: Node2D = %LarokinLayer
+@onready var ghost_thief_layer: Node2D = %GhostThiefLayer
 @onready var player_layer: Node2D = %PlayerLayer
 @onready var bullet_layer: Node2D = %BulletLayer
 @onready var effect_layer: Node2D = %EffectLayer
@@ -73,6 +75,7 @@ var bullet_velocities: Dictionary = {}
 # 得点アイテムは移動しないため、IDと表示ノードだけを同期する。
 var item_views: Dictionary = {}
 var larokin_views: Dictionary = {}
+var ghost_thief_views: Dictionary = {}
 var arena_map: ArenaMapData
 var map_ready := false
 
@@ -143,6 +146,9 @@ func end_session() -> void:
 	for view in larokin_views.values():
 		view.queue_free()
 	larokin_views.clear()
+	for view in ghost_thief_views.values():
+		view.queue_free()
+	ghost_thief_views.clear()
 	effect_layer.clear()
 	world.position = Vector2.ZERO
 
@@ -275,6 +281,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	var next_bullets: Array = snapshot.get("bullets", [])
 	var next_items: Array = snapshot.get("items", [])
 	var next_larokin: Array = snapshot.get("larokin_poppos", [])
+	var next_ghost_thieves: Array = snapshot.get("ghost_thieves", [])
 	var next_phase := str(snapshot.get("phase", "waiting"))
 	var next_time := float(snapshot.get("time_left", 0.0))
 	_capture_snapshot_effects(next_players, next_bullets, next_items, next_phase, next_time)
@@ -295,6 +302,7 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 	_sync_bullets(next_bullets)
 	_sync_items(next_items)
 	_sync_larokin(next_larokin)
+	_sync_ghost_thieves(next_ghost_thieves)
 	hud.apply_snapshot(
 		players,
 		player_id,
@@ -339,6 +347,27 @@ func _sync_larokin(next_attackers: Array) -> void:
 		if not active_ids.has(id):
 			larokin_views[id].queue_free()
 			larokin_views.erase(id)
+
+
+## Ghostの奪取演出を同期する。
+##
+## 位置も進み具合もサーバーが決めた値をそのまま使う。所持アイテムの移動という
+## 状態差分から「誰が奪ったか」を推測すると、同じtickに複数の変化が起きたときに
+## 取り違える。
+func _sync_ghost_thieves(next_thieves: Array) -> void:
+	var active_ids: Dictionary = {}
+	for thief in next_thieves:
+		var id := int(thief.get("id", 0))
+		active_ids[id] = true
+		if not ghost_thief_views.has(id):
+			var view = GHOST_THIEF_VIEW_SCENE.instantiate()
+			ghost_thief_layer.add_child(view)
+			ghost_thief_views[id] = view
+		ghost_thief_views[id].apply_state(thief, _player_color(int(thief.get("owner_id", 0))))
+	for id in ghost_thief_views.keys():
+		if not active_ids.has(id):
+			ghost_thief_views[id].queue_free()
+			ghost_thief_views.erase(id)
 
 
 func _sync_players() -> void:

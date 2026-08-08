@@ -15,8 +15,11 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 game_server_bin="${GAME_SERVER_BIN:-${repository_root}/target/debug/pixel-shooter-server}"
 node_bin="${NODE:-node}"
-# server.json の control.bind_address と揃える。ここが生きていれば試験を開始できる。
-health_url="${PIXEL_SHOOTER_HEALTH_URL:-http://127.0.0.1:9101/internal/health}"
+# Compose環境を起動したままでも実行できるよう、待受ポートを変えられるようにする。
+# 既定値は server.json と揃えてある。
+test_port="${PIXEL_SHOOTER_TEST_PORT:-9001}"
+control_port="${PIXEL_SHOOTER_TEST_CONTROL_PORT:-9101}"
+health_url="http://127.0.0.1:${control_port}/internal/health"
 startup_timeout_seconds="${STARTUP_TIMEOUT_SECONDS:-30}"
 
 # 「試験名:再接続猶予（空なら既定値）」
@@ -53,10 +56,16 @@ trap stop_server EXIT
 start_server() {
   local grace="$1"
   local log="$2"
+  # 環境変数の前置は展開前に確定している必要があるため、分岐して書く。
   if [[ -n "${grace}" ]]; then
-    PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS="${grace}" "${game_server_bin}" >"${log}" 2>&1 &
+    PIXEL_SHOOTER_BIND_ADDR="127.0.0.1:${test_port}" \
+    PIXEL_SHOOTER_CONTROL_BIND_ADDR="127.0.0.1:${control_port}" \
+    PIXEL_SHOOTER_RECONNECT_GRACE_SECONDS="${grace}" \
+      "${game_server_bin}" >"${log}" 2>&1 &
   else
-    "${game_server_bin}" >"${log}" 2>&1 &
+    PIXEL_SHOOTER_BIND_ADDR="127.0.0.1:${test_port}" \
+    PIXEL_SHOOTER_CONTROL_BIND_ADDR="127.0.0.1:${control_port}" \
+      "${game_server_bin}" >"${log}" 2>&1 &
   fi
   server_pid=$!
 
@@ -64,6 +73,10 @@ start_server() {
   until curl --silent --fail "${health_url}" >/dev/null 2>&1; do
     if ! kill -0 "${server_pid}" 2>/dev/null; then
       echo "  サーバーが起動直後に終了した" >&2
+      if grep -q "Address already in use" "${log}"; then
+        echo "  ポート${test_port}が使用中。Compose環境を起動したままなら、" >&2
+        echo "  make down で止めるか PIXEL_SHOOTER_TEST_PORT で別のポートを指定する。" >&2
+      fi
       cat "${log}" >&2
       return 1
     fi
@@ -99,7 +112,8 @@ for entry in "${tests[@]}"; do
     continue
   fi
 
-  if output="$("${node_bin}" "${repository_root}/scripts/${name}.mjs" 2>&1)"; then
+  if output="$(PIXEL_SHOOTER_SERVER_URL="ws://127.0.0.1:${test_port}" \
+      "${node_bin}" "${repository_root}/scripts/${name}.mjs" 2>&1)"; then
     printf 'ok   %s\n' "$(printf '%s' "${output}" | tail -1 | cut -c1-100)"
   else
     printf 'FAIL\n'

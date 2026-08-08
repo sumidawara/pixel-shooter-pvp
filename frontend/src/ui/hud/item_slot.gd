@@ -5,11 +5,21 @@ const WHITE := Color("#e9f1f7")
 const LALOKIN_POPPOS: Texture2D = preload(
 	"res://assets/aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite"
 )
+const GhostSprite := preload("res://src/combat/items/ghost_sprite.gd")
 
 var kind := ""
 var charges := 0
 var shield_hp := 0
 var berserk_left := 0.0
+var _animation_time := 0.0
+
+
+func _process(delta: float) -> void:
+	# Ghostのコマ送りのためだけに回す。他の描画は状態が変わったときだけでよい。
+	if kind != "ghost":
+		return
+	_animation_time += delta
+	queue_redraw()
 
 
 func apply_player(player: Dictionary) -> void:
@@ -29,6 +39,9 @@ func _draw() -> void:
 		draw_string(terminal_font, Vector2(10, 24), "—", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#67717e"))
 	elif kind == "larokin_poppos":
 		draw_texture_rect(LALOKIN_POPPOS, Rect2(Vector2(6, 10), Vector2(28, 20)), false)
+	elif kind == "ghost":
+		GhostSprite.draw_frame(
+			self, Rect2(Vector2(8, 8), Vector2(24, 24)), _animation_time)
 	else:
 		_draw_icon(Vector2(20, 20), kind)
 	var title := "EMPTY" if kind.is_empty() else _name(kind)
@@ -47,11 +60,6 @@ func _draw_icon(center: Vector2, item_kind: String) -> void:
 		draw_rect(Rect2(center + Vector2(-5, 3), Vector2(13, 5)), color)
 	elif item_kind == "shield":
 		draw_colored_polygon(PackedVector2Array([center+Vector2(-8,-9),center+Vector2(8,-9),center+Vector2(7,3),center+Vector2(0,10),center+Vector2(-7,3)]), color)
-	elif item_kind == "ghost":
-		draw_circle(center + Vector2(0, -2), 8, color)
-		draw_rect(Rect2(center + Vector2(-8, -2), Vector2(16, 9)), color)
-		draw_circle(center + Vector2(-3, -3), 1.5, DARK)
-		draw_circle(center + Vector2(3, -3), 1.5, DARK)
 	elif item_kind == "berserk":
 		draw_colored_polygon(PackedVector2Array([center+Vector2(-7,9),center+Vector2(-4,-1),center,center+Vector2(2,-10),center+Vector2(8,0),center+Vector2(6,9)]), color)
 	else:

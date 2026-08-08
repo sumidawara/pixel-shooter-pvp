@@ -5,7 +5,7 @@ use pixel_shooter_protocol::MatchPhase;
 
 use crate::{
     arena::ArenaMap,
-    model::{Bullet, LarokinPoppos, MatchState, Player, ScoreItem},
+    model::{Bullet, GhostThief, LarokinPoppos, MatchState, Player, ScoreItem},
     schedule::GameClock,
     settings::GameSettings,
 };
@@ -26,8 +26,25 @@ pub(crate) fn update_match(
     bullets: Query<Entity, With<Bullet>>,
     items: Query<Entity, With<ScoreItem>>,
     attackers: Query<Entity, With<LarokinPoppos>>,
+    thieves: Query<Entity, With<GhostThief>>,
     mut commands: Commands,
 ) {
+    // 試合中だけ存在するEntityをまとめて片付ける。
+    // 種類ごとに書き並べていると、増やしたときに消し忘れる箇所が出る。
+    let clear_arena = |commands: &mut Commands| {
+        for entity in &bullets {
+            commands.entity(entity).despawn();
+        }
+        for entity in &items {
+            commands.entity(entity).despawn();
+        }
+        for entity in &attackers {
+            commands.entity(entity).despawn();
+        }
+        for entity in &thieves {
+            commands.entity(entity).despawn();
+        }
+    };
     let dt = clock.delta_seconds();
 
     // ロビーまたは結果画面で最後の人間が退出した場合、CPUだけのルームを残さない。
@@ -41,9 +58,7 @@ pub(crate) fn update_match(
         for (entity, _) in &players {
             commands.entity(entity).despawn();
         }
-        despawn_all_bullets(&mut commands, &bullets);
-        despawn_all_items(&mut commands, &items);
-        despawn_all_attackers(&mut commands, &attackers);
+        clear_arena(&mut commands);
         reset_empty_room(&mut state);
         state.tick += 1;
         println!("room reset because no human players remain");
@@ -77,9 +92,7 @@ pub(crate) fn update_match(
                     println!("player {} reconnect grace expired", player.id);
                 }
             }
-            despawn_all_bullets(&mut commands, &bullets);
-            despawn_all_items(&mut commands, &items);
-            despawn_all_attackers(&mut commands, &attackers);
+            clear_arena(&mut commands);
             reset_empty_room(&mut state);
             state.tick += 1;
             println!("room reset because no human players remain");
@@ -115,9 +128,7 @@ pub(crate) fn update_match(
         }
         if match_was_active && remaining_ids.len() < 2 {
             finish_match(&mut state, remaining_ids.first().copied(), &settings);
-            despawn_all_bullets(&mut commands, &bullets);
-            despawn_all_items(&mut commands, &items);
-            despawn_all_attackers(&mut commands, &attackers);
+            clear_arena(&mut commands);
             println!("match ended because fewer than two players remain");
         } else if state.phase == MatchPhase::Paused {
             state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Waiting);
@@ -156,9 +167,7 @@ pub(crate) fn update_match(
         MatchPhase::Waiting => {
             if state.start_requested && active_player_count >= 2 {
                 start_new_match(&mut state, &mut players, &settings, &map);
-                despawn_all_bullets(&mut commands, &bullets);
-                despawn_all_items(&mut commands, &items);
-                despawn_all_attackers(&mut commands, &attackers);
+                clear_arena(&mut commands);
             }
         }
         MatchPhase::Countdown => {
@@ -176,9 +185,7 @@ pub(crate) fn update_match(
                     players.iter().map(|(_, player)| (player.id, player.score)),
                 );
                 finish_match(&mut state, winner_id, &settings);
-                despawn_all_bullets(&mut commands, &bullets);
-                despawn_all_items(&mut commands, &items);
-                despawn_all_attackers(&mut commands, &attackers);
+                clear_arena(&mut commands);
             }
         }
         MatchPhase::MatchFinished => {
@@ -248,22 +255,4 @@ pub(super) fn reset_empty_room(state: &mut MatchState) {
     state.item_spawn_left = 0.0;
     state.host_player_id = None;
     state.start_requested = false;
-}
-
-fn despawn_all_bullets(commands: &mut Commands, bullets: &Query<Entity, With<Bullet>>) {
-    for entity in bullets {
-        commands.entity(entity).despawn();
-    }
-}
-
-fn despawn_all_items(commands: &mut Commands, items: &Query<Entity, With<ScoreItem>>) {
-    for entity in items {
-        commands.entity(entity).despawn();
-    }
-}
-
-fn despawn_all_attackers(commands: &mut Commands, attackers: &Query<Entity, With<LarokinPoppos>>) {
-    for entity in attackers {
-        commands.entity(entity).despawn();
-    }
 }

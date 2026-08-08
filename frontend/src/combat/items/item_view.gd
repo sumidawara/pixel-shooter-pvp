@@ -5,6 +5,7 @@ const DARK := Color("#080c12")
 const LALOKIN_POPPOS: Texture2D = preload(
 	"res://assets/aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite"
 )
+const GhostSprite := preload("res://src/combat/items/ghost_sprite.gd")
 
 @onready var points_label: Label = %PointsLabel
 
@@ -37,10 +38,11 @@ func _draw() -> void:
 	elif kind == "shield":
 		draw_colored_polygon(PackedVector2Array([offset+Vector2(-8,-8),offset+Vector2(8,-8),offset+Vector2(7,3),offset+Vector2(0,10),offset+Vector2(-7,3)]), color)
 	elif kind == "ghost":
-		draw_circle(offset + Vector2(0, -2), 8, color)
-		draw_rect(Rect2(offset + Vector2(-8, -2), Vector2(16, 9)), color)
-		draw_circle(offset + Vector2(-3, -3), 1.5, DARK)
-		draw_circle(offset + Vector2(3, -3), 1.5, DARK)
+		# 白い原画が暗い床に沈まないよう、影を1px下へ重ねてから描く。
+		GhostSprite.draw_frame(
+			self, Rect2(offset + Vector2(-9, -9), Vector2(20, 20)), animation_time, DARK)
+		GhostSprite.draw_frame(
+			self, Rect2(offset + Vector2(-10, -10), Vector2(20, 20)), animation_time)
 	elif kind == "berserk":
 		draw_colored_polygon(PackedVector2Array([offset+Vector2(-7,8),offset+Vector2(-4,-2),offset,offset+Vector2(2,-10),offset+Vector2(8,0),offset+Vector2(6,8)]), color)
 	elif kind == "larokin_poppos":

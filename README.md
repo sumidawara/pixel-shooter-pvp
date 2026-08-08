@@ -5,7 +5,7 @@ GodotフロントエンドとRust + Bevy権威サーバーで動く、最大4人
 
 ## 必要環境
 
-- Rust 1.92以降（Bevy 0.18を使用）
+- Rust（版は`rust-toolchain.toml`で固定。rustupが自動で切り替える）
 - Godot 4.7以降
 - DockerとDocker Compose
 - Node.jsとnpm（Adminデバッグ画面と統合試験）

@@ -14,6 +14,9 @@ RELEASE_TARGET ?= macos
 GAME_SERVER_BINARY ?= target/debug/pixel-shooter-server
 # 実行時エラーでquit()へ到達しないGodotテストを打ち切る。実測で最長は約10秒。
 FRONTEND_TEST_TIMEOUT ?= 120
+# 統合試験が使う待受ポート。Compose環境と併用する場合はここを変える。
+INTEGRATION_TEST_PORT ?= 9001
+INTEGRATION_TEST_CONTROL_PORT ?= 9101
 SSH_HOST ?=
 WAIT_SECONDS ?= 30
 
@@ -125,6 +128,8 @@ integration: wait ## 起動中のCompose環境に対して制御面の統合試�
 # 前提はスクリプト側にまとめてある。
 integration-server: ## 単体GameServerに対する統合試験（要 make build-game-server）
 	NODE="$(NODE)" GAME_SERVER_BIN="$(GAME_SERVER_BINARY)" \
+		PIXEL_SHOOTER_TEST_PORT="$(INTEGRATION_TEST_PORT)" \
+		PIXEL_SHOOTER_TEST_CONTROL_PORT="$(INTEGRATION_TEST_CONTROL_PORT)" \
 		scripts/run_server_integration_tests.sh
 
 urls: ## ローカル開発用URLを表示

@@ -16,9 +16,9 @@
 use std::{fs, path::PathBuf};
 
 use pixel_shooter_protocol::{
-    BulletSnapshot, HeldItemSnapshot, ItemKind, ItemSnapshot, LarokinPopposSnapshot, MapDefinition,
-    MapSummary, MatchPhase, PlayerSnapshot, RoomSettings, RoomSnapshot, ServerMessage, Snapshot,
-    Vec2,
+    BulletSnapshot, GhostThiefSnapshot, HeldItemSnapshot, ItemKind, ItemSnapshot,
+    LarokinPopposSnapshot, MapDefinition, MapSummary, MatchPhase, PlayerSnapshot, RoomSettings,
+    RoomSnapshot, ServerMessage, Snapshot, Vec2,
 };
 use serde_json::{Value, json};
 
@@ -169,6 +169,15 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                     position: vec2(40.0, 176.0),
                     velocity: vec2(230.0, 0.0),
                     telegraph_left: 0.35,
+                }],
+                ghost_thieves: vec![GhostThiefSnapshot {
+                    id: 5,
+                    owner_id: 1,
+                    target_id: 2,
+                    from: vec2(80.0, 80.0),
+                    to: vec2(200.0, 120.0),
+                    stolen_kind: ItemKind::Shield,
+                    progress: 0.25,
                 }],
                 room: RoomSnapshot {
                     host_player_id: Some(1),

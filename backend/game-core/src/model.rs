@@ -21,6 +21,7 @@ pub struct MatchState {
     pub next_bullet_id: u64,
     pub next_item_id: u64,
     pub next_larokin_id: u64,
+    pub next_ghost_thief_id: u64,
     pub item_spawn_left: f32,
     pub next_player_id: u64,
     pub reconnect_grace_seconds: f32,
@@ -92,6 +93,33 @@ pub struct ScoreItem {
 pub struct HeldItem {
     pub kind: ItemKind,
     pub charges: u32,
+}
+
+/// Ghost使用時に、対象へ飛んでアイテムを奪って戻る演出体。
+///
+/// 奪取そのものは使用したtickで確定する。これは見せるためだけのEntityだが、
+/// 「誰が誰から何を奪ったか」はサーバーしか知らないため、状態としてここに置き、
+/// Snapshotで配信する。クライアントに推測させない。
+#[derive(Component)]
+pub struct GhostThief {
+    pub id: u64,
+    pub owner_id: u64,
+    pub target_id: u64,
+    pub from: Vec2,
+    pub to: Vec2,
+    pub stolen_kind: ItemKind,
+    pub life_left: f32,
+    pub life_total: f32,
+}
+
+impl GhostThief {
+    /// 演出の進み具合(0.0〜1.0)。
+    pub fn progress(&self) -> f32 {
+        if self.life_total <= 0.0 {
+            return 1.0;
+        }
+        (1.0 - self.life_left / self.life_total).clamp(0.0, 1.0)
+    }
 }
 
 /// ラロキンポッポス使用時にアリーナ端から突撃する攻撃体。

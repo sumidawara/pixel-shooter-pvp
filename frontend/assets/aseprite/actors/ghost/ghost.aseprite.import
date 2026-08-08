@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://l0qp3hkcpgor"
+path="res://.godot/imported/ghost.aseprite-b1cde758d4b409b8618c7f4b22aca56f.res"
+
+[deps]
+
+source_file="res://assets/aseprite/actors/ghost/ghost.aseprite"
+dest_files=["res://.godot/imported/ghost.aseprite-b1cde758d4b409b8618c7f4b22aca56f.res"]
+
+[params]
+
