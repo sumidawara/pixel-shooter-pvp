@@ -30,6 +30,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var play_button: Button = %PlayButton
 @onready var create_room_button: Button = %CreateRoomButton
 @onready var open_join_button: Button = %OpenJoinButton
+@onready var create_room_hint: Label = %CreateRoomHint
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
@@ -67,7 +68,9 @@ func _ready() -> void:
 	server_input.text = NetworkConfig.initial_connection_url()
 	create_room_button.disabled = is_web
 	create_room_button.tooltip_text = "Desktop app only" if is_web else ""
-	%CreateRoomHint.text = "DESKTOP APP ONLY" if is_web else "START A LOCAL SERVER"
+	# 説明は押せないときだけ出す。押せるボタンの下に常時1行あると、
+	# 選択肢そのものより先に目へ入るうえ、読んでも何もすることがない。
+	create_room_hint.visible = is_web
 	_bind_buttons()
 	set_available_maps([{"id": "classic_arena", "name": "Classic Arena"}])
 	_bind_room_settings()

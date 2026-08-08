@@ -375,11 +375,12 @@ alignment = 0
 
 [node name="CreateRoomHint" type="Label" parent="PlayPage/Panel/Margin/Content" unique_id=1859459624]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.36, 0.44, 0.5, 1)
+theme_override_colors/font_color = Color(0.6, 0.5, 0.42, 1)
 theme_override_constants/shadow_offset_x = 0
 theme_override_font_sizes/font_size = 9
-text = "     START A LOCAL SERVER"
+text = "     DESKTOP APP ONLY"
 
 [node name="JoinRow" type="HBoxContainer" parent="PlayPage/Panel/Margin/Content"]
 layout_mode = 2

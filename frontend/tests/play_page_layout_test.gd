@@ -8,6 +8,13 @@ extends SceneTree
 ##
 ##     godot --headless --path frontend --script res://tests/play_page_layout_test.gd
 
+## 選んでいる行の枠が、休んでいる行の枠より何倍強ければ「はっきり違う」とするか。
+##
+## わずかでも強ければ合格にすると、全部の枠を最大の強さで出しておいて選択時だけ
+## 1px太らせる、という元の状態に戻せてしまう。倍率そのものは目分量だが、
+## 「差がある」ではなく「差が分かる」を要求するために置いている。
+const CHOSEN_FRAME_RATIO := 1.5
+
 var _failures: PackedStringArray = PackedStringArray()
 
 
@@ -16,7 +23,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	await _check_actions_have_no_permanent_frame()
+	await _check_the_chosen_action_outshines_the_resting_ones()
+	await _check_the_hint_only_appears_when_it_matters()
 	await _check_only_the_chosen_row_is_marked()
 	await _check_back_is_weaker_than_the_actions()
 	await _check_the_panel_hides_the_backdrop()
@@ -30,28 +38,49 @@ func _run() -> void:
 	quit(0)
 
 
-## 選択肢を常時シアンの矩形で囲わないこと。
+## 主操作は枠で囲うが、選んでいる行の枠のほうが強いこと。
 ##
-## 文字より枠の面積のほうが大きいと、視線が「何を選ぶか」ではなく箱に引かれる。
-## 強いシアンはフォーカスとホバーのときだけ出す。
-func _check_actions_have_no_permanent_frame() -> void:
+## 枠があること自体は、押せる場所を示すのに役立つ。問題になるのは全部が
+## 同じ強さで主張することなので、休んでいる枠は落とし、選んだ行だけを立てる。
+func _check_the_chosen_action_outshines_the_resting_ones() -> void:
 	var menu = await _open_menu()
 	for name in ["CreateRoomButton", "OpenJoinButton"]:
 		var button: Button = _action(menu, name)
-		var normal := button.get_theme_stylebox("normal")
-		if _border_width(normal) > 0:
-			_failures.append("%s が常時枠を出している" % name)
-		# 押せる状態だと分かる変化は要る。枠を消しただけでは、どこが操作対象か
-		# 分からなくなる。
-		if _border_width(button.get_theme_stylebox("hover")) <= 0:
-			_failures.append("%s はホバーしても何も変わらない" % name)
-		if _border_width(button.get_theme_stylebox("focus")) <= 0:
-			_failures.append("%s はフォーカスしても何も変わらない" % name)
+		var resting := _frame_strength(button.get_theme_stylebox("normal"))
+		if resting <= 0.0:
+			_failures.append("%s に枠が無い。押せる場所が分からない" % name)
+		for state in ["hover", "focus"]:
+			var chosen := _frame_strength(button.get_theme_stylebox(state))
+			if chosen < resting * CHOSEN_FRAME_RATIO:
+				_failures.append(
+					"%s の %s が休んでいるときと大差ない: %.1f / %.1f"
+					% [name, state, chosen, resting]
+				)
 		# 高さは文字に対して間延びしない範囲に収める。
 		if button.custom_minimum_size.y > 34.0:
 			_failures.append(
 				"%s が高すぎる: %s" % [name, button.custom_minimum_size.y]
 			)
+	await _close(menu)
+
+
+## 補足の1行は、押せないときだけ出ること。
+##
+## 押せるボタンの下に常時1行あると、選択肢そのものより先に目へ入るうえ、
+## 読んでも何もすることがない。押せない理由なら読む意味がある。
+func _check_the_hint_only_appears_when_it_matters() -> void:
+	var menu = await _open_menu()
+	var hint: Label = menu.play_page.get_node("Panel/Margin/Content/CreateRoomHint")
+	var create: Button = _action(menu, "CreateRoomButton")
+
+	if create.disabled != hint.visible:
+		_failures.append(
+			"押せる状態と補足の表示が噛み合っていない: disabled=%s, hint=%s"
+			% [create.disabled, hint.visible]
+		)
+	if hint.visible and not hint.text.strip_edges().contains("DESKTOP"):
+		_failures.append("押せない理由が書かれていない: %s" % hint.text)
+
 	await _close(menu)
 
 
@@ -171,6 +200,21 @@ func _action(menu, button_name: String) -> Button:
 				return child
 	_failures.append("ボタンが見つからない: %s" % button_name)
 	return null
+
+
+## 枠の強さ。4辺の太さの合計と、色の明るさ・濃さを掛ける。
+##
+## 一番太い辺だけで見ると、選択時に1辺を1px太らせただけで「強くなった」ことに
+## なってしまう。実際に目に入るのは枠全体の量なので、合計で見る。
+func _frame_strength(style: StyleBox) -> float:
+	if not style is StyleBoxFlat:
+		return 0.0
+	var total: int = (
+		style.border_width_left + style.border_width_right
+		+ style.border_width_top + style.border_width_bottom
+	)
+	var color: Color = style.border_color
+	return float(total) * color.a * _brightness(color)
 
 
 func _border_width(style: StyleBox) -> int:
