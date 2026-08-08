@@ -20,8 +20,8 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  # 整形・Clippy・Workspace全テスト（ゴールデンfixtureの検証を含む）
   rust:
-    name: Rust（整形・lint・テスト）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +40,8 @@ jobs:
       # make update-goldens を忘れると、このステップで落ちる。
       - run: make test
 
+  # Godotクライアントのヘッドレステスト
   frontend:
-    name: Godotクライアント
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +62,8 @@ jobs:
       # 気付かないままカバレッジが落ちる。
       - run: make test-frontend-full
 
+  # Adminデバッグ画面の型検査と、コミット済みdistの陳腐化検査
   web:
-    name: Adminデバッグ画面
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,8 +78,8 @@ jobs:
       # src だけ更新してビルドを忘れると、配布される画面が古いまま残る。
       - run: make web-dist-check
 
+  # 単体GameServerとCompose環境に対する統合試験
   integration:
-    name: サービス間の結合
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
