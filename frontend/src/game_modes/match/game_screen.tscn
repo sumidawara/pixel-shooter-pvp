@@ -35,6 +35,9 @@ unique_name_in_owner = true
 [node name="PlayerLayer" type="Node2D" parent="World"]
 unique_name_in_owner = true
 
+[node name="GhostThiefLayer" type="Node2D" parent="World"]
+unique_name_in_owner = true
+
 [node name="EffectLayer" type="Node2D" parent="World"]
 unique_name_in_owner = true
 script = ExtResource("3_effects")

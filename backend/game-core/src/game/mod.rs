@@ -16,7 +16,7 @@ use pixel_shooter_protocol::MatchPhase;
 
 pub(crate) use combat::{fire_bullets, move_and_hit_bullets};
 pub(crate) use cpu::{CpuNavigation, update_cpu_players};
-pub(crate) use items::{update_items, update_larokin_poppos};
+pub(crate) use items::{update_ghost_thieves, update_items, update_larokin_poppos};
 pub(crate) use match_flow::update_match;
 pub(crate) use movement::move_players;
 pub(crate) use respawn::update_respawns;

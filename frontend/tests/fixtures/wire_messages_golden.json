@@ -79,6 +79,23 @@
       "dash_cooldown": 1.100000023841858,
       "dash_duration": 0.12999999523162842,
       "dash_speed": 520.0,
+      "ghost_thieves": [
+        {
+          "from": {
+            "x": 80.0,
+            "y": 80.0
+          },
+          "id": 5,
+          "owner_id": 1,
+          "progress": 0.25,
+          "stolen_kind": "shield",
+          "target_id": 2,
+          "to": {
+            "x": 200.0,
+            "y": 120.0
+          }
+        }
+      ],
       "items": [
         {
           "id": 7,

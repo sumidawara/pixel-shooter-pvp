@@ -5,7 +5,7 @@ use pixel_shooter_protocol::{ITEM_RADIUS, ItemKind, PLAYER_RADIUS};
 
 use crate::{
     arena::ArenaMap,
-    model::{HeldItem, LarokinPoppos, MatchState, Player, ScoreItem},
+    model::{GhostThief, HeldItem, LarokinPoppos, MatchState, Player, ScoreItem},
     schedule::GameClock,
     settings::GameSettings,
 };
@@ -22,6 +22,9 @@ const LAROKIN_SPEED: f32 = 230.0;
 const LAROKIN_TELEGRAPH_SECONDS: f32 = 0.7;
 const LAROKIN_RADIUS: f32 = 8.0;
 const LAROKIN_DAMAGE: i32 = 1;
+/// Ghostが対象まで飛んで戻るまでの時間。奪取自体は使用したtickで確定しており、
+/// これは見せている時間だけを表す。
+const GHOST_THIEF_SECONDS: f32 = 0.9;
 
 /// 出現、取得、スロット使用を1tick内で決定的に処理する。
 pub(crate) fn update_items(
@@ -165,14 +168,53 @@ pub(crate) fn update_items(
             .iter_mut()
             .find(|player| player.id == target_id)
             .and_then(|mut target| target.held_item.take());
-        if let Some(stolen) = stolen
-            && let Some(mut user) = players.iter_mut().find(|player| player.id == user_id)
-        {
-            user.held_item = Some(stolen);
-        }
+        let Some(stolen) = stolen else {
+            continue;
+        };
+        let Some(mut user) = players.iter_mut().find(|player| player.id == user_id) else {
+            continue;
+        };
+        user.held_item = Some(stolen);
+        let from = user.position;
+        // 実際に奪えたときだけ演出を出す。対象が先に使い切っていた場合は何も見せない。
+        let to = player_info
+            .iter()
+            .find(|(id, _, _, _, _)| *id == target_id)
+            .map(|(_, position, _, _, _)| *position)
+            .unwrap_or(from);
+        state.next_ghost_thief_id += 1;
+        commands.spawn(GhostThief {
+            id: state.next_ghost_thief_id,
+            owner_id: user_id,
+            target_id,
+            from,
+            to,
+            stolen_kind: stolen.kind,
+            life_left: GHOST_THIEF_SECONDS,
+            life_total: GHOST_THIEF_SECONDS,
+        });
     }
     for (owner_id, (_, target_position)) in larokin_uses {
         spawn_larokin_wave(&mut commands, &map, &mut state, owner_id, target_position);
+    }
+}
+
+/// 奪取演出の寿命を進める。見せ終わったEntityを片付けるだけ。
+pub(crate) fn update_ghost_thieves(
+    mut commands: Commands,
+    clock: Res<GameClock>,
+    state: Res<MatchState>,
+    mut thieves: Query<(Entity, &mut GhostThief)>,
+) {
+    if !is_playing_phase(state.phase) {
+        return;
+    }
+    let dt = clock.delta_seconds();
+    for (entity, mut thief) in &mut thieves {
+        thief.life_left -= dt;
+        if thief.life_left <= 0.0 {
+            commands.entity(entity).despawn();
+        }
     }
 }
 
@@ -298,7 +340,7 @@ mod tests {
 
     use crate::{
         game::test_support::{test_app, test_player},
-        model::{HeldItem, LarokinPoppos, Player},
+        model::{GhostThief, HeldItem, LarokinPoppos, Player},
         schedule::advance_one_tick,
     };
 
@@ -359,6 +401,118 @@ mod tests {
                 charges: 1,
             })
         );
+    }
+
+    #[test]
+    fn ghost_publishes_who_stole_what_from_whom() {
+        // 演出のために、クライアントは「誰が誰から何を奪ったか」を知る必要がある。
+        // 所持アイテムの移動という状態差分から推測させると、同じtickに複数の
+        // 変化が起きたときに取り違える。事実としてEntityへ載せる。
+        let mut app = test_app(MatchPhase::Running, 60.0);
+
+        let mut user = test_player(1, Some(101));
+        user.position = Vec2::new(100.0, 100.0);
+        user.use_item_requested = true;
+        user.held_item = Some(HeldItem {
+            kind: ItemKind::Ghost,
+            charges: 1,
+        });
+        app.world_mut().spawn(user);
+
+        let target_position = Vec2::new(160.0, 140.0);
+        let mut target = test_player(2, Some(102));
+        target.position = target_position;
+        target.held_item = Some(HeldItem {
+            kind: ItemKind::Shield,
+            charges: 1,
+        });
+        app.world_mut().spawn(target);
+
+        advance_one_tick(app.world_mut());
+
+        let thieves: Vec<(u64, u64, Vec2, Vec2, ItemKind, f32)> = {
+            let world = app.world_mut();
+            let mut query = world.query::<&GhostThief>();
+            query
+                .iter(world)
+                .map(|thief| {
+                    (
+                        thief.owner_id,
+                        thief.target_id,
+                        thief.from,
+                        thief.to,
+                        thief.stolen_kind,
+                        thief.progress(),
+                    )
+                })
+                .collect()
+        };
+        assert_eq!(thieves.len(), 1);
+        let (owner_id, target_id, from, to, stolen_kind, progress) = thieves[0];
+        assert_eq!(owner_id, 1);
+        assert_eq!(target_id, 2);
+        assert_eq!(from, Vec2::new(100.0, 100.0));
+        assert_eq!(to, target_position);
+        assert_eq!(stolen_kind, ItemKind::Shield, "奪った物の種類も伝える");
+        assert!(progress > 0.0 && progress < 1.0);
+    }
+
+    #[test]
+    fn ghost_shows_nothing_when_there_is_nothing_to_steal() {
+        // 奪えなかったのに演出だけ出ると、見ている側に嘘をつくことになる。
+        let mut app = test_app(MatchPhase::Running, 60.0);
+
+        let mut user = test_player(1, Some(101));
+        user.use_item_requested = true;
+        user.held_item = Some(HeldItem {
+            kind: ItemKind::Ghost,
+            charges: 1,
+        });
+        app.world_mut().spawn(user);
+        // 相手はアイテムを持っていない。
+        app.world_mut().spawn(test_player(2, Some(102)));
+
+        advance_one_tick(app.world_mut());
+
+        let world = app.world_mut();
+        let mut query = world.query::<&GhostThief>();
+        assert_eq!(query.iter(world).count(), 0);
+    }
+
+    #[test]
+    fn the_ghost_effect_disappears_on_its_own() {
+        // 見せ終わったEntityが残り続けると、Snapshotに乗り続けて表示が消えない。
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        app.world_mut().spawn(GhostThief {
+            id: 1,
+            owner_id: 1,
+            target_id: 2,
+            from: Vec2::ZERO,
+            to: Vec2::new(64.0, 0.0),
+            stolen_kind: ItemKind::Shield,
+            life_left: GHOST_THIEF_SECONDS,
+            life_total: GHOST_THIEF_SECONDS,
+        });
+
+        let count = |app: &mut App| {
+            let world = app.world_mut();
+            let mut query = world.query::<&GhostThief>();
+            query.iter(world).count()
+        };
+        let ticks = (GHOST_THIEF_SECONDS * 60.0).ceil() as i32;
+
+        // 途中では消えていない。すぐ消えると演出が見えない。
+        for _ in 0..ticks / 2 {
+            advance_one_tick(app.world_mut());
+        }
+        assert_eq!(count(&mut app), 1, "寿命の途中で消えている");
+
+        // 寿命を過ぎたら自分で消える。
+        // 毎tickの減算で誤差が積もるため、ぴったりのtick数ではなく余裕を持って見る。
+        for _ in 0..ticks {
+            advance_one_tick(app.world_mut());
+        }
+        assert_eq!(count(&mut app), 0, "寿命を過ぎても残っている");
     }
 
     #[test]

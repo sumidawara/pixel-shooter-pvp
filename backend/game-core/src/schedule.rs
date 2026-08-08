@@ -62,6 +62,7 @@ impl Plugin for GameCorePlugin {
                     game::fire_bullets,
                     game::move_and_hit_bullets,
                     game::update_larokin_poppos,
+                    game::update_ghost_thieves,
                     game::update_respawns,
                 )
                     // 入力反映後の状態を、移動→射撃→判定の順に確定する。
