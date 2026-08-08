@@ -28,7 +28,7 @@ func _run() -> void:
 	await _check_only_the_chosen_row_is_marked()
 	await _check_back_is_weaker_than_the_actions()
 	await _check_the_panel_hides_the_backdrop()
-	await _check_opening_the_page_puts_focus_somewhere()
+	await _check_nothing_is_lit_until_you_choose()
 
 	if not _failures.is_empty():
 		push_error("play page:\n  " + "\n  ".join(_failures))
@@ -160,18 +160,29 @@ func _check_the_panel_hides_the_backdrop() -> void:
 	await _close(menu)
 
 
-## Playを開いたら、どこかにフォーカスがあること。
+## 開いた直後はどれも光っておらず、キーを押したら最初の行から始まること。
 ##
-## 選んでいる行だけを明るくする画面なので、どこにも無いと全部暗いままになる。
-func _check_opening_the_page_puts_focus_somewhere() -> void:
+## 押してもいないのに1つだけ強く出ていると、既に選んだ後のように見える。
+## 一方でどこにもフォーカスが無いままだと、方向キーの移動先が決まらず、
+## キーボードだけでは先へ進めない。
+func _check_nothing_is_lit_until_you_choose() -> void:
 	var menu = await _open_menu()
 	menu._show_page(menu.play_page)
 	await process_frame
 	await process_frame
 
 	var focused: Control = menu.get_viewport().gui_get_focus_owner()
-	if focused != _action(menu, "CreateRoomButton"):
-		_failures.append("開いた直後に最初の操作へフォーカスが無い: %s" % focused)
+	if focused != null:
+		_failures.append("開いた直後から光っている: %s" % focused.name)
+
+	var key := InputEventAction.new()
+	key.action = "ui_down"
+	key.pressed = true
+	menu.get_viewport().push_input(key)
+	await process_frame
+	await process_frame
+	if menu.get_viewport().gui_get_focus_owner() != _action(menu, "CreateRoomButton"):
+		_failures.append("キーを押しても最初の行へ移らない。キーボードで進めない")
 
 	await _close(menu)
 

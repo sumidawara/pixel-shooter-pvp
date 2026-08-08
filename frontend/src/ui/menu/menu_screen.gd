@@ -18,6 +18,11 @@ const PLAYER_COLORS := [
 	Color("#ffe66d"),
 	Color("#7cff6b"),
 ]
+## この操作を押したら、Play画面のフォーカスを最初の行から始める。
+const FOCUS_START_ACTIONS := [
+	"ui_up", "ui_down", "ui_focus_next", "ui_focus_prev", "ui_accept",
+]
+
 const CRT_PRESET_IDS := ["weak", "standard", "strong"]
 const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 
@@ -249,13 +254,25 @@ func _show_page(page: Control) -> void:
 	for candidate in [title_page, play_page, join_page, create_page, settings_page]:
 		candidate.visible = candidate == page
 	if page == play_page:
-		_focus_first_action()
+		# 開いた直後はどれも光らせない。押してもいないのに1つだけ強く出ていると、
+		# 既に選んだ後のように見える。
+		get_viewport().gui_release_focus()
 
 
-## Playを開いたら、最初の操作へフォーカスを置く。
+## キーボードで操作を始めたときだけ、最初の行へフォーカスを移す。
 ##
-## この画面は枠を常時出さず、選んでいる行だけを明るくする。どこにも
-## フォーカスが無いと、どの行も同じ暗さになって起点が分からない。
+## どこにもフォーカスが無い状態では、方向キーの移動先が決まらず何も起きない。
+## マウスの人には最初から光らせず、キーを押した人にだけ起点を与える。
+func _unhandled_input(event: InputEvent) -> void:
+	if not play_page.visible or get_viewport().gui_get_focus_owner() != null:
+		return
+	for action in FOCUS_START_ACTIONS:
+		if event.is_action_pressed(action):
+			_focus_first_action()
+			get_viewport().set_input_as_handled()
+			return
+
+
 func _focus_first_action() -> void:
 	var first: Button = open_join_button if create_room_button.disabled else create_room_button
 	first.call_deferred("grab_focus")
