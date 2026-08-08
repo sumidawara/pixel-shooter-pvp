@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/aseprite/ui/menu/title.aseprite" id="2_title"]
 [ext_resource type="Theme" uid="uid://cgyislqgg8tta" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
 [ext_resource type="Script" path="res://src/shared/ui/terminal_backdrop.gd" id="4_backdrop"]
+[ext_resource type="Script" path="res://src/ui/menu/terminal_menu_item.gd" id="5_menu_item"]
 
 [sub_resource type="StyleBoxFlat" id="StylePlayNormal"]
 content_margin_left = 18.0
@@ -303,57 +304,133 @@ anchor_bottom = 0.9
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="PageScrim" type="ColorRect" parent="PlayPage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.002, 0.011, 0.006, 0.62)
+
 [node name="Panel" type="PanelContainer" parent="PlayPage" unique_id=1312885957]
 layout_mode = 0
-offset_left = 150.0
-offset_top = 65.0
-offset_right = 490.0
-offset_bottom = 320.0
+offset_left = 168.0
+offset_top = 84.0
+offset_right = 472.0
+offset_bottom = 268.0
+theme_type_variation = &"MenuPanel"
 
 [node name="Margin" type="MarginContainer" parent="PlayPage/Panel" unique_id=1614918613]
 layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 18
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
 
 [node name="Content" type="VBoxContainer" parent="PlayPage/Panel/Margin" unique_id=21825385]
 layout_mode = 2
-theme_override_constants/separation = 11
+theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="PlayPage/Panel/Margin/Content" unique_id=1084317500]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "PLAY"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.31, 0.66, 0.76, 1)
+theme_override_font_sizes/font_size = 15
+text = "// PLAY"
 
-[node name="CreateRoomButton" type="Button" parent="PlayPage/Panel/Margin/Content" unique_id=1577447066]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="TitleRule" type="ColorRect" parent="PlayPage/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
+mouse_filter = 2
+color = Color(0.13, 0.42, 0.5, 0.6)
+
+[node name="TitleGap" type="Control" parent="PlayPage/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CreateRow" type="HBoxContainer" parent="PlayPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 0
+script = ExtResource("5_menu_item")
+
+[node name="Marker" type="Label" parent="PlayPage/Panel/Margin/Content/CreateRow"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 13
+mouse_filter = 2
+vertical_alignment = 1
+
+[node name="CreateRoomButton" type="Button" parent="PlayPage/Panel/Margin/Content/CreateRow" unique_id=1577447066]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MenuAction"
 action_mode = 0
 text = "CREATE ROOM"
+alignment = 0
 
 [node name="CreateRoomHint" type="Label" parent="PlayPage/Panel/Margin/Content" unique_id=1859459624]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.47, 0.52, 0.58, 1)
+theme_override_colors/font_color = Color(0.36, 0.44, 0.5, 1)
+theme_override_constants/shadow_offset_x = 0
 theme_override_font_sizes/font_size = 9
-text = "START A LOCAL SERVER"
-horizontal_alignment = 1
+text = "     START A LOCAL SERVER"
 
-[node name="OpenJoinButton" type="Button" parent="PlayPage/Panel/Margin/Content" unique_id=701630881]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="JoinRow" type="HBoxContainer" parent="PlayPage/Panel/Margin/Content"]
 layout_mode = 2
+theme_override_constants/separation = 0
+script = ExtResource("5_menu_item")
+
+[node name="Marker" type="Label" parent="PlayPage/Panel/Margin/Content/JoinRow"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.898, 1, 1)
+theme_override_font_sizes/font_size = 13
+mouse_filter = 2
+vertical_alignment = 1
+
+[node name="OpenJoinButton" type="Button" parent="PlayPage/Panel/Margin/Content/JoinRow" unique_id=701630881]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MenuAction"
 action_mode = 0
 text = "JOIN ROOM"
+alignment = 0
 
-[node name="TitleBackButton" type="Button" parent="PlayPage/Panel/Margin/Content" unique_id=1978732218]
+[node name="BackGap" type="Control" parent="PlayPage/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BackRow" type="HBoxContainer" parent="PlayPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 0
+script = ExtResource("5_menu_item")
+marker = "<"
+
+[node name="Marker" type="Label" parent="PlayPage/Panel/Margin/Content/BackRow"]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.68, 0.76, 1)
+theme_override_font_sizes/font_size = 11
+mouse_filter = 2
+vertical_alignment = 1
+
+[node name="TitleBackButton" type="Button" parent="PlayPage/Panel/Margin/Content/BackRow" unique_id=1978732218]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MenuBack"
 action_mode = 0
 text = "BACK"
+alignment = 0
 
 [node name="JoinPage" type="Control" parent="." unique_id=543464538]
 unique_name_in_owner = true

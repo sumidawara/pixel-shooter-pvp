@@ -29,6 +29,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var settings_page: Control = %SettingsPage
 @onready var play_button: Button = %PlayButton
 @onready var create_room_button: Button = %CreateRoomButton
+@onready var open_join_button: Button = %OpenJoinButton
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
@@ -244,6 +245,17 @@ func set_status(text: String) -> void:
 func _show_page(page: Control) -> void:
 	for candidate in [title_page, play_page, join_page, create_page, settings_page]:
 		candidate.visible = candidate == page
+	if page == play_page:
+		_focus_first_action()
+
+
+## Playを開いたら、最初の操作へフォーカスを置く。
+##
+## この画面は枠を常時出さず、選んでいる行だけを明るくする。どこにも
+## フォーカスが無いと、どの行も同じ暗さになって起点が分からない。
+func _focus_first_action() -> void:
+	var first: Button = open_join_button if create_room_button.disabled else create_room_button
+	first.call_deferred("grab_focus")
 
 
 func _leave_room_to_play() -> void:

@@ -5,6 +5,18 @@ func _initialize() -> void:
     call_deferred("_run")
 
 
+## プリセットの全項目がシェーダーへ届いているか。
+##
+## 1項目だけ見ると、書き忘れた項目が既定値のまま残っていても気付けない。
+static func _matches_preset(material: ShaderMaterial, preset: Dictionary) -> bool:
+    for parameter_name in preset:
+        var applied := float(material.get_shader_parameter(parameter_name))
+        if not is_equal_approx(applied, float(preset[parameter_name])):
+            push_warning("%s: %s applied, %s expected" % [parameter_name, applied, preset[parameter_name]])
+            return false
+    return true
+
+
 func _fail(message: String) -> void:
     push_error("crt ui: %s" % message)
     quit(1)
@@ -48,18 +60,23 @@ func _run() -> void:
     crt_option.select(0)
     crt_option.item_selected.emit(0)
     await process_frame
-    if not is_equal_approx(float(material.get_shader_parameter("scanline_strength")), 0.08):
+    # 期待値は app.gd の CRT_PRESETS から取る。ここへ数値を書き写すと、
+    # 見え方を調整するたびに、壊れていないのに検査が落ちる。
+    var weak: Dictionary = main.CRT_PRESETS["weak"]
+    var strong: Dictionary = main.CRT_PRESETS["strong"]
+    if not _matches_preset(material, weak):
         _fail("weak CRT preset was not applied")
         return
 
     crt_option.select(2)
     crt_option.item_selected.emit(2)
     await process_frame
-    if not is_equal_approx(float(material.get_shader_parameter("bloom_strength")), 0.5):
+    if not _matches_preset(material, strong):
         _fail("strong CRT preset was not applied")
         return
-    if not is_equal_approx(float(material.get_shader_parameter("curvature")), 0.07):
-        _fail("strong CRT curvature was not applied")
+    # 3段階が同じ値になっていたら、選んでも何も変わらない。
+    if weak == strong:
+        _fail("CRT presets must differ from each other")
         return
 
     crt_option.select(1)

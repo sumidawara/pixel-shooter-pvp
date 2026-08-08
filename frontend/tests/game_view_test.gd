@@ -75,11 +75,23 @@ func _check_the_hud_stays_out_of_the_map() -> void:
 func _check_the_camera_centers_the_local_player() -> void:
 	var main = await _open_main()
 	var game = main.get_node("GameScreen")
-	# 端で寄せ止めされない、マップの真ん中あたりに置く。
-	var target := Vector2(320.0, 176.0)
-	await _start_match(game, target)
-
 	var camera: Camera2D = game.get_node("FollowCamera")
+	await _start_match(game, Vector2(320.0, 176.0))
+
+	# 寄せ止めされない範囲を、実際の寄り具合から出す。座標を直接書くと、
+	# FOLLOW_ZOOM を変えただけで壊れる。あれは好みで調整してよい値なので、
+	# 検査がそれを縛ってはいけない。
+	var free := _unclamped_range(game, camera)
+	if free.size.x < 32.0 or free.size.y < 32.0:
+		_failures.append(
+			"この寄り具合ではカメラが動く余地がない: FOLLOW_ZOOM=%s, 余地=%s"
+			% [game.FOLLOW_ZOOM, free.size]
+		)
+		await _close(main)
+		return
+
+	var target := free.get_center()
+	await _place_local_player(game, target)
 	var center := Vector2(320.0, 200.0)
 	# 送られてきた座標ではなく、実際に描いている位置で見る。クライアントは
 	# 補間するので、両者は一致しない。中心に来るべきなのは描いている方。
@@ -88,9 +100,9 @@ func _check_the_camera_centers_the_local_player() -> void:
 		_failures.append("自機が画面の中心にいない: %s" % on_screen)
 
 	# 動いたらカメラも追うこと。置いただけで追わないと、端まで歩くと見失う。
-	# 移動先も寄せ止めの外側に取る。端に寄せると中心から外れるのが正しい挙動で、
+	# 移動先も寄せ止めの内側に取る。端では中心から外れるのが正しい挙動で、
 	# それは別の検査で見ている。
-	await _place_local_player(game, target + Vector2(80.0, 44.0))
+	await _place_local_player(game, target + free.size * 0.25)
 	var moved_on_screen := _screen_position(game, camera, _drawn_local_player(game))
 	if moved_on_screen.distance_to(center) > 2.0:
 		_failures.append("自機が動いてもカメラが追わない: %s" % moved_on_screen)
@@ -178,6 +190,14 @@ func _check_the_camera_is_off_outside_a_match() -> void:
 	await _close(main)
 
 
+## カメラが寄せ止めされずに動ける範囲。この中なら自機は必ず画面の中心に来る。
+func _unclamped_range(game, camera: Camera2D) -> Rect2:
+	var view: Vector2 = game.get_viewport_rect().size / game.FOLLOW_ZOOM
+	var low := Vector2(camera.limit_left, camera.limit_top) + view * 0.5
+	var high := Vector2(camera.limit_right, camera.limit_bottom) - view * 0.5
+	return Rect2(low, high - low)
+
+
 ## 実際に描いている自機の位置。画面揺れのぶんも含む。
 func _drawn_local_player(game) -> Vector2:
 	return game.player_views[1].global_position
@@ -228,18 +248,19 @@ func _place_local_player(game, position: Vector2) -> void:
 		"ghost_thieves": [],
 		"room": {"host_player_id": 1, "can_start": false, "max_players": 4, "settings": {}},
 	})
-	# クライアントは表示位置を補間するので、落ち着くまで待つ。
-	# 補間そのものは検査の対象ではない。動きが止まってからカメラを見る。
-	var previous := Vector2.INF
-	for _attempt in range(240):
+	# クライアントは表示位置を補間するので、指定した所へ届くまで待つ。
+	# 補間そのものは検査の対象ではない。
+	#
+	# 「1フレームの動きが小さくなったら」で待つと、フレーム間隔が短いときに
+	# まだ遠いのに抜けてしまう。届いたかどうかで判定する。
+	for _attempt in range(600):
 		await process_frame
-		if not game.player_views.has(1):
-			continue
-		var current: Vector2 = game.player_views[1].global_position
-		if current.distance_to(previous) < 0.05:
+		if (
+			game.player_views.has(1)
+			and game.player_views[1].global_position.distance_to(position) < 0.5
+		):
 			return
-		previous = current
-	_failures.append("表示位置が落ち着かない。補間が終わらない")
+	_failures.append("表示位置が %s まで来ない" % position)
 
 
 ## 検査用の20×11マップ。実際に配っているものと同じ寸法にする。

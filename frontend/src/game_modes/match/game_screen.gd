@@ -13,7 +13,7 @@ const INTERPOLATION_SPEED := 14.0
 ## 1.5では横427px・縦約210pxが見える。マップは640×352なので、横は約2/3。
 ## これ以上寄せると、弾（340px/s）を撃った相手が画面の外にいる状況が増える。
 ## 寄りの好みはここだけ変えれば効く。
-const FOLLOW_ZOOM := 1.5
+const FOLLOW_ZOOM := 1.2
 const CORRECTION_DECAY := 18.0
 const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
