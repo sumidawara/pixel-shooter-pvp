@@ -171,6 +171,7 @@ fn golden_player(
         id,
         connection_id: Some(1),
         is_cpu: false,
+        is_dummy: false,
         reconnect_token: String::new(),
         reconnect_grace_left: 0.0,
         slot: 0,

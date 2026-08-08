@@ -33,7 +33,8 @@ func apply_snapshot(
 	winner_id,
 	reconnect_grace_left: float,
 	dash_cooldown: float,
-	local_player: Dictionary
+	local_player: Dictionary,
+	sandbox: bool = false
 ) -> void:
 	item_slot.apply_player(local_player)
 	var sorted_by_id := players.duplicate()
@@ -81,7 +82,11 @@ func apply_snapshot(
 		)
 
 	var center_text := _format_time(time_left)
-	if phase == "waiting":
+	# 練習場は時間で終わらない。動かない時計を出すと、止まって見えるだけで
+	# 何も伝えない。ここが練習場であることを出す方が役に立つ。
+	if sandbox and phase == "running":
+		center_text = "SANDBOX"
+	elif phase == "waiting":
 		center_text = "WAITING IN LOBBY"
 	elif phase == "countdown":
 		center_text = "MATCH START  %d" % int(ceil(time_left))

@@ -60,6 +60,14 @@ pub(super) fn award_kill(
     victim_id: u64,
     state: &MatchState,
 ) {
+    // 練習場の的を倒しても得点は動かさない。勝敗を決める場ではないのに
+    // 数字が増えると、稼ぐための場所に見えてしまう。
+    if players
+        .iter()
+        .any(|player| player.id == victim_id && player.is_dummy)
+    {
+        return;
+    }
     for mut player in players.iter_mut() {
         if player.id == killer_id {
             player.score = add_points(player.score, state.room_settings.kill_points);
@@ -191,6 +199,47 @@ mod tests {
         assert_eq!(
             by_bullet.score, -25,
             "倒されたプレイヤーには死亡ペナルティが入る"
+        );
+    }
+
+    /// 練習場の的を倒しても得点は動かない。
+    ///
+    /// 勝敗を決める場ではないのに数字が増えると、稼ぐための場所に見えてしまう。
+    /// 的の側もペナルティで沈み続け、順位表が読めなくなる。
+    #[test]
+    fn downing_a_sandbox_dummy_leaves_every_score_untouched() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        app.world_mut()
+            .resource_mut::<MatchState>()
+            .room_settings
+            .sandbox = true;
+        let map = app.world().resource::<ArenaMap>().clone();
+
+        let mut attacker = test_player(1, Some(101));
+        attacker.position = map.spawn_position(0);
+        let attacker_entity = app.world_mut().spawn(attacker).id();
+
+        let mut target = test_player(2, None);
+        target.is_cpu = true;
+        target.is_dummy = true;
+        target.position = map.spawn_position(1);
+        target.hp = 1;
+        let target_position = target.position;
+        let target_entity = app.world_mut().spawn(target).id();
+
+        spawn_bullet(&mut app, target_position);
+        advance_one_tick(app.world_mut());
+
+        let target = app.world().get::<Player>(target_entity).expect("dummy");
+        assert!(!target.alive, "検査の前提が崩れている: 的が倒れていない");
+        assert_eq!(target.score, 0, "的に死亡ペナルティが入っている");
+        assert_eq!(
+            app.world()
+                .get::<Player>(attacker_entity)
+                .expect("attacker")
+                .score,
+            0,
+            "的を倒して得点が入っている"
         );
     }
 

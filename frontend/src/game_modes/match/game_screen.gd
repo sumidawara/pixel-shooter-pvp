@@ -311,7 +311,8 @@ func _on_snapshot_received(snapshot: Dictionary) -> void:
 		winner_id,
 		reconnect_grace_left,
 		dash_cooldown,
-		players_by_id.get(player_id, {})
+		players_by_id.get(player_id, {}),
+		bool(snapshot.get("room", {}).get("settings", {}).get("sandbox", false))
 	)
 
 

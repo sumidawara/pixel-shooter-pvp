@@ -48,6 +48,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var death_penalty_input: SpinBox = %DeathPenaltyInput
 @onready var item_points_input: SpinBox = %ItemPointsInput
 @onready var max_items_input: SpinBox = %MaxItemsInput
+@onready var sandbox_check: CheckBox = %SandboxCheck
 
 var is_web := false
 var is_room_host := false
@@ -92,6 +93,7 @@ func _bind_buttons() -> void:
 
 func _bind_room_settings() -> void:
 	map_option.item_selected.connect(_on_map_selected)
+	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -224,6 +226,7 @@ func get_room_settings() -> Dictionary:
 		"item_points": int(item_points_input.value),
 		"item_spawn_interval": 5.0,
 		"max_items": int(max_items_input.value),
+		"sandbox": sandbox_check.button_pressed,
 	}
 
 
@@ -255,8 +258,13 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 	add_cpu_button.disabled = player_count >= 4
 	remove_cpu_button.disabled = last_cpu_id == 0
 	start_button.disabled = not can_start
-	start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
+	# 練習場では空きスロットが的で埋まるので、相手のCPUは足されない。
+	if sandbox_check.button_pressed:
+		start_button.text = "START SANDBOX"
+	else:
+		start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	map_option.disabled = not is_room_host
+	sandbox_check.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -283,6 +291,7 @@ func _apply_room_settings(settings: Dictionary) -> void:
 	death_penalty_input.value = float(settings.get("death_penalty", 25))
 	item_points_input.value = float(settings.get("item_points", 20))
 	max_items_input.value = float(settings.get("max_items", 3))
+	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
 	applying_room_snapshot = false
 
 

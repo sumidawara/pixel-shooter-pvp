@@ -513,6 +513,18 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "// MATCH PARAMETERS"
 
+[node name="SandboxCheck" type="CheckBox" parent="CreatePage/RulesPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+action_mode = 0
+text = "SANDBOX"
+
+[node name="SandboxHint" type="Label" parent="CreatePage/RulesPanel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRACTICE ALONE: DUMMIES, ALL ITEMS, NO TIME LIMIT"
+autowrap_mode = 2
+
 [node name="MapRow" type="HBoxContainer" parent="CreatePage/RulesPanel/Margin/Content"]
 layout_mode = 2
 

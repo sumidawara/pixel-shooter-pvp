@@ -130,6 +130,13 @@ pub struct RoomSettings {
     pub item_points: i32,
     pub item_spawn_interval: f32,
     pub max_items: u32,
+    /// アイテムや武器の効果を1人で試すための練習場にするか。
+    ///
+    /// 有効にすると、反撃しないダミーが空きスロットへ入り、全種類のアイテムが
+    /// 常に置かれ、試合が時間で終わらなくなる。対戦の勝敗を決める場ではないので、
+    /// ダミーを倒しても得点は動かない。
+    #[serde(default)]
+    pub sandbox: bool,
 }
 
 impl Default for RoomSettings {
@@ -142,6 +149,7 @@ impl Default for RoomSettings {
             item_points: 20,
             item_spawn_interval: 5.0,
             max_items: 3,
+            sandbox: false,
         }
     }
 }
@@ -185,6 +193,12 @@ pub struct PlayerSnapshot {
     pub max_hp: i32,
     pub score: i32,
     pub is_cpu: bool,
+    /// 動かず反撃もしない的。サンドボックスでのみ現れる。
+    ///
+    /// `is_cpu`だけでは対戦相手のCPUと区別できず、画面上でも同じ扱いになる。
+    /// 撃っても撃ち返してこない相手であることは、見て分かる必要がある。
+    #[serde(default)]
+    pub is_dummy: bool,
     pub connected: bool,
     pub reconnect_grace_left: f32,
     pub alive: bool,

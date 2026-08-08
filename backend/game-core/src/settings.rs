@@ -54,6 +54,7 @@ impl GameSettings {
             item_points: self.match_rules.item_points,
             item_spawn_interval: self.match_rules.item_spawn_interval,
             max_items: self.match_rules.max_items as u32,
+            sandbox: false,
         }
     }
 

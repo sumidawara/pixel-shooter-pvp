@@ -108,6 +108,7 @@ mod tests {
             id,
             connection_id: None,
             is_cpu: true,
+            is_dummy: false,
             reconnect_token: String::new(),
             reconnect_grace_left: 0.0,
             slot: 0,

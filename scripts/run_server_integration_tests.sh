@@ -30,6 +30,7 @@ tests=(
   "lobby_leave_test:"
   "forfeit_test:1"
   "cpu_orphan_test:1"
+  "sandbox_test:"
 )
 
 # 実行しない試験と、その理由。

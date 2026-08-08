@@ -179,6 +179,13 @@ pub(crate) fn update_match(
             }
         }
         MatchPhase::Running => {
+            // 練習場は時間で終わらせない。試し終わる時機は人によって違うし、
+            // 途中で打ち切られると、数えている最中の結果が無駄になる。
+            // 抜けるときはルームを出る。
+            if state.room_settings.sandbox {
+                state.tick += 1;
+                return;
+            }
             state.phase_time_left = (state.phase_time_left - dt).max(0.0);
             if state.phase_time_left <= 0.0 {
                 let winner_id = unique_score_winner(
