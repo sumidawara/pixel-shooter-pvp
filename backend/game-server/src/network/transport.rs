@@ -17,10 +17,17 @@ use super::{ClientSenders, NetworkEvent, NetworkThreadSettings, snapshot::should
 ///
 /// 非同期通信をBevyのSystem内で待つとゲーム更新が止まるため、
 /// 通信は別スレッド、ゲーム計算はBevyのメインスレッドと役割を分ける。
+/// `bind_result` へ待受の成否を返してから、接続の受け付けを始める。
+///
+/// 以前はここで結果を返さずスレッドを起こしていたため、呼び出し側は待受に
+/// 成功したものとして「listening on ...」を表示し、その直後にこのスレッドが
+/// bind に失敗してプロセスごと終了していた。ログだけ見ると起動したように
+/// 読めてしまい、原因にたどり着けない。
 pub(super) fn start_network_thread(
     events: Sender<NetworkEvent>,
     clients: ClientSenders,
     settings: NetworkThreadSettings,
+    bind_result: Sender<Result<(), String>>,
 ) {
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Tokio runtime");
@@ -28,13 +35,14 @@ pub(super) fn start_network_thread(
             let listener = match TcpListener::bind(&settings.bind_address).await {
                 Ok(listener) => listener,
                 Err(error) => {
-                    eprintln!(
+                    let _ = bind_result.send(Err(format!(
                         "could not bind WebSocket server to {}: {error}",
                         settings.bind_address
-                    );
-                    std::process::exit(1);
+                    )));
+                    return;
                 }
             };
+            let _ = bind_result.send(Ok(()));
             let mut next_client_id = 1_u64;
             loop {
                 // 新しいTCP接続が来るまで非同期に待つ。

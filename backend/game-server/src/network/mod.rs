@@ -52,10 +52,18 @@ pub(super) struct NetworkThreadSettings {
 }
 
 /// WebSocket用スレッドを開始し、Bevyへ登録するNetwork Resourceを返す。
-pub(crate) fn start(settings: &ServerSettings, game_snapshot: SharedGameSnapshot) -> Network {
+/// 待受を開始し、成功したら`Network`を返す。
+///
+/// 待受できたことを確かめてから返すので、呼び出し側は
+/// 「listening」と表示してよい状態かどうかを判断できる。
+pub(crate) fn start(
+    settings: &ServerSettings,
+    game_snapshot: SharedGameSnapshot,
+) -> Result<Network, String> {
     let (event_tx, event_rx) = unbounded();
     let clients = Arc::new(Mutex::new(HashMap::new()));
     let simulated_latency = Duration::from_millis(settings.network.simulated_latency_ms);
+    let (bind_tx, bind_rx) = unbounded();
     transport::start_network_thread(
         event_tx,
         clients.clone(),
@@ -64,13 +72,20 @@ pub(crate) fn start(settings: &ServerSettings, game_snapshot: SharedGameSnapshot
             simulated_latency,
             simulated_loss_percent: settings.network.simulated_loss_percent,
         },
+        bind_tx,
     );
-    Network {
+    // 待受の成否が返るまで待つ。返らない場合はスレッドが起動前に落ちている。
+    match bind_rx.recv() {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => return Err(error),
+        Err(_) => return Err("network thread stopped before binding".into()),
+    }
+    Ok(Network {
         events: event_rx,
         clients,
         simulated_latency,
         simulated_loss_percent: settings.network.simulated_loss_percent,
         outbound_sequence: 0,
         game_snapshot,
-    }
+    })
 }

@@ -58,7 +58,14 @@ fn main() {
     let mut room_settings = game_settings.room_settings();
     room_settings.map_id = arena_map.id().into();
     let control_plane = control::start(&settings);
-    let network = network::start(&settings, control_plane.snapshot());
+    // 待受できたことを確かめてから「listening」と表示する。
+    let network = match network::start(&settings, control_plane.snapshot()) {
+        Ok(network) => network,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    };
 
     println!(
         "Pixel Shooter server listening on ws://{}",
