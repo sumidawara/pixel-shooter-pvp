@@ -13,8 +13,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # deploy/docker/Dockerfile.dev と揃える。ずれるとCIとイメージで結果が変わる。
-  RUST_VERSION: "1.92"
+  # rust-toolchain.toml と揃える。ずれると rustup がもう一方を取りに行き、
+  # 二重にツールチェーンをダウンロードすることになる。
+  # 揃っていることは cargo test が検査する。
+  RUST_VERSION: "1.92.0"
   # frontend/project.godot の config/features と揃える。
   GODOT_VERSION: "4.7.1"
   NODE_VERSION: "22"
@@ -48,6 +50,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_VERSION }}
+          # rust-toolchain.toml が要求するので、ここで入れておく。
+          # 無いと最初のcargo実行時に取得が走る。
+          components: rustfmt, clippy
       - name: Godotを取得
         run: |
           set -euo pipefail
@@ -86,6 +91,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}

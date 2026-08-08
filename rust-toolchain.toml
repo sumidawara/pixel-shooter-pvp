@@ -1,0 +1,15 @@
+# ローカル・Docker・CI で同じRustを使うための単一の指定。
+#
+# rustup はこのファイルを見て自動でツールチェーンを選ぶ。新しく参加した人が
+# 別の版でビルドし、clippyの結果が食い違うといったことが起きなくなる。
+#
+# パッチ版まで書いているのは、`1.92` のような書き方だと
+# rust:1.92-bookworm イメージが持つ `1.92.0` と別名扱いになり、
+# Dockerビルドのたびにツールチェーンを丸ごと取り直してしまうため。
+#
+# 版を上げるときは deploy/docker/Dockerfile*.（FROM）と
+# .github/workflows/ci.yml（RUST_VERSION）も揃える。
+# ずれていないことは backend/game-server のテストが検査する。
+[toolchain]
+channel = "1.92.0"
+components = ["rustfmt", "clippy"]

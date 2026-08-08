@@ -12,6 +12,18 @@
           └─ 緑になったら PR をマージ（マージは人間が行う）
 ```
 
+## ツールチェーン
+
+Rustの版は [`rust-toolchain.toml`](../rust-toolchain.toml) で固定している。
+rustup がこれを見て自動で切り替えるため、手元で版を指定する必要はない。
+
+Dockerイメージのタグ（`deploy/docker/Dockerfile*`）とCIの `RUST_VERSION` は
+そこから自動では決まらないので、版を上げるときは3箇所とも直す。
+ずれていないことは `cargo test` が検査する。
+
+Godot（4.7.1）とNode（22）の版は、それぞれ `frontend/project.godot` の
+`config/features` と `.github/workflows/ci.yml` に書いてある。
+
 ## ローカルで通すもの
 
 ```sh
