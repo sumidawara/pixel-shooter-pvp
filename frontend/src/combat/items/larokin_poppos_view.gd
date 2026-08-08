@@ -1,7 +1,7 @@
 extends Node2D
 
 const LALOKIN_POPPOS: Texture2D = preload(
-	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
+	"res://assets/aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite"
 )
 
 var telegraph_left := 0.0

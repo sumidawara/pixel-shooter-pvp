@@ -5,7 +5,6 @@ COMPOSE ?= docker compose
 COMPOSE_RELEASE ?= docker compose -f docker-compose.release.yml
 CURL ?= curl
 GODOT_BIN ?= godot
-ASEPRITE_BIN ?=
 NODE ?= node
 NPM ?= npm
 SSH ?= ssh
@@ -24,7 +23,7 @@ WAIT_SECONDS ?= 30
 	build build-game-server check test test-frontend test-frontend-full update-goldens fmt fmt-check lint verify \
 	run-game-server run-matchmaker run-admin-server \
 	web-install web-build web-check web-dist-check web-dev \
-	assets-bootstrap assets-build assets-watch godot godot-assets sfx release
+	godot sfx release
 
 ##@ 基本
 
@@ -231,20 +230,6 @@ web-dev: ## Adminデバッグ画面のVite開発サーバーを起動
 godot: ## Godotエディターでfrontendを開く
 	"$(GODOT_BIN)" --editor --path frontend
 
-assets-bootstrap: ## 既存PNGから未作成のAseprite原本を作成
-	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs bootstrap
-
-assets-build: ## Aseprite原本からGodot用PNGを一括生成
-	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs build
-
-assets-watch: ## Aseprite原本を監視してGodot用PNGを自動生成
-	ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs watch
-
-godot-assets: assets-build ## アセット監視とGodotエディターを同時に起動
-	@ASEPRITE_BIN="$(ASEPRITE_BIN)" $(NODE) scripts/aseprite_assets.mjs watch & \
-	watcher_pid=$$!; \
-	trap 'kill "$$watcher_pid" 2>/dev/null || true' EXIT INT TERM; \
-	"$(GODOT_BIN)" --editor --path frontend
 
 sfx: ## 効果音を再生成
 	$(NODE) scripts/generate_sfx.mjs

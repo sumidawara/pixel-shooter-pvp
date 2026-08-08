@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://tftptas2qnm7"
+path="res://.godot/imported/title.aseprite-524ab7f943596e07d601fc8b82a493ad.res"
+
+[deps]
+
+source_file="res://assets/aseprite/ui/menu/title.aseprite"
+dest_files=["res://.godot/imported/title.aseprite-524ab7f943596e07d601fc8b82a493ad.res"]
+
+[params]
+

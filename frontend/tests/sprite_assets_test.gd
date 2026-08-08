@@ -1,19 +1,22 @@
 extends SceneTree
 
-## 生成済みスプライトが実際に見える状態かを検証する。
+## Aseprite原本がテクスチャとして読み込め、実際に見える状態かを検証する。
 ##
-## アセットはAsepriteの原本から書き出すが、書き出しに失敗してもPNG自体は
-## 生成されるため、透明なまま気付かずコミットされうる。実際に
-## lalokinpoppos.png が alpha=7/255（ほぼ完全に透明）で入っていた。
-## 形も色も正しく、ゲームも落ちないので、画面を見るまで分からなかった。
+## 以前は書き出し済みPNGをコミットしており、書き出しに失敗しても
+## PNG自体は生成されるため透明なまま気付かず入りうる状態だった
+## （実際に lalokinpoppos.png が alpha=7/255 で入っていた）。
+## 現在は原本だけを管理し、addons/aseprite_importer が読み込む。
+## 書き出し工程が無くなったぶん事故は減るが、インポータの不具合や
+## 未対応機能の混入は起こりうるので、ここで見張る。
 ##
 ##     godot --headless --path frontend --script res://tests/sprite_assets_test.gd
 
-const MANIFEST_PATH := "res://assets/aseprite-assets.json"
+const ASEPRITE_ROOT := "res://assets/aseprite"
+## アプリアイコンの元にしている原本。
+const ICON_SOURCE := "res://assets/aseprite/actors/player/player_stand.aseprite"
 
 ## 「見えている」とみなす最低のalpha。
-## 半分でも不透明な画素が1つも無いスプライトは、書き出しが壊れていると判断する。
-## ふちがぼけた絵でも中心は不透明になるため、この閾値なら誤検出しない。
+## 半分でも不透明な画素が1つも無いスプライトは、読み込みが壊れていると判断する。
 const MINIMUM_VISIBLE_ALPHA := 128
 
 var _failures: PackedStringArray = PackedStringArray()
@@ -24,42 +27,91 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var file := FileAccess.open(MANIFEST_PATH, FileAccess.READ)
-	if file == null:
-		push_error("sprite assets: %s を読めない" % MANIFEST_PATH)
-		quit(1)
-		return
-	var manifest = JSON.parse_string(file.get_as_text())
-	if typeof(manifest) != TYPE_DICTIONARY or typeof(manifest.get("assets")) != TYPE_ARRAY:
-		push_error("sprite assets: マニフェストの形式が不正")
+	var sources := _find_aseprite_files(ASEPRITE_ROOT)
+	if sources.is_empty():
+		push_error("sprite assets: %s に .aseprite が1つも無い" % ASEPRITE_ROOT)
 		quit(1)
 		return
 
-	var assets: Array = manifest["assets"]
-	if assets.is_empty():
-		push_error("sprite assets: マニフェストにアセットが1件も無い")
-		quit(1)
-		return
-
-	for asset in assets:
-		_check_asset("res://assets/" + str(asset.get("output", "")))
+	for path in sources:
+		_check(path)
+	_check_application_icon()
 
 	if not _failures.is_empty():
 		push_error(
-			"sprite assets: 書き出しが壊れているスプライトがある:\n  "
+			"sprite assets: 読み込めない、または画面に出ないアセットがある:\n  "
 			+ "\n  ".join(_failures)
-			+ "\nAsepriteの原本から make assets-build で書き出し直すこと"
+			+ "\naddons/aseprite_importer が対応していない機能を使っていないか確認すること"
 		)
 		quit(1)
 		return
 
-	print("sprite assets: %d 件すべてに不透明な画素があった" % assets.size())
+	print("sprite assets: %d 件すべてがテクスチャとして読め、不透明な画素があった" % sources.size())
 	quit(0)
 
 
-func _check_asset(path: String) -> void:
+## アプリアイコンだけはAseprite原本を直接使えないので、別に見張る。
+##
+## `config/icon` と各エクスポートプリセットの `application/icon` は、エンジンが
+## 生の画像ファイルとして読む。カスタムインポータを通したリソースは指定できないため、
+## ここだけPNGを持つ。原本と二重管理になるので、内容が一致することを検査する。
+func _check_application_icon() -> void:
+	var icon_path: String = ProjectSettings.get_setting("application/config/icon", "")
+	if icon_path.is_empty():
+		_failures.append("application/config/icon が設定されていない")
+		return
+
+	# エンジンと同じ経路で読めること。.aseprite を指すと読めずに黙って落ちる。
+	var icon := Image.new()
+	if icon.load(icon_path) != OK:
+		_failures.append(
+			"%s: エンジンが画像として読めない。アイコンはPNG等の生の画像である必要がある"
+			% icon_path)
+		return
+
+	var source: Texture2D = load(ICON_SOURCE)
+	if source == null:
+		_failures.append("%s: アイコンの元にする原本を読めない" % ICON_SOURCE)
+		return
+	var expected := source.get_image()
+	if expected.is_compressed():
+		expected.decompress()
+	expected.convert(Image.FORMAT_RGBA8)
+	icon.convert(Image.FORMAT_RGBA8)
+
+	if icon.get_size() != expected.get_size():
+		_failures.append("%s: 寸法が原本と違う（%s と %s）"
+			% [icon_path, icon.get_size(), expected.get_size()])
+		return
+	for y in range(icon.get_height()):
+		for x in range(icon.get_width()):
+			var a := icon.get_pixel(x, y)
+			var b := expected.get_pixel(x, y)
+			# 完全に透明な画素のRGBは見えないので比較しない。
+			if absf(a.a - b.a) > 0.004 or (a.a > 0.0 and (
+				absf(a.r - b.r) > 0.004 or absf(a.g - b.g) > 0.004 or absf(a.b - b.b) > 0.004)):
+				_failures.append(
+					"%s: 原本 %s と内容が違う（(%d,%d) で相違）。原本を変えたらアイコンも書き出し直すこと"
+					% [icon_path, ICON_SOURCE, x, y])
+				return
+
+
+func _find_aseprite_files(directory: String) -> PackedStringArray:
+	var found := PackedStringArray()
+	for name in DirAccess.get_directories_at(directory):
+		found.append_array(_find_aseprite_files(directory.path_join(name)))
+	for name in DirAccess.get_files_at(directory):
+		# インポート後は .import が並ぶので、原本だけを拾う。
+		if name.get_extension() in ["aseprite", "ase"]:
+			found.append(directory.path_join(name))
+	return found
+
+
+func _check(path: String) -> void:
 	if not ResourceLoader.exists(path):
-		_failures.append("%s: 生成物が無い" % path)
+		# 原本を足したのにインポートされていない状態。
+		# 以前 ghost.aseprite がマニフェスト未登録で宙に浮いていた事例がある。
+		_failures.append("%s: リソースとして認識されていない" % path)
 		return
 	var texture: Texture2D = load(path)
 	if texture == null:

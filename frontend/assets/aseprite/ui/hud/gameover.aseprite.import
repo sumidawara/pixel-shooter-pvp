@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://pg0o3bwgs8tj"
+path="res://.godot/imported/gameover.aseprite-11c13365f4ae74f9ce8719f564a50579.res"
+
+[deps]
+
+source_file="res://assets/aseprite/ui/hud/gameover.aseprite"
+dest_files=["res://.godot/imported/gameover.aseprite-11c13365f4ae74f9ce8719f564a50579.res"]
+
+[params]
+

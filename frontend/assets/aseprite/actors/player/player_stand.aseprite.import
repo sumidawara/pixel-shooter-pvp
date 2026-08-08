@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://cfp2ujm7p2hh7"
+path="res://.godot/imported/player_stand.aseprite-c909776922750c6e4e546fef3e94d8c4.res"
+
+[deps]
+
+source_file="res://assets/aseprite/actors/player/player_stand.aseprite"
+dest_files=["res://.godot/imported/player_stand.aseprite-c909776922750c6e4e546fef3e94d8c4.res"]
+
+[params]
+

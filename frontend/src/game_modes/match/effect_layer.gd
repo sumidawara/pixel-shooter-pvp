@@ -1,6 +1,6 @@
 extends Node2D
 
-const SPARKLE_TEXTURE: Texture2D = preload("res://assets/generated/effects/sparkle.png")
+const SPARKLE_TEXTURE: Texture2D = preload("res://assets/aseprite/effects/sparkle.aseprite")
 
 var particles: Array = []
 var sparkles: Array = []

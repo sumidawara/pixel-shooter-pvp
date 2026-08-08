@@ -3,7 +3,7 @@ extends Control
 const DARK := Color("#080c12")
 const WHITE := Color("#e9f1f7")
 const LALOKIN_POPPOS: Texture2D = preload(
-	"res://assets/generated/actors/lalokinpoppos/lalokinpoppos.png"
+	"res://assets/aseprite/actors/lalokinpoppos/lalokinpoppos.aseprite"
 )
 
 var kind := ""

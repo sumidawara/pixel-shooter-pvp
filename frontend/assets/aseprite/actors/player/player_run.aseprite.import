@@ -1,0 +1,14 @@
+[remap]
+
+importer="pixel_shooter.aseprite"
+type="Texture2D"
+uid="uid://bvgcbihcrolhj"
+path="res://.godot/imported/player_run.aseprite-04d2cd104fe8c62c1d5a2b455c436535.res"
+
+[deps]
+
+source_file="res://assets/aseprite/actors/player/player_run.aseprite"
+dest_files=["res://.godot/imported/player_run.aseprite-04d2cd104fe8c62c1d5a2b455c436535.res"]
+
+[params]
+

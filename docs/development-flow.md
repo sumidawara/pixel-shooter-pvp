@@ -78,32 +78,25 @@ make web-build
 
 ### 画像アセットを変えた
 
-Aseprite原本が正。書き出してコミットする。
+Aseprite原本を保存してコミットするだけでよい。書き出し工程は無い。
+`frontend/addons/aseprite_importer` が `.aseprite` を直接読み込む。
 
-```sh
-make assets-build
-```
-
-書き出しに失敗してもPNG自体は生成されるため、透明なままコミットされうる
-（実際に `lalokinpoppos.png` が alpha=7/255 で入っていた）。
-`frontend/tests/sprite_assets_test.gd` が不透明な画素の有無を検査する。
+`frontend/tests/aseprite_document_test.gd` と
+`frontend/tests/sprite_assets_test.gd` が、解析結果と可視性を検査する。
+詳細は [`assets.md`](assets.md)。
 
 ## CIでは守れないもの
 
 仕組みで閉じられない範囲を把握しておく。
 
-1. **Aseprite原本とPNGの同期。**
-   AsepriteはCIに置けないため、「原本を編集したのに書き出し忘れた」は検出できない。
-   運用とレビューで守るしかない。
-
-2. **実際の対戦の手触り。**
+1. **実際の対戦の手触り。**
    契約テストは規則の一致を保証するが、遊べるかどうかは人が見るしかない。
 
-3. **`server.json` の既定値。**
+2. **`server.json` の既定値。**
    `join_secret` が `development-only-secret`、`require_join_ticket` が `false` のまま。
    CIの守備範囲ではないので、サーバー起動時のガードで塞ぐべき事項として残っている。
 
-4. **リリースビルド。**
+3. **リリースビルド。**
    macOS版はmacOSランナーとGodotのエクスポートテンプレートが要る。
    タグ契機の別ワークフローとして分ける。
 

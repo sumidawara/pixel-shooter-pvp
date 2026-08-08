@@ -228,7 +228,9 @@ make release RELEASE_TARGET=macos
 make release RELEASE_TARGET=pck
 ```
 
-画像・フォントの出典と効果音の再生成方法は
+画像はAseprite原本(`frontend/assets/aseprite/`)だけを管理し、書き出し済みPNGは
+持たない。`frontend/addons/aseprite_importer`が`.aseprite`をそのままテクスチャとして
+読み込むため、原本を保存すればGodotが取り込む。出典と効果音の再生成方法は
 [`docs/assets.md`](docs/assets.md) に記載している。
 
 ## 構成
