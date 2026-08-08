@@ -19,9 +19,13 @@ Main
     │   ├── BulletLayer
     │   ├── PlayerLayer
     │   └── EffectLayer
+    ├── FollowCamera
     ├── Audio
     └── HUD
 ```
+
+`FollowCamera`は`World`の外に置いています。画面揺れは`World`ごと動かして
+表現しているため、中に入れるとカメラも一緒に揺れて打ち消し合います。
 
 ## データの流れ
 
@@ -41,5 +45,28 @@ Main
 - `src/combat/items/item_view.tscn`: 得点アイテム1個の表示
 - `src/ui/hud/hud.tscn`: 対戦HUDとオーバーレイ
 - `src/ui/hud/player_status.tscn`: 1人分のHP、弾数、ダッシュ表示
+
+## 画面の割り当て
+
+画面は640×400で、上下の帯がHUD、あいだがマップです。
+
+| 範囲 | 中身 |
+| --- | --- |
+| y 0〜45 | 持ち物、残り時間、接続状態、ESCの案内 |
+| y 45〜359 | マップ（`FollowCamera`が映す範囲） |
+| y 359〜400 | プレイヤー4人分のHP・弾数・ダッシュ |
+
+HUDをマップの上へ重ねないのは、遮蔽の裏や足元が読めなくなるためです。
+持ち物や残り時間はずっと出ているので、重ねると覗き込む場所を奪い続けます。
+
+帯の位置は `src/ui/hud/hud.gd` の `WORLD_VIEW_TOP` / `WORLD_VIEW_BOTTOM` が持ち、
+カメラの寄せ止め範囲もこの値から決めます。2箇所に書くと、片方だけ動かしたときに
+マップの端がHUDの下へ潜ります。`frontend/tests/game_view_test.gd` が、
+HUDが帯からはみ出さないことと、隅でマップの角が帯の角に重なることを検査します。
+
+カメラは自機を画面の中心に置いて追い、`FOLLOW_ZOOM`（現在1.5）で寄ります。
+寄り具合を変えるのはこの定数だけです。狙いは画面座標ではなくワールド座標で
+取ります。カメラが動くと両者はずれるため、画面座標のままだと狙った所と
+撃つ向きが食い違います。
 
 色やフォントなどの共通UI設定は `src/shared/themes/pixel_theme.tres` にまとめています。

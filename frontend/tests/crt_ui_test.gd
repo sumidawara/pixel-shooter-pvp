@@ -68,7 +68,6 @@ func _run() -> void:
 
     var game = main.get_node("GameScreen")
     var hud = game.get_node("HUD")
-    var radar = hud.get_node("HUDRoot/RadarDisplay")
     game.visible = true
     hud.visible = true
     var players := [
@@ -87,10 +86,6 @@ func _run() -> void:
     ]
     hud.apply_snapshot(players, 1, "playing", 90.0, null, 0.0, 1.1, players[0])
     await process_frame
-    if radar.players.size() != 2 or radar.local_player_id != 1:
-        _fail("tactical radar did not accept snapshot state")
-        return
-
     var first_accent: Color = hud.get_node("HUDRoot/PlayerOneStatus/Accent").color
     var second_accent: Color = hud.get_node("HUDRoot/PlayerTwoStatus/Accent").color
     if not first_accent.is_equal_approx(Color("#27e5ff")):
@@ -101,10 +96,6 @@ func _run() -> void:
         return
     if first_accent.is_equal_approx(second_accent):
         _fail("player identity colors must remain visually distinct")
-        return
-    var radar_first: Color = radar.player_colors.get(1, Color.TRANSPARENT)
-    if not radar_first.is_equal_approx(first_accent):
-        _fail("radar must reuse HUD player identity colors")
         return
 
     print("crt ui: effects, instruments, and semantic colors passed")

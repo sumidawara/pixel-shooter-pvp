@@ -8,6 +8,12 @@ const DEFAULT_DASH_SPEED := 520.0
 const DEFAULT_DASH_DURATION := 0.13
 const DEFAULT_DASH_COOLDOWN := 1.1
 const INTERPOLATION_SPEED := 14.0
+## カメラの拡大率。1.0だとマップ全体が画面へ収まり、追う余地が無い。
+##
+## 1.5では横427px・縦約210pxが見える。マップは640×352なので、横は約2/3。
+## これ以上寄せると、弾（340px/s）を撃った相手が画面の外にいる状況が増える。
+## 寄りの好みはここだけ変えれば効く。
+const FOLLOW_ZOOM := 1.5
 const CORRECTION_DECAY := 18.0
 const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
@@ -21,6 +27,7 @@ const LAROKIN_VIEW_SCENE := preload("res://src/combat/items/larokin_poppos_view.
 const GHOST_THIEF_VIEW_SCENE := preload("res://src/combat/items/ghost_thief_view.tscn")
 
 @onready var world: Node2D = %World
+@onready var follow_camera: Camera2D = %FollowCamera
 @onready var arena_view = $World/Arena
 @onready var item_layer: Node2D = %ItemLayer
 @onready var larokin_layer: Node2D = %LarokinLayer
@@ -102,6 +109,10 @@ func start_session(id: int) -> void:
 	session_active = true
 	visible = true
 	hud.visible = true
+	# メニュー画面はCanvasLayerの外のControlなので、カメラを有効にしたままだと
+	# メニューまで拡大・移動してしまう。対戦中だけ有効にする。
+	follow_camera.enabled = true
+	_update_camera()
 	set_process(true)
 	set_physics_process(true)
 
@@ -110,12 +121,15 @@ func resume_session(id: int) -> void:
 	player_id = id
 	session_active = true
 	hud.visible = true
+	follow_camera.enabled = true
 	predictor.invalidate()
 	pending_inputs.clear()
 
 
 func end_session() -> void:
 	session_active = false
+	if is_instance_valid(follow_camera):
+		follow_camera.enabled = false
 	if is_instance_valid(hud):
 		hud.visible = false
 	if is_instance_valid(dry_fire_player):
@@ -203,6 +217,7 @@ func _process(delta: float) -> void:
 	)
 	world.position = effect_layer.current_shake_offset()
 	_update_player_views()
+	_update_camera()
 
 
 func _physics_process(delta: float) -> void:
@@ -226,7 +241,9 @@ func _physics_process(delta: float) -> void:
 		if predictor.ready
 		else arena_map.size_pixels() * 0.5
 	)
-	var aim := (get_viewport().get_mouse_position() - origin).normalized()
+	# 画面座標ではなくワールド座標で取る。カメラが動くと両者はずれるため、
+	# 画面座標のまま引くと、狙った所と実際に撃つ向きが食い違う。
+	var aim := (mouse_world_position() - origin).normalized()
 	if aim == Vector2.ZERO:
 		aim = Vector2.RIGHT
 	var input_record := {
@@ -269,6 +286,7 @@ func _on_map_definition_received(definition: Dictionary) -> void:
 		return
 	arena_map = next_map
 	map_ready = true
+	_apply_camera_limits()
 	arena_view.set_arena_map(arena_map)
 	predictor.set_map(arena_map)
 	pending_inputs.clear()
@@ -426,6 +444,55 @@ func _sync_bullets(next_bullets: Array) -> void:
 			bullet_velocities.erase(id)
 
 
+## 画面に描いているローカルプレイヤーの位置。
+##
+## カメラと自機の表示で別々に計算すると、補正が片方にだけ効いて自機が中心から
+## ずれる。同じ値を使う。
+func _local_player_render_position() -> Vector2:
+	if predictor.ready:
+		return predictor.position + prediction_visual_offset
+	if players_by_id.has(player_id):
+		return _to_vector(players_by_id[player_id].get("position", {}))
+	if arena_map != null:
+		return arena_map.size_pixels() * 0.5
+	return Vector2.ZERO
+
+
+## マウスのワールド座標。
+##
+## カメラが動くと画面座標とワールド座標はずれる。画面の中心にいる自機から
+## 画面座標のマウスへ向きを取ると、狙った所と実際に撃つ向きが食い違う。
+func mouse_world_position() -> Vector2:
+	return get_global_mouse_position()
+
+
+## 自機を画面の中心へ置く。
+func _update_camera() -> void:
+	if not follow_camera.enabled:
+		return
+	follow_camera.position = _local_player_render_position()
+
+
+## カメラが寄れる範囲をマップの大きさから決める。
+##
+## マップの端をHUDの帯の下へ潜らせないよう、帯の高さぶんだけ外側へ広げる。
+## 広げないと、マップの上端にいるとき一番上の行が帯に隠れる。
+func _apply_camera_limits() -> void:
+	if arena_map == null:
+		return
+	follow_camera.zoom = Vector2(FOLLOW_ZOOM, FOLLOW_ZOOM)
+	var map_size := arena_map.size_pixels()
+	var screen := get_viewport_rect().size
+	var view := screen / FOLLOW_ZOOM
+	var top_inset: float = hud.WORLD_VIEW_TOP / FOLLOW_ZOOM
+	var bottom_inset: float = (screen.y - hud.WORLD_VIEW_BOTTOM) / FOLLOW_ZOOM
+	follow_camera.limit_left = 0
+	follow_camera.limit_top = int(-top_inset)
+	# マップが表示範囲より小さいと上限と下限が逆転する。最低でも1画面分は取る。
+	follow_camera.limit_right = int(maxf(map_size.x, view.x))
+	follow_camera.limit_bottom = int(maxf(map_size.y + bottom_inset, -top_inset + view.y))
+
+
 func _update_player_views() -> void:
 	for id in player_views:
 		if not players_by_id.has(id):
@@ -436,11 +503,7 @@ func _update_player_views() -> void:
 			moving = moving or Input.get_vector(
 				"move_left", "move_right", "move_up", "move_down"
 			).length_squared() > 0.01
-			player_views[id].position = (
-				predictor.position + prediction_visual_offset
-				if predictor.ready
-				else _to_vector(player.get("position", {}))
-			)
+			player_views[id].position = _local_player_render_position()
 		else:
 			moving = moving or (
 				remote_target_positions.has(id)

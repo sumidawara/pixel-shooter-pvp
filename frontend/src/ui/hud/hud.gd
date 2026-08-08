@@ -5,8 +5,20 @@ const MAGENTA := Color("#ff38c7")
 const YELLOW := Color("#ffe66d")
 const GREEN := Color("#7cff6b")
 
-## ID順に割り当てる色。HUD、レーダー、表彰台で同じ色になるよう1箇所にまとめる。
+## ID順に割り当てる色。HUDと表彰台で同じ色になるよう1箇所にまとめる。
 const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
+
+## マップを映す帯。画面の上端から WORLD_VIEW_TOP まで、
+## WORLD_VIEW_BOTTOM から下端までがHUDの場所になる。
+##
+## HUDをマップの上へ重ねると、遮蔽の裏や足元が読めなくなる。持ち物や残り時間は
+## 常に出ているものなので、覗き込む場所を奪い続けることになる。
+## 帯を分けて、どちらも全部見えるようにする。
+##
+## カメラもこの値を見て、プレイヤーが帯の中に収まるよう寄せる範囲を決める。
+## 2箇所に書くと、片方だけ動かしたときにマップの端がHUDの下へ潜る。
+const WORLD_VIEW_TOP := 45.0
+const WORLD_VIEW_BOTTOM := 359.0
 
 @onready var player_one_status = %PlayerOneStatus
 @onready var player_two_status = %PlayerTwoStatus
@@ -19,7 +31,6 @@ const PLAYER_COLORS := [CYAN, MAGENTA, YELLOW, GREEN]
 @onready var result_label: Label = %ResultLabel
 @onready var result_podium: ResultPodium = %ResultPodium
 @onready var item_slot = %ItemSlot
-@onready var radar_display = %RadarDisplay
 
 func set_connection_status(text: String) -> void:
 	connection_label.text = "// LINK  " + text
@@ -43,7 +54,6 @@ func apply_snapshot(
 	for index in range(sorted_by_id.size()):
 		colors[int(sorted_by_id[index].get("id", 0))] = PLAYER_COLORS[index % PLAYER_COLORS.size()]
 
-	radar_display.apply_snapshot(players, local_player_id, colors)
 	var ranked := players.duplicate()
 	ranked.sort_custom(func(a, b):
 		var score_a := int(a.get("score", 0))

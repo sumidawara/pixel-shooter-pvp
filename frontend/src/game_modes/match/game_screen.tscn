@@ -42,6 +42,10 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 script = ExtResource("3_effects")
 
+[node name="FollowCamera" type="Camera2D" parent="."]
+unique_name_in_owner = true
+enabled = false
+
 [node name="Audio" type="Node" parent="."]
 
 [node name="ShotPlayer" type="AudioStreamPlayer" parent="Audio"]
