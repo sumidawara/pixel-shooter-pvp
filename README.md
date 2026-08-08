@@ -213,14 +213,28 @@ PIXEL_SHOOTER_SERVER_URL=ws://127.0.0.1:9002 node scripts/network_test.mjs
 ## ビルドと配布
 
 Godotの「エディター → エクスポートテンプレートの管理」から4.7用テンプレートを
-インストールした後、macOS版とサーバーを次のコマンドで作成する。
+インストールした後、次のコマンドで配布物を作成する。
 
 ```sh
-make release RELEASE_TARGET=macos
+make release RELEASE_TARGET=linux
 ```
 
-`windows`、`linux`、`server`も指定できる。GodotがPATHにない場合は`GODOT_BIN`で
+`macos`、`windows`、`server`も指定できる。GodotがPATHにない場合は`GODOT_BIN`で
 実行ファイルを指定する。出力はGit管理外の`dist/`に作られる。
+
+Linux版の生成物は次のようになる。クライアントは同じ階層の`server/`から
+GameServerを探すので、この配置のまま配布する。
+
+```text
+dist/
+├── PixelShooterPvP.x86_64   クライアント本体
+├── PixelShooterPvP.pck      ゲームデータ
+└── server/
+    ├── pixel-shooter-server GameServer（CREATE ROOMが起動する）
+    └── server.json          サーバー設定
+```
+
+サーバーだけを配る場合は`RELEASE_TARGET=server`を使う。こちらはGodotを必要としない。
 
 エクスポートテンプレートなしでクライアントのパックだけを検証する場合:
 
