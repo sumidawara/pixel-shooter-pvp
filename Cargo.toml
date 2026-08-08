@@ -8,3 +8,11 @@ members = [
     "backend/protocols/game",
 ]
 resolver = "2"
+
+[profile.release]
+# 配布バイナリからデバッグシンボルを落とす。実測で 11MB → 7.4MB。
+# ビルド時間は変わらない。
+#
+# lto と codegen-units も試したが、さらに縮むぶんビルドが 1.5 倍になる。
+# 実行速度が問題になっていないので入れていない。
+strip = true

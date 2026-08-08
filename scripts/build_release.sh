@@ -61,7 +61,9 @@ fi
 mkdir -p "${distribution_dir}/server"
 
 echo "[1/3] Building the Bevy server"
-cargo build --release --manifest-path "${project_root}/Cargo.toml" -p pixel-shooter-server
+# --locked を付けるのは、配布物を作るときこそ依存の版を動かしたくないため。
+# Makefile と Dockerfile は既に付いており、ここだけ抜けていた。
+cargo build --release --locked --manifest-path "${project_root}/Cargo.toml" -p pixel-shooter-server
 server_source="${project_root}/target/release/pixel-shooter-server"
 server_name="pixel-shooter-server"
 if [[ -f "${server_source}.exe" ]]; then
