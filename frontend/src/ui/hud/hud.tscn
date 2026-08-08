@@ -1,16 +1,16 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://cewv34sit7m6s"]
 
-[ext_resource type="Script" path="res://src/ui/hud/hud.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://djokhg47ue764" path="res://src/ui/hud/hud.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/player_status.tscn" id="2_status"]
-[ext_resource type="Theme" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
-[ext_resource type="Texture2D" path="res://assets/aseprite/ui/hud/gameover.aseprite" id="4_gameover"]
+[ext_resource type="Theme" uid="uid://cgyislqgg8tta" path="res://src/shared/themes/pixel_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" uid="uid://pg0o3bwgs8tj" path="res://assets/aseprite/ui/hud/gameover.aseprite" id="4_gameover"]
 [ext_resource type="PackedScene" path="res://src/ui/hud/result_podium.tscn" id="5_podium"]
-[ext_resource type="Script" path="res://src/ui/hud/item_slot.gd" id="6_item_slot"]
+[ext_resource type="Script" uid="uid://2jyebv4dnhux" path="res://src/ui/hud/item_slot.gd" id="6_item_slot"]
 
-[node name="HUD" type="CanvasLayer"]
+[node name="HUD" type="CanvasLayer" unique_id=1605133902]
 script = ExtResource("1_script")
 
-[node name="HUDRoot" type="Control" parent="."]
+[node name="HUDRoot" type="Control" parent="." unique_id=482514175]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,76 +20,87 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("3_theme")
 
-[node name="TopBar" type="ColorRect" parent="HUDRoot"]
+[node name="TopBar" type="ColorRect" parent="HUDRoot" unique_id=1039406665]
+layout_mode = 0
 offset_right = 640.0
 offset_bottom = 44.0
 mouse_filter = 2
 color = Color(0.012, 0.02, 0.033, 0.98)
 
-[node name="TopRule" type="ColorRect" parent="HUDRoot"]
+[node name="TopRule" type="ColorRect" parent="HUDRoot" unique_id=1437719169]
+layout_mode = 0
 offset_top = 44.0
 offset_right = 640.0
 offset_bottom = 45.0
 mouse_filter = 2
 color = Color(0.153, 0.898, 1, 0.8)
 
-[node name="BottomBar" type="ColorRect" parent="HUDRoot"]
+[node name="BottomBar" type="ColorRect" parent="HUDRoot" unique_id=632896363]
+layout_mode = 0
 offset_top = 360.0
 offset_right = 640.0
 offset_bottom = 400.0
 color = Color(0.012, 0.02, 0.033, 0.98)
 
-[node name="PlayerOneStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+[node name="PlayerOneStatus" parent="HUDRoot" unique_id=1251459004 instance=ExtResource("2_status")]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 4.0
 offset_top = 361.0
 offset_right = 252.0
 offset_bottom = 399.0
 
-[node name="PlayerTwoStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+[node name="PlayerTwoStatus" parent="HUDRoot" unique_id=1694873969 instance=ExtResource("2_status")]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 254.0
 offset_top = 361.0
 offset_right = 381.0
 offset_bottom = 399.0
 
-[node name="PlayerThreeStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+[node name="PlayerThreeStatus" parent="HUDRoot" unique_id=1330238656 instance=ExtResource("2_status")]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 383.0
 offset_top = 361.0
 offset_right = 510.0
 offset_bottom = 399.0
 
-[node name="PlayerFourStatus" parent="HUDRoot" instance=ExtResource("2_status")]
+[node name="PlayerFourStatus" parent="HUDRoot" unique_id=963932405 instance=ExtResource("2_status")]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 512.0
 offset_top = 361.0
 offset_right = 639.0
 offset_bottom = 399.0
 
-[node name="StatusFrame" type="Panel" parent="HUDRoot"]
+[node name="StatusFrame" type="Panel" parent="HUDRoot" unique_id=1293724507]
+layout_mode = 0
 offset_left = 102.0
 offset_top = 10.0
 offset_right = 250.0
 offset_bottom = 34.0
 mouse_filter = 2
 
-[node name="TimerFrame" type="Panel" parent="HUDRoot"]
+[node name="TimerFrame" type="Panel" parent="HUDRoot" unique_id=290210925]
+layout_mode = 0
 offset_left = 258.0
 offset_top = 5.0
 offset_right = 382.0
 offset_bottom = 39.0
 mouse_filter = 2
 
-[node name="BottomRule" type="ColorRect" parent="HUDRoot"]
+[node name="BottomRule" type="ColorRect" parent="HUDRoot" unique_id=458650099]
+layout_mode = 0
 offset_top = 359.0
 offset_right = 640.0
 offset_bottom = 360.0
 mouse_filter = 2
 color = Color(0.153, 0.898, 1, 0.8)
 
-[node name="MatchLabel" type="Label" parent="HUDRoot"]
+[node name="MatchLabel" type="Label" parent="HUDRoot" unique_id=1783804523]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 258.0
 offset_top = 7.0
 offset_right = 382.0
@@ -99,8 +110,9 @@ text = "02:00"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ConnectionLabel" type="Label" parent="HUDRoot"]
+[node name="ConnectionLabel" type="Label" parent="HUDRoot" unique_id=157041645]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 106.0
 offset_top = 14.0
 offset_right = 246.0
@@ -109,7 +121,8 @@ theme_override_colors/font_color = Color(0.49, 1, 0.42, 1)
 theme_override_font_sizes/font_size = 10
 text = "CONNECTED"
 
-[node name="MenuHint" type="Label" parent="HUDRoot"]
+[node name="MenuHint" type="Label" parent="HUDRoot" unique_id=1078285149]
+layout_mode = 0
 offset_left = 544.0
 offset_top = 14.0
 offset_right = 634.0
@@ -119,8 +132,9 @@ theme_override_font_sizes/font_size = 10
 text = "ESC MENU"
 horizontal_alignment = 2
 
-[node name="ItemSlot" type="Control" parent="HUDRoot"]
+[node name="ItemSlot" type="Control" parent="HUDRoot" unique_id=1004570965]
 unique_name_in_owner = true
+anchors_preset = 0
 offset_left = 4.0
 offset_top = 2.0
 offset_right = 96.0
@@ -128,9 +142,10 @@ offset_bottom = 42.0
 mouse_filter = 2
 script = ExtResource("6_item_slot")
 
-[node name="CountdownLabel" type="Label" parent="HUDRoot"]
+[node name="CountdownLabel" type="Label" parent="HUDRoot" unique_id=1541037530]
 unique_name_in_owner = true
 visible = false
+layout_mode = 0
 offset_left = 250.0
 offset_top = 145.0
 offset_right = 390.0
@@ -140,18 +155,17 @@ text = "3"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ResultOverlay" type="Control" parent="HUDRoot"]
+[node name="ResultOverlay" type="Control" parent="HUDRoot" unique_id=480738346]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 0.9
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Backdrop" type="ColorRect" parent="HUDRoot/ResultOverlay"]
+[node name="Backdrop" type="ColorRect" parent="HUDRoot/ResultOverlay" unique_id=1560387491]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -161,7 +175,8 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.012, 0.02, 0.033, 0.96)
 
-[node name="ResultArt" type="TextureRect" parent="HUDRoot/ResultOverlay"]
+[node name="ResultArt" type="TextureRect" parent="HUDRoot/ResultOverlay" unique_id=849107274]
+modulate = Color(1, 0.22, 0.78, 0.08)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -171,12 +186,13 @@ grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("4_gameover")
 expand_mode = 1
-modulate = Color(1, 0.22, 0.78, 0.08)
 
-[node name="ResultPodium" parent="HUDRoot/ResultOverlay" instance=ExtResource("5_podium")]
+[node name="ResultPodium" parent="HUDRoot/ResultOverlay" unique_id=823178935 instance=ExtResource("5_podium")]
 unique_name_in_owner = true
+layout_mode = 1
 
-[node name="ReportHeader" type="Label" parent="HUDRoot/ResultOverlay"]
+[node name="ReportHeader" type="Label" parent="HUDRoot/ResultOverlay" unique_id=991063390]
+layout_mode = 0
 offset_left = 120.0
 offset_top = 20.0
 offset_right = 520.0
@@ -187,8 +203,9 @@ text = "// AFTER ACTION REPORT //"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ResultLabel" type="Label" parent="HUDRoot/ResultOverlay"]
+[node name="ResultLabel" type="Label" parent="HUDRoot/ResultOverlay" unique_id=1148990474]
 unique_name_in_owner = true
+layout_mode = 0
 offset_left = 120.0
 offset_top = 52.0
 offset_right = 520.0
