@@ -18,6 +18,7 @@
 
 mod config;
 mod control;
+mod logging;
 mod maps;
 mod network;
 mod server_runtime;
@@ -30,6 +31,18 @@ use pixel_shooter_game_core::{ArenaMap, GameCorePlugin, MatchState};
 use crate::{config::ServerSettings, maps::MapCatalog, server_runtime::ServerRuntimePlugin};
 
 fn main() {
+    // 設定の読み込みより先に出力を切り替える。どの設定を読んだかもログへ残したい。
+    if let Some(log_path) = command_line_value("--log-file")
+        .or_else(|| std::env::var("PIXEL_SHOOTER_LOG_FILE").ok())
+        .filter(|path| !path.is_empty())
+    {
+        match logging::redirect_to_file(std::path::Path::new(&log_path)) {
+            Ok(()) => println!("--- Pixel Shooter server starting (log: {log_path}) ---"),
+            // 切り替えに失敗しても起動は続ける。ログが残らないだけで遊べる。
+            Err(error) => eprintln!("could not write to {log_path}: {error}"),
+        }
+    }
+
     let mut settings = ServerSettings::load();
     if let Some(bind_address) = command_line_value("--bind") {
         settings.network.bind_address = bind_address;

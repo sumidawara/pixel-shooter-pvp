@@ -26,7 +26,7 @@ test_timeout="${FRONTEND_TEST_TIMEOUT:-120}"
 manual_server_port="${FRONTEND_MANUAL_SERVER_PORT:-9019}"
 manual_control_port="${FRONTEND_MANUAL_CONTROL_PORT:-9119}"
 # GameServerのバイナリが無いと成立しないテスト。
-server_tests=("join_room_flow_test" "room_flow_test")
+server_tests=("host_server_test" "join_room_flow_test" "room_flow_test")
 
 manual_pid=""
 

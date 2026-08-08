@@ -1,6 +1,6 @@
 //! GameServerの`server.json`と環境変数を読み込む。
 
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use bevy::prelude::Resource;
 use pixel_shooter_game_core::GameSettings;
@@ -43,9 +43,36 @@ pub(crate) struct ControlSettings {
 
 impl ServerSettings {
     /// 設定ファイルを読み、運用向け環境変数を上書きして安全な値へ補正する。
+    /// server.json を探す場所を、優先順に並べる。
+    ///
+    /// カレントディレクトリしか見ていなかったため、Godotの CREATE ROOM や
+    /// 配布版のように別の場所から起動されると設定が読まれず、
+    /// 「server.json を編集したのに反映されない」という状態になっていた。
+    fn config_candidates() -> Vec<PathBuf> {
+        // 明示的に指定された場合は、それだけを使う。黙って別の設定を読むと混乱する。
+        if let Ok(path) = std::env::var("PIXEL_SHOOTER_CONFIG") {
+            return vec![PathBuf::from(path)];
+        }
+        let mut candidates = vec![PathBuf::from("server.json")];
+        if let Ok(executable) = std::env::current_exe()
+            && let Some(directory) = executable.parent()
+        {
+            // 配布物では実行ファイルの隣に置かれる。
+            candidates.push(directory.join("server.json"));
+            // macOSのアプリバンドルでは Contents/MacOS/ の隣の Resources/ に入る。
+            candidates.push(directory.join("../Resources/server.json"));
+        }
+        candidates
+    }
+
     pub(crate) fn load() -> Self {
-        let path =
-            std::env::var("PIXEL_SHOOTER_CONFIG").unwrap_or_else(|_| "server.json".to_string());
+        let candidates = Self::config_candidates();
+        let path = candidates
+            .iter()
+            .find(|candidate| candidate.is_file())
+            .cloned()
+            .unwrap_or_else(|| candidates[0].clone());
+        let path = path.display().to_string();
         let mut settings = match fs::read_to_string(&path) {
             Ok(text) => match serde_json::from_str(&text) {
                 Ok(settings) => {
@@ -58,7 +85,16 @@ impl ServerSettings {
                 }
             },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                eprintln!("{path} was not found; using built-in defaults");
+                // どこを探したかを出す。読まれていないことに気付けるように。
+                eprintln!(
+                    "server settings were not found; using built-in defaults (looked in: {})",
+                    Self::config_candidates()
+                        .iter()
+                        .map(|candidate| candidate.display().to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                let _ = error;
                 Self::default()
             }
             Err(error) => {
