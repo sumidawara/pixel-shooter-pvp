@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use pixel_shooter_admin_protocol::SimulationMode;
-use pixel_shooter_game_core::{PlayerInputOverrides, advance_one_tick};
+use pixel_shooter_game_core::{MatchLog, PlayerInputOverrides, advance_one_tick};
 
 use crate::{control, network};
 
@@ -19,11 +19,28 @@ impl Plugin for ServerRuntimePlugin {
                 control::process_commands,
                 network::process_network,
                 drive_game_tick,
+                // GameCoreは標準出力を持たない。溜まった出来事はここで出す。
+                report_match_events,
                 network::broadcast_snapshot,
                 control::publish_state,
             )
                 .chain(),
         );
+    }
+}
+
+/// GameCoreが積んだ出来事を、サーバーのログとして出す。
+///
+/// GameCore側でprintしないのは、通信もOSも持たない層として保つため。
+/// 出力先や書式の都合は、サービス側であるここが持つ。
+fn report_match_events(mut log: ResMut<MatchLog>) {
+    for event in log.drain() {
+        println!("{event}");
+    }
+    let dropped = log.take_dropped();
+    if dropped > 0 {
+        // 黙って消えると、消えたことにも気付けない。
+        eprintln!("dropped {dropped} match events; the log filled up");
     }
 }
 
