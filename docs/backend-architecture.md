@@ -64,6 +64,13 @@ ServerRuntime
 GameCoreは、WebSocketの待受ポートやTokioの実行方法を知らない。
 ゲームSystemは実時間の`Time`ではなく、GameCoreが持つ固定`GameClock`を参照する。
 
+両側が守る必要のある範囲（ルーム設定の許容値、マップの大きさの上限、CPUの段階数）は
+`protocols/game`が持つ。同じ数字がRustとGodotに別々に書かれていると、片方だけ
+動かしても誰も気付かない。Rustを正として
+`frontend/tests/fixtures/shared_limits_golden.json`へ書き出し、
+`frontend/tests/shared_limits_test.gd`が画面側と突き合わせる。
+値を変えたら`make update-goldens`を実行する。
+
 **標準出力へも書かない。** 試合の出来事は`MatchLog`へ型として積み、
 ServerRuntimeが取り出して出す。GameCore側でprintすると、出力先や書式の都合が
 ゲーム計算へ混ざるうえ、学習やリプレイで大量に回したときに出力そのものが重くなる。

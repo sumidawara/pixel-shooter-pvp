@@ -176,6 +176,8 @@ update-goldens: ## クライアント契約テストの期待値を再生成
 		-p pixel-shooter-game-core --test movement_prediction_golden
 	UPDATE_WIRE_GOLDEN=1 $(CARGO) test --locked \
 		-p pixel-shooter-protocol --test wire_golden
+	UPDATE_LIMITS_GOLDEN=1 $(CARGO) test --locked \
+		-p pixel-shooter-protocol --test limits_golden
 
 # 前提（インポート、待受サーバー、合否判定、タイムアウト）はスクリプト側にまとめてある。
 test-frontend: ## Godotクライアントのテストを実行（要GODOT_BIN）

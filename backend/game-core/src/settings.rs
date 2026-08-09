@@ -1,7 +1,7 @@
 //! GameCoreだけが参照する試合ルールと操作パラメーター。
 
 use bevy::prelude::Resource;
-use pixel_shooter_protocol::RoomSettings;
+use pixel_shooter_protocol::{RoomSettings, room_settings_bounds as bounds};
 use serde::Deserialize;
 
 use crate::cpu_skill::{CpuLevel, CpuSettings};
@@ -105,12 +105,25 @@ impl GameSettings {
     }
 
     pub fn sanitize_room_settings(&self, mut room: RoomSettings) -> RoomSettings {
-        room.match_seconds = room.match_seconds.clamp(30.0, 900.0);
-        room.kill_points = room.kill_points.clamp(0, 10_000);
-        room.death_penalty = room.death_penalty.clamp(0, 10_000);
-        room.item_points = room.item_points.clamp(0, 10_000);
-        room.item_spawn_interval = room.item_spawn_interval.clamp(0.5, 60.0);
-        room.max_items = room.max_items.clamp(1, 16);
+        // 範囲はプロトコル側が持つ。画面の入力欄と同じ値でなければならない。
+        room.match_seconds = room
+            .match_seconds
+            .clamp(bounds::MATCH_SECONDS.0, bounds::MATCH_SECONDS.1);
+        room.kill_points = room
+            .kill_points
+            .clamp(bounds::KILL_POINTS.0, bounds::KILL_POINTS.1);
+        room.death_penalty = room
+            .death_penalty
+            .clamp(bounds::DEATH_PENALTY.0, bounds::DEATH_PENALTY.1);
+        room.item_points = room
+            .item_points
+            .clamp(bounds::ITEM_POINTS.0, bounds::ITEM_POINTS.1);
+        room.item_spawn_interval = room
+            .item_spawn_interval
+            .clamp(bounds::ITEM_SPAWN_INTERVAL.0, bounds::ITEM_SPAWN_INTERVAL.1);
+        room.max_items = room
+            .max_items
+            .clamp(bounds::MAX_ITEMS.0, bounds::MAX_ITEMS.1);
         // 段階は1〜4。範囲外は近い方へ寄せて返す。
         room.cpu_level = CpuLevel::from_number(room.cpu_level).number();
         room
@@ -126,7 +139,10 @@ impl GameSettings {
         self.match_rules.death_penalty = self.match_rules.death_penalty.max(0);
         self.match_rules.item_points = self.match_rules.item_points.max(0);
         self.match_rules.item_spawn_interval = self.match_rules.item_spawn_interval.max(0.1);
-        self.match_rules.max_items = self.match_rules.max_items.clamp(1, 16);
+        self.match_rules.max_items = self
+            .match_rules
+            .max_items
+            .clamp(bounds::MAX_ITEMS.0 as usize, bounds::MAX_ITEMS.1 as usize);
         self.gameplay.move_speed = self.gameplay.move_speed.max(1.0);
         self.gameplay.bullet_speed = self.gameplay.bullet_speed.max(1.0);
         self.gameplay.shot_interval = self.gameplay.shot_interval.max(0.01);
