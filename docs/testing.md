@@ -9,7 +9,7 @@
 
 | 層 | 数 | 守っているもの | 実行 |
 | --- | --- | --- | --- |
-| Rust 単体 | 111 | ゲーム計算、設定の解釈、サーバーの部品 | `make test` |
+| Rust 単体 | 117 | ゲーム計算、設定の解釈、サーバーの部品 | `make test` |
 | 契約（ゴールデン） | 3組 | RustとGodotが同じ前提で動いていること | 上の2つに含まれる |
 | Godot 画面 | 20本 | 画面の作りと、失敗したときの逃げ道 | `make test-frontend` |
 | 統合（実サーバー） | 8本＋Compose1本 | 実際に繋いだときの通しの動き | `make integration-server` / `make integration` |
@@ -27,7 +27,7 @@
 | --- | --- | --- | --- |
 | `movement_prediction_golden.json` | クライアント予測がサーバーの権威計算と一致すること | `game-core/tests/movement_prediction_golden.rs` | `frontend/tests/movement_prediction_golden_test.gd` |
 | `wire_messages_golden.json` | 通信メッセージのフィールド名 | `protocols/game/tests/wire_golden.rs` | `frontend/tests/snapshot_contract_test.gd` |
-| `shared_limits_golden.json` | 両側が守る範囲（ルーム設定の許容値、マップの上限、CPUの段階数） | `protocols/game/tests/limits_golden.rs` | `frontend/tests/shared_limits_test.gd` |
+| `shared_limits_golden.json` | 両側が守る範囲（ルーム設定の許容値、マップの上限、CPUの段階数、色の数） | `protocols/game/tests/limits_golden.rs` | `frontend/tests/shared_limits_test.gd` |
 
 サーバー側の規則を変えたら期待値を作り直す。
 
@@ -59,6 +59,7 @@ I/Oを持たず、同じ入力から必ず同じ結果になる。乱数を使�
 - `game/sandbox.rs`（8件）— 練習場の4つの決め事（的、全種類のアイテム、終わらない試合、得点を動かさない）
 - `game/damage.rs`（5件）— 弾とラロキンポッポスで被弾結果が同じであること
 - `arena/generator.rs`（9件）— 自動生成マップが遊べる形になっていること。**種400通りで毎回検査**
+- `player_color.rs`（6件）— 色が重ならず、抜けた色が次の人へ回ること
 - `cpu_skill.rs`（6件）— 段階ごとの能力が単調であること、極端な設定が丸められること
 - `arena.rs` / `navigation.rs` / `schedule.rs` / `match_log.rs` / `input.rs` — マップ検証、経路探索、1tick進行、出来事の記録
 
@@ -99,7 +100,7 @@ I/Oを持たず、同じ入力から必ず同じ結果になる。乱数を使�
 | `room_settings_test` | ルーム設定がサーバーの持ち物として扱われている |
 | `game_view_test` | HUDがマップに重ならない、カメラが自機を追う、狙いがワールド座標 |
 | `player_facing_test` | 絵が進む向きを向き、止まっても正面へ戻らない |
-| `play_page_layout_test` | 選んでいる行だけが目立つ、戻るが一段弱い |
+| `lobby_layout_test` | 設定が属する対象の行にあり、色が並び順で変わらない |
 | `sandbox_ui_test` | 練習場の設定が往復し、画面から分かる |
 | `host_server_test` | CREATE ROOM の失敗経路と、同梱サーバーの生存監視 |
 | `room_flow_test` / `join_room_flow_test` | ロビーから試合開始までの通し |
@@ -139,7 +140,7 @@ make integration-server
 | `cpu_orphan_test` | 人間が居なくなったCPU戦が空のルームへ戻る |
 | `sandbox_test` | 練習場が1人で成立する（的3体、全6種類、時間で終わらない） |
 | `random_map_test` | RANDOMが一覧に出て、選ぶと届き、開始で作り直される |
-| `cpu_level_test` | 選んだCPUの段階が届き、範囲外が丸められる |
+| `cpu_level_test` | CPU1体ごとの強さと、自分の色の選択が届く |
 
 Compose環境を起動しているとポート9001が埋まる。別のポートで走らせられる。
 

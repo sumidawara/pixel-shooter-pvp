@@ -4,7 +4,7 @@ use bevy::prelude::Resource;
 use pixel_shooter_protocol::{RoomSettings, room_settings_bounds as bounds};
 use serde::Deserialize;
 
-use crate::cpu_skill::{CpuLevel, CpuSettings};
+use crate::cpu_skill::CpuSettings;
 
 #[derive(Resource, Clone, Debug, Default, Deserialize)]
 #[serde(default)]
@@ -100,7 +100,6 @@ impl GameSettings {
             item_spawn_interval: self.match_rules.item_spawn_interval,
             max_items: self.match_rules.max_items as u32,
             sandbox: false,
-            cpu_level: CpuLevel::default().number(),
         }
     }
 
@@ -124,8 +123,6 @@ impl GameSettings {
         room.max_items = room
             .max_items
             .clamp(bounds::MAX_ITEMS.0, bounds::MAX_ITEMS.1);
-        // 段階は1〜4。範囲外は近い方へ寄せて返す。
-        room.cpu_level = CpuLevel::from_number(room.cpu_level).number();
         room
     }
 

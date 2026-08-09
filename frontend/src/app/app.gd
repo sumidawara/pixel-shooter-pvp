@@ -47,6 +47,8 @@ func _ready() -> void:
 	menu_screen.create_requested.connect(_on_create_requested)
 	menu_screen.add_cpu_requested.connect(NetworkClient.add_cpu)
 	menu_screen.remove_cpu_requested.connect(NetworkClient.remove_cpu)
+	menu_screen.cpu_level_changed.connect(NetworkClient.set_cpu_level)
+	menu_screen.color_chosen.connect(NetworkClient.set_color)
 	menu_screen.start_match_requested.connect(NetworkClient.start_match)
 	menu_screen.room_settings_changed.connect(NetworkClient.update_room_settings)
 	menu_screen.crt_preset_changed.connect(_apply_crt_preset)

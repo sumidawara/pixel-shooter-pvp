@@ -53,6 +53,8 @@ pub struct Player {
     /// ルームの設定ではなくプレイヤー自身に持たせるのは、途中で設定が変わっても
     /// 既に居るCPUの強さが入れ替わらないようにするため。
     pub cpu_level: CpuLevel,
+    /// 画面上でこのプレイヤーを表す色の番号。参加した時点で決まり、本人が変えるまで動かない。
+    pub color: u8,
     pub reconnect_token: String,
     pub reconnect_grace_left: f32,
     pub slot: usize,

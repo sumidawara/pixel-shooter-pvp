@@ -28,6 +28,11 @@ const MAGENTA := Color("#ff38c7")
 const YELLOW := Color("#ffe66d")
 const GREEN := Color("#7cff6b")
 
+## プレイヤーを見分ける色。並びはサーバーが配る color の番号に対応する。
+##
+## 数はサーバーと揃っている必要がある（shared_limits_test が検査する）。
+const PLAYER_COLORS: Array[Color] = [CYAN, MAGENTA, YELLOW, GREEN]
+
 const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
 const BULLET_VIEW_SCENE := preload("res://src/combat/projectiles/bullet_view.tscn")
 const ITEM_VIEW_SCENE := preload("res://src/combat/items/item_view.tscn")
@@ -630,14 +635,15 @@ func _player_color(id: int) -> Color:
 	return _player_color_for_list(id, players)
 
 
+## 色はサーバーが決める。
+##
+## 以前はこの一覧を並べ替えた順で決めていたため、誰かが抜けると残った全員の色が
+## ずれた。試合中に見分けの手がかりが入れ替わるのは見た目の問題では済まない。
 func _player_color_for_list(id: int, player_list: Array) -> Color:
-	var sorted_ids: Array[int] = []
 	for player in player_list:
-		sorted_ids.append(int(player.get("id", 0)))
-	sorted_ids.sort()
-	var index := sorted_ids.find(id)
-	var colors := [CYAN, MAGENTA, YELLOW, GREEN]
-	return colors[maxi(index, 0) % colors.size()]
+		if int(player.get("id", 0)) == id:
+			return PLAYER_COLORS[int(player.get("color", 0)) % PLAYER_COLORS.size()]
+	return PLAYER_COLORS[0]
 
 
 func _to_vector(value: Dictionary) -> Vector2:

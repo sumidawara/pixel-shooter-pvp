@@ -43,6 +43,8 @@ const PLAYER_KEYS: Array[String] = [
 	"score",
 	"is_cpu",
 	"is_dummy",
+	"cpu_level",
+	"color",
 	"connected",
 	"alive",
 	"respawn_left",
@@ -75,7 +77,6 @@ const ROOM_SETTINGS_KEYS: Array[String] = [
 	"item_spawn_interval",
 	"max_items",
 	"sandbox",
-	"cpu_level",
 ]
 ## `held_item` はnull許容だが、値が入っている場合はこの形でなければならない。
 const HELD_ITEM_KEYS: Array[String] = ["kind", "charges"]

@@ -162,8 +162,18 @@ func send_message(message: Dictionary) -> void:
 		socket.send_text(JSON.stringify(message))
 
 
-func add_cpu() -> void:
-	send_message({"type": "add_cpu"})
+func add_cpu(level: int) -> void:
+	send_message({"type": "add_cpu", "level": level})
+
+
+## 既に居るCPUの強さを変える。ホストのみ通る。
+func set_cpu_level(id: int, level: int) -> void:
+	send_message({"type": "set_cpu_level", "player_id": id, "level": level})
+
+
+## 自分の色を選ぶ。他の人が使っている色はサーバーが無視する。
+func set_color(color: int) -> void:
+	send_message({"type": "set_color", "color": color})
 
 
 func remove_cpu(id: int) -> void:

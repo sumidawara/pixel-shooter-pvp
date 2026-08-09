@@ -102,6 +102,10 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                         score: 120,
                         is_cpu: false,
                         is_dummy: false,
+                        // 人間は強さを持たない。0が「CPUではない」を表す。
+                        cpu_level: 0,
+                        // 既定(0)以外を固定する。届かなくなっても一致してしまうため。
+                        color: 2,
                         connected: true,
                         reconnect_grace_left: 0.0,
                         alive: true,
@@ -133,6 +137,9 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                         score: -25,
                         is_cpu: true,
                         is_dummy: true,
+                        // ダミーも強さを持たない。的が強くなっても意味がない。
+                        cpu_level: 0,
+                        color: 1,
                         connected: true,
                         reconnect_grace_left: 0.0,
                         alive: false,
@@ -189,9 +196,6 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                     // 設定が届かなくなっても気付けない。
                     settings: RoomSettings {
                         sandbox: true,
-                        // CPUの段階も既定(3)以外を固定する。既定のままだと、
-                        // 届かなくなっても値が一致してしまい気付けない。
-                        cpu_level: 4,
                         ..RoomSettings::default()
                     },
                 },

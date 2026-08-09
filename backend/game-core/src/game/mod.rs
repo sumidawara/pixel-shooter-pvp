@@ -56,6 +56,7 @@ mod tests {
             is_cpu,
             is_dummy: false,
             cpu_level: Default::default(),
+            color: 0,
             reconnect_token: String::new(),
             reconnect_grace_left: 0.0,
             slot: id as usize - 1,

@@ -16,7 +16,7 @@
 
 use std::{fs, path::PathBuf};
 
-use pixel_shooter_protocol::{map_limits, room_settings_bounds as bounds};
+use pixel_shooter_protocol::{map_limits, player_colors, room_settings_bounds as bounds};
 use serde_json::{Value, json};
 
 fn golden_path() -> PathBuf {
@@ -36,8 +36,11 @@ fn build_golden() -> Value {
                 "max": bounds::ITEM_SPAWN_INTERVAL.1
             },
             "max_items": { "min": bounds::MAX_ITEMS.0, "max": bounds::MAX_ITEMS.1 },
-            "cpu_level": { "min": bounds::CPU_LEVEL.0, "max": bounds::CPU_LEVEL.1 },
         },
+        // CPUの強さはルームの設定ではなくCPU1体ごとの属性になったが、
+        // 選べる範囲は両側で揃っている必要がある。
+        "cpu": { "min_level": bounds::CPU_LEVEL.0, "max_level": bounds::CPU_LEVEL.1 },
+        "player_colors": { "count": player_colors::COUNT },
         "map": {
             "max_width": map_limits::MAX_WIDTH,
             "max_height": map_limits::MAX_HEIGHT,

@@ -27,6 +27,16 @@ pub mod map_limits {
     pub const MAX_TILE_SIZE: u32 = 128;
 }
 
+/// 画面上でプレイヤーを見分ける色。
+///
+/// 実際の色そのものはクライアントが持つ。サーバーが決めるのは「誰が何番か」だけで、
+/// 色の見た目を server.json に持たせても意味がない。両側で数が食い違うと、
+/// サーバーが割り当てた番号をクライアントが表現できなくなる。
+pub mod player_colors {
+    /// 選べる色の数。参加人数の上限と同じにしておくと、必ず全員別の色になる。
+    pub const COUNT: u8 = 4;
+}
+
 pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
 pub const ITEM_RADIUS: f32 = 10.0;
@@ -77,7 +87,20 @@ pub enum ClientMessage {
         #[serde(flatten)]
         input: PlayerInput,
     },
-    AddCpu,
+    /// CPUを1体足す。強さは足すときに決める。
+    AddCpu {
+        #[serde(default = "default_cpu_level")]
+        level: u8,
+    },
+    /// 既に居るCPUの強さを変える。ホストのみ。
+    SetCpuLevel {
+        player_id: u64,
+        level: u8,
+    },
+    /// 自分の色を選ぶ。他の人が使っている色は無視される。
+    SetColor {
+        color: u8,
+    },
     RemoveCpu {
         player_id: u64,
     },
@@ -164,11 +187,6 @@ pub struct RoomSettings {
     /// ダミーを倒しても得点は動かない。
     #[serde(default)]
     pub sandbox: bool,
-    /// このルームで追加するCPUの強さ（1〜4）。
-    ///
-    /// 数値の中身はサーバーが持つ。クライアントは番号だけを選ぶ。
-    #[serde(default = "default_cpu_level")]
-    pub cpu_level: u8,
 }
 
 fn default_cpu_level() -> u8 {
@@ -186,7 +204,6 @@ impl Default for RoomSettings {
             item_spawn_interval: 5.0,
             max_items: 3,
             sandbox: false,
-            cpu_level: default_cpu_level(),
         }
     }
 }
@@ -236,6 +253,18 @@ pub struct PlayerSnapshot {
     /// 撃っても撃ち返してこない相手であることは、見て分かる必要がある。
     #[serde(default)]
     pub is_dummy: bool,
+    /// CPUの強さ（1〜4）。人間とダミーでは0。
+    ///
+    /// ルームの設定ではなく1体ごとの属性なので、ロビーではCPUの行に出す。
+    /// 途中で既定を変えても、既に居るCPUの強さは変わらない。
+    #[serde(default)]
+    pub cpu_level: u8,
+    /// 画面上でこのプレイヤーを表す色の番号（0〜player_colors::COUNT-1）。
+    ///
+    /// 以前はクライアントが参加者を並べ替えた順で決めていたため、誰かが抜けると
+    /// 残った全員の色がずれた。誰がどの色かはサーバーが決める。
+    #[serde(default)]
+    pub color: u8,
     pub connected: bool,
     pub reconnect_grace_left: f32,
     pub alive: bool,

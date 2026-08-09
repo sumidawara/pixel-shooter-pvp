@@ -173,6 +173,7 @@ fn golden_player(
         is_cpu: false,
         is_dummy: false,
         cpu_level: Default::default(),
+        color: 0,
         reconnect_token: String::new(),
         reconnect_grace_left: 0.0,
         slot: 0,

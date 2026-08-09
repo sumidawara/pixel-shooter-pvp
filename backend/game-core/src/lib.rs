@@ -9,6 +9,7 @@ mod settings;
 
 pub mod cpu_skill;
 pub mod match_log;
+pub mod player_color;
 
 pub use arena::{ArenaMap, GridPosition, MapLoadError, RANDOM_MAP_ID, TileKind};
 pub use cpu_skill::{CPU_LEVEL_COUNT, CpuLevel, CpuSettings, CpuSkill};

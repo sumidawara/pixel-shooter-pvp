@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use pixel_shooter_admin_protocol::decode_join_ticket;
 use pixel_shooter_game_core::{
     ArenaMap, CpuLevel, MAX_PLAYERS, MatchState, Player, RANDOM_MAP_ID, apply_network_player_input,
+    player_color::{can_take, free_color},
 };
 use pixel_shooter_protocol::{ClientMessage, MatchPhase, ServerMessage};
 
@@ -37,6 +38,8 @@ pub(crate) fn process_network(
 ) {
     // 同じtickに2人がJoinしても、Commandsで予約中のslotと重ならないよう保持する。
     let mut occupied_slots: Vec<usize> = players.iter().map(|(_, player)| player.slot).collect();
+    // 色も同じ理由で手元に持つ。Commandsで予約中のプレイヤーはQueryに出てこない。
+    let mut taken_colors: Vec<u8> = players.iter().map(|(_, player)| player.color).collect();
 
     // try_recvは待たずに受信する。通信がなくてもゲームループを止めないため。
     while let Ok(event) = network.events.try_recv() {
@@ -49,10 +52,11 @@ pub(crate) fn process_network(
                     let departed = players
                         .iter()
                         .find(|(_, player)| player.connection_id == Some(connection_id))
-                        .map(|(entity, player)| (entity, player.id, player.slot));
-                    if let Some((entity, player_id, slot)) = departed {
+                        .map(|(entity, player)| (entity, player.id, player.slot, player.color));
+                    if let Some((entity, player_id, slot, color)) = departed {
                         commands.entity(entity).despawn();
                         occupied_slots.retain(|occupied| *occupied != slot);
+                        taken_colors.retain(|held| *held != color);
                         if state.host_player_id == Some(player_id) {
                             state.host_player_id = players
                                 .iter()
@@ -195,11 +199,14 @@ pub(crate) fn process_network(
                 let player_id = state.next_player_id;
                 let token = generate_reconnect_token();
                 // spawnすると新しいEntityが作られ、Player Componentが付く。
+                let color = free_color(taken_colors.clone());
+                taken_colors.push(color);
                 commands.spawn(new_player(
                     player_id,
                     Some(connection_id),
                     PlayerKind::Human,
                     CpuLevel::default(),
+                    color,
                     token.clone(),
                     slot,
                     sanitize_name(&name, player_id),
@@ -234,7 +241,7 @@ pub(crate) fn process_network(
                     apply_network_player_input(&mut player, input);
                 }
             }
-            NetworkEvent::Message(connection_id, ClientMessage::AddCpu) => {
+            NetworkEvent::Message(connection_id, ClientMessage::AddCpu { level }) => {
                 if !is_host_connection(connection_id, &state, &players)
                     || state.phase != MatchPhase::Waiting
                     || occupied_slots.len() >= MAX_PLAYERS
@@ -247,11 +254,15 @@ pub(crate) fn process_network(
                 occupied_slots.push(slot);
                 state.next_player_id += 1;
                 let player_id = state.next_player_id;
+                let color = free_color(taken_colors.clone());
+                taken_colors.push(color);
+                let cpu_level = CpuLevel::from_number(level);
                 commands.spawn(new_player(
                     player_id,
                     None,
                     PlayerKind::Cpu,
-                    CpuLevel::from_number(state.room_settings.cpu_level),
+                    cpu_level,
+                    color,
                     String::new(),
                     slot,
                     format!("CPU-{}", slot + 1),
@@ -260,7 +271,7 @@ pub(crate) fn process_network(
                 ));
                 println!(
                     "CPU player {player_id} added in slot {slot} at level {}",
-                    state.room_settings.cpu_level
+                    cpu_level.number()
                 );
             }
             NetworkEvent::Message(connection_id, ClientMessage::RemoveCpu { player_id }) => {
@@ -269,14 +280,57 @@ pub(crate) fn process_network(
                 {
                     continue;
                 }
-                if let Some((entity, slot)) = players
+                if let Some((entity, slot, color)) = players
                     .iter()
                     .find(|(_, player)| player.id == player_id && player.is_cpu)
-                    .map(|(entity, player)| (entity, player.slot))
+                    .map(|(entity, player)| (entity, player.slot, player.color))
                 {
                     commands.entity(entity).despawn();
                     occupied_slots.retain(|occupied| *occupied != slot);
+                    taken_colors.retain(|held| *held != color);
                     println!("CPU player {player_id} removed");
+                }
+            }
+            NetworkEvent::Message(
+                connection_id,
+                ClientMessage::SetCpuLevel { player_id, level },
+            ) => {
+                if !is_host_connection(connection_id, &state, &players)
+                    || state.phase != MatchPhase::Waiting
+                {
+                    continue;
+                }
+                // ダミーは強さを持たない。練習場の的が強くなっても意味がない。
+                for (_, mut player) in &mut players {
+                    if player.id == player_id && player.is_cpu && !player.is_dummy {
+                        player.cpu_level = CpuLevel::from_number(level);
+                        println!(
+                            "CPU player {player_id} set to level {}",
+                            player.cpu_level.number()
+                        );
+                    }
+                }
+            }
+            NetworkEvent::Message(connection_id, ClientMessage::SetColor { color }) => {
+                if state.phase != MatchPhase::Waiting {
+                    continue;
+                }
+                // 他の人が使っている色は取れない。取り合いになったとき、
+                // 先に持っていた側の色が勝手に変わる方が分かりにくい。
+                let held_by_others: Vec<u8> = players
+                    .iter()
+                    .filter(|(_, player)| player.connection_id != Some(connection_id))
+                    .map(|(_, player)| player.color)
+                    .collect();
+                if !can_take(color, held_by_others) {
+                    continue;
+                }
+                for (_, mut player) in &mut players {
+                    if player.connection_id == Some(connection_id) {
+                        taken_colors.retain(|held| *held != player.color);
+                        player.color = color;
+                        taken_colors.push(color);
+                    }
                 }
             }
             NetworkEvent::Message(connection_id, ClientMessage::Leave) => {
@@ -372,11 +426,14 @@ pub(crate) fn process_network(
                         occupied_slots.push(slot);
                         state.next_player_id += 1;
                         let player_id = state.next_player_id;
+                        let color = free_color(taken_colors.clone());
+                        taken_colors.push(color);
                         commands.spawn(new_player(
                             player_id,
                             None,
                             PlayerKind::Dummy,
                             CpuLevel::default(),
+                            color,
                             String::new(),
                             slot,
                             format!("DUMMY-{}", slot + 1),
@@ -394,11 +451,14 @@ pub(crate) fn process_network(
                     occupied_slots.push(slot);
                     state.next_player_id += 1;
                     let player_id = state.next_player_id;
+                    let color = free_color(taken_colors.clone());
+                    taken_colors.push(color);
                     commands.spawn(new_player(
                         player_id,
                         None,
                         PlayerKind::Cpu,
-                        CpuLevel::from_number(state.room_settings.cpu_level),
+                        CpuLevel::default(),
+                        color,
                         String::new(),
                         slot,
                         format!("CPU-{}", slot + 1),
@@ -464,6 +524,7 @@ fn new_player(
     connection_id: Option<u64>,
     kind: PlayerKind,
     cpu_level: CpuLevel,
+    color: u8,
     reconnect_token: String,
     slot: usize,
     name: String,
@@ -476,6 +537,7 @@ fn new_player(
         is_cpu: kind != PlayerKind::Human,
         is_dummy: kind == PlayerKind::Dummy,
         cpu_level,
+        color,
         reconnect_token,
         reconnect_grace_left: 0.0,
         slot,

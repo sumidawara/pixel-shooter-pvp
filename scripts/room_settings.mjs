@@ -17,7 +17,6 @@ export const DEFAULT_ROOM_SETTINGS = Object.freeze({
   item_spawn_interval: 5.0,
   max_items: 3,
   sandbox: false,
-  cpu_level: 3,
 });
 
 /// 既定へ `overrides` を重ねたルーム設定を作る。

@@ -3,8 +3,12 @@ extends Control
 signal join_requested(server_url: String, player_name: String)
 signal cancel_connection_requested
 signal create_requested(player_name: String, port: int)
-signal add_cpu_requested
+signal add_cpu_requested(level: int)
 signal remove_cpu_requested(player_id: int)
+## 既に居るCPUの強さを変える。
+signal cpu_level_changed(player_id: int, level: int)
+## 自分の色を選ぶ。
+signal color_chosen(color: int)
 signal start_match_requested
 signal room_settings_changed(settings: Dictionary)
 signal crt_preset_changed(preset_id: String)
@@ -12,12 +16,19 @@ signal leave_room_requested
 signal quit_requested
 
 const CURSOR_TEXTURE: Texture2D = preload("res://assets/aseprite/ui/menu/cursor.aseprite")
+## プレイヤーを見分ける色。並びはサーバーが配る color の番号に対応する。
+##
+## GameScreen.PLAYER_COLORS と同じ並びでなければならない。数がサーバーと
+## 揃っているかは shared_limits_test が見る。
 const PLAYER_COLORS := [
 	Color("#27e5ff"),
 	Color("#ff38c7"),
 	Color("#ffe66d"),
 	Color("#7cff6b"),
 ]
+const PLAYER_COLOR_NAMES := ["CYAN", "MAGENTA", "YELLOW", "GREEN"]
+## 新しく足すCPUの強さ。前回選んだものを覚えておく。
+const DEFAULT_CPU_LEVEL := 3
 ## CPUの強さの選択肢。数値の中身はサーバーが持ち、ここは番号だけを選ぶ。
 ##
 ## 名前を付けているのは、番号だけだと何が変わるのか分からないため。
@@ -38,14 +49,12 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 
 
 @onready var title_page: Control = %TitlePage
-@onready var play_page: Control = %PlayPage
 @onready var join_page: Control = %JoinPage
 @onready var create_page: Control = %CreatePage
 @onready var settings_page: Control = %SettingsPage
 @onready var play_button: Button = %PlayButton
-@onready var create_room_button: Button = %CreateRoomButton
-@onready var open_join_button: Button = %OpenJoinButton
-@onready var create_room_hint: Label = %CreateRoomHint
+@onready var title_join_button: Button = %TitleJoinButton
+@onready var play_hint: Label = %PlayHint
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
@@ -66,7 +75,8 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var item_points_input: SpinBox = %ItemPointsInput
 @onready var max_items_input: SpinBox = %MaxItemsInput
 @onready var sandbox_check: CheckBox = %SandboxCheck
-@onready var cpu_level_option: OptionButton = %CpuLevelOption
+@onready var advanced_toggle: Button = %AdvancedToggle
+@onready var advanced_box: VBoxContainer = %AdvancedBox
 
 var is_web := false
 var is_room_host := false
@@ -85,6 +95,7 @@ var _received_room_settings := false
 ## もう片方を忘れる。
 var _setting_inputs: Dictionary = {}
 var last_cpu_id := 0
+var next_cpu_level := DEFAULT_CPU_LEVEL
 var is_connecting := false
 var selected_map_id := "classic_arena"
 
@@ -95,11 +106,13 @@ func _ready() -> void:
 	is_web = OS.has_feature("web")
 	_load_local_settings()
 	server_input.text = NetworkConfig.initial_connection_url()
-	create_room_button.disabled = is_web
-	create_room_button.tooltip_text = "Desktop app only" if is_web else ""
+	# web版はサーバーを起動できない。部屋に入ることはできるので、
+	# 押せない選択肢は残したまま理由を添える。黙って消すと、
+	# 別の端末では見えているものが無いことに気付けない。
+	play_button.disabled = is_web
 	# 説明は押せないときだけ出す。押せるボタンの下に常時1行あると、
 	# 選択肢そのものより先に目へ入るうえ、読んでも何もすることがない。
-	create_room_hint.visible = is_web
+	play_hint.visible = is_web
 	_bind_buttons()
 	set_available_maps([{"id": "classic_arena", "name": "Classic Arena"}])
 	_bind_room_settings()
@@ -107,25 +120,24 @@ func _ready() -> void:
 
 
 func _bind_buttons() -> void:
-	%PlayButton.pressed.connect(func(): _show_page(play_page))
+	# PLAY は部屋を作る操作そのものにする。作る／入るの二択を先に迫らない。
+	play_button.pressed.connect(_request_create_room)
+	title_join_button.pressed.connect(func(): _show_page(join_page))
 	%SettingsButton.pressed.connect(func(): _show_page(settings_page))
 	%QuitButton.pressed.connect(func(): quit_requested.emit())
-	%TitleBackButton.pressed.connect(show_title)
 	%JoinBackButton.pressed.connect(_leave_join_page)
-	%CreateBackButton.pressed.connect(_leave_room_to_play)
+	%CreateBackButton.pressed.connect(_leave_room_to_title)
 	crt_preset_option.item_selected.connect(_on_crt_preset_selected)
 	%SettingsBackButton.pressed.connect(_save_settings_and_return)
-	create_room_button.pressed.connect(_request_create_room)
 	join_button.pressed.connect(_on_join_button_pressed)
-	%OpenJoinButton.pressed.connect(func(): _show_page(join_page))
 	server_input.text_submitted.connect(func(_value: String): request_connection())
-	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit())
+	advanced_toggle.pressed.connect(_toggle_advanced)
+	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit(next_cpu_level))
 	remove_cpu_button.pressed.connect(func(): remove_cpu_requested.emit(last_cpu_id))
 	start_button.pressed.connect(_request_start_match)
 
 
 func _bind_room_settings() -> void:
-	_configure_cpu_level_option()
 	_setting_inputs = {
 		"match_seconds": {"input": match_seconds_input, "integer": false},
 		"kill_points": {"input": kill_points_input, "integer": true},
@@ -134,7 +146,6 @@ func _bind_room_settings() -> void:
 		"max_items": {"input": max_items_input, "integer": true},
 	}
 	map_option.item_selected.connect(_on_map_selected)
-	cpu_level_option.item_selected.connect(func(_index: int): _emit_room_settings())
 	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
 	for spec in _setting_inputs.values():
 		spec["input"].value_changed.connect(func(_value: float): _emit_room_settings())
@@ -156,7 +167,7 @@ func show_join() -> void:
 ## 原因は status に出るが、そこから抜ける手段が LEAVE ROOM しかない状態になる。
 func show_room_failed(reason: String) -> void:
 	is_room_host = false
-	_show_page(play_page)
+	_show_page(title_page)
 	set_status(reason)
 
 
@@ -195,7 +206,7 @@ func _leave_join_page() -> void:
 	if is_connecting:
 		cancel_connection_requested.emit()
 		set_connecting(false)
-	_show_page(play_page)
+	_show_page(title_page)
 	set_status("READY")
 
 
@@ -235,24 +246,89 @@ func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int)
 	)
 	var sorted := active_players.duplicate()
 	sorted.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
-	for index in range(sorted.size()):
-		var player: Dictionary = sorted[index]
-		var label := Label.new()
-		var suffix := " [CPU]" if bool(player.get("is_cpu", false)) else ""
-		if int(player.get("id", 0)) == host_id:
-			suffix += " [HOST]"
-		label.text = "%d  %s%s" % [index + 1, str(player.get("name", "PLAYER")), suffix]
-		label.modulate = PLAYER_COLORS[index % PLAYER_COLORS.size()]
-		room_players.add_child(label)
+	var taken_colors: Array[int] = []
+	for player in sorted:
+		taken_colors.append(int(player.get("color", 0)))
+	for player in sorted:
+		room_players.add_child(_build_player_row(player, host_id, local_player_id, taken_colors))
 		if bool(player.get("is_cpu", false)):
 			last_cpu_id = int(player.get("id", 0))
 	for index in range(sorted.size(), max_players):
 		var empty_label := Label.new()
-		empty_label.text = "%d  --- WAITING ---" % (index + 1)
+		empty_label.text = "---  WAITING  ---"
 		empty_label.modulate = Color("#315f3b")
 		room_players.add_child(empty_label)
 	room_waiting_label.text = "WAITING FOR PLAYERS  %d/%d" % [sorted.size(), max_players]
 	_update_host_controls(sorted.size(), can_start)
+
+
+## 参加者1人分の行。
+##
+## 色とCPUの強さを、それが属する行の中に置く。以前は強さが試合ルールの欄にあり、
+## 「この試合の決まり」と「この1体の性質」が同じ並びに混ざっていた。
+func _build_player_row(
+	player: Dictionary, host_id: int, local_player_id: int, taken_colors: Array[int]
+) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var swatch := ColorRect.new()
+	swatch.custom_minimum_size = Vector2(10, 10)
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	swatch.color = PLAYER_COLORS[int(player.get("color", 0)) % PLAYER_COLORS.size()]
+	row.add_child(swatch)
+
+	var name_label := Label.new()
+	name_label.text = str(player.get("name", "PLAYER"))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+
+	var player_id := int(player.get("id", 0))
+	if player_id == host_id:
+		row.add_child(_tag_label("HOST"))
+
+	if bool(player.get("is_dummy", false)):
+		row.add_child(_tag_label("DUMMY"))
+	elif bool(player.get("is_cpu", false)):
+		row.add_child(_cpu_level_picker(player_id, int(player.get("cpu_level", DEFAULT_CPU_LEVEL))))
+	elif player_id == local_player_id:
+		row.add_child(_color_picker(int(player.get("color", 0)), taken_colors))
+	return row
+
+
+func _tag_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.modulate = Color("#6f8a93")
+	return label
+
+
+## そのCPU1体の強さを選ぶ。ホスト以外は読むだけ。
+func _cpu_level_picker(player_id: int, level: int) -> OptionButton:
+	var picker := OptionButton.new()
+	for label in CPU_LEVEL_LABELS:
+		picker.add_item(label)
+	picker.select(clampi(level - 1, 0, CPU_LEVEL_LABELS.size() - 1))
+	picker.disabled = not is_room_host
+	picker.item_selected.connect(func(index: int):
+		next_cpu_level = index + 1
+		cpu_level_changed.emit(player_id, index + 1)
+	)
+	return picker
+
+
+## 自分の色を選ぶ。他の人が持っている色は選べないように見せる。
+##
+## 押せてしまうとサーバーに無視されるだけで、なぜ変わらないのか分からない。
+func _color_picker(color: int, taken_colors: Array[int]) -> OptionButton:
+	var picker := OptionButton.new()
+	for index in range(PLAYER_COLOR_NAMES.size()):
+		picker.add_item(PLAYER_COLOR_NAMES[index])
+		if index != color and taken_colors.has(index):
+			picker.set_item_disabled(index, true)
+	picker.select(clampi(color, 0, PLAYER_COLOR_NAMES.size() - 1))
+	picker.item_selected.connect(func(index: int): color_chosen.emit(index))
+	return picker
 
 
 ## サーバーへ送るルーム設定。
@@ -263,7 +339,6 @@ func get_room_settings() -> Dictionary:
 	var settings := _room_settings.duplicate()
 	settings["map_id"] = selected_map_id
 	settings["sandbox"] = sandbox_check.button_pressed
-	settings["cpu_level"] = cpu_level_option.selected + 1
 	for key in _setting_inputs:
 		var spec: Dictionary = _setting_inputs[key]
 		var value: float = spec["input"].value
@@ -283,12 +358,8 @@ func set_status(text: String) -> void:
 
 
 func _show_page(page: Control) -> void:
-	for candidate in [title_page, play_page, join_page, create_page, settings_page]:
+	for candidate in [title_page, join_page, create_page, settings_page]:
 		candidate.visible = candidate == page
-	if page == play_page:
-		# 開いた直後はどれも光らせない。押してもいないのに1つだけ強く出ていると、
-		# 既に選んだ後のように見える。
-		get_viewport().gui_release_focus()
 
 
 ## キーボードで操作を始めたときだけ、最初の行へフォーカスを移す。
@@ -296,7 +367,7 @@ func _show_page(page: Control) -> void:
 ## どこにもフォーカスが無い状態では、方向キーの移動先が決まらず何も起きない。
 ## マウスの人には最初から光らせず、キーを押した人にだけ起点を与える。
 func _unhandled_input(event: InputEvent) -> void:
-	if not play_page.visible or get_viewport().gui_get_focus_owner() != null:
+	if not title_page.visible or get_viewport().gui_get_focus_owner() != null:
 		return
 	for action in FOCUS_START_ACTIONS:
 		if event.is_action_pressed(action):
@@ -306,13 +377,23 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _focus_first_action() -> void:
-	var first: Button = open_join_button if create_room_button.disabled else create_room_button
+	var first: Button = title_join_button if play_button.disabled else play_button
 	first.call_deferred("grab_focus")
 
 
-func _leave_room_to_play() -> void:
+## 点数まわりの詳細を開閉する。
+##
+## 既定は閉じておく。試合を始めるのに要る判断は「誰と」「どこで」であって、
+## 撃破点が何点かではない。畳んでおかないと、決めなくてよいものが
+## 決めるべきものと同じ大きさで並ぶ。
+func _toggle_advanced() -> void:
+	advanced_box.visible = not advanced_box.visible
+	advanced_toggle.text = "v ADVANCED" if advanced_box.visible else "> ADVANCED"
+
+
+func _leave_room_to_title() -> void:
 	leave_room_requested.emit()
-	_show_page(play_page)
+	_show_page(title_page)
 
 
 func _update_host_controls(player_count: int, can_start: bool) -> void:
@@ -329,7 +410,6 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 		start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	map_option.disabled = not is_room_host
 	sandbox_check.disabled = not is_room_host
-	cpu_level_option.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -361,7 +441,6 @@ func _apply_room_settings(settings: Dictionary) -> void:
 		if settings.has(key):
 			_setting_inputs[key]["input"].value = float(settings[key])
 	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
-	cpu_level_option.select(clampi(int(settings.get("cpu_level", 3)) - 1, 0, CPU_LEVEL_LABELS.size() - 1))
 	applying_room_snapshot = false
 
 
@@ -397,14 +476,6 @@ func _select_map(map_id: String) -> void:
 func _on_map_selected(index: int) -> void:
 	selected_map_id = str(map_option.get_item_metadata(index))
 	_emit_room_settings()
-
-## CPUの強さの選択肢を並べる。
-func _configure_cpu_level_option() -> void:
-	cpu_level_option.clear()
-	for label in CPU_LEVEL_LABELS:
-		cpu_level_option.add_item(label)
-	cpu_level_option.select(2)
-
 
 func _configure_crt_preset_option() -> void:
 	crt_preset_option.clear()

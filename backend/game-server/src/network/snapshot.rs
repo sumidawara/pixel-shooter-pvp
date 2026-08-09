@@ -66,6 +66,13 @@ pub(crate) fn broadcast_snapshot(
                 score: player.score,
                 is_cpu: player.is_cpu,
                 is_dummy: player.is_dummy,
+                // ダミーと人間は強さを持たない。0は「CPUではない」を表す。
+                cpu_level: if player.is_cpu && !player.is_dummy {
+                    player.cpu_level.number()
+                } else {
+                    0
+                },
+                color: player.color,
                 connected: player.is_cpu || player.connection_id.is_some(),
                 reconnect_grace_left: player.reconnect_grace_left,
                 alive: player.alive,

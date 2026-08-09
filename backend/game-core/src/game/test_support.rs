@@ -32,6 +32,7 @@ pub(super) fn test_player(id: u64, connection_id: Option<u64>) -> Player {
         is_cpu: false,
         is_dummy: false,
         cpu_level: Default::default(),
+        color: 0,
         reconnect_token: String::new(),
         reconnect_grace_left: 0.0,
         slot: id as usize - 1,

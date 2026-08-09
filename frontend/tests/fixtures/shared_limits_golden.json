@@ -1,15 +1,18 @@
 {
+  "cpu": {
+    "max_level": 4,
+    "min_level": 1
+  },
   "map": {
     "max_height": 256,
     "max_tile_size": 128,
     "max_width": 256,
     "min_tile_size": 8
   },
+  "player_colors": {
+    "count": 4
+  },
   "room_settings": {
-    "cpu_level": {
-      "max": 4,
-      "min": 1
-    },
     "death_penalty": {
       "max": 10000,
       "min": 0

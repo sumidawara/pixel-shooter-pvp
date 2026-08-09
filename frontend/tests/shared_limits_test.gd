@@ -40,6 +40,7 @@ func _run() -> void:
 
 	await _check_input_ranges_match_what_the_server_accepts(limits)
 	await _check_the_lobby_offers_every_cpu_level(limits)
+	await _check_the_palette_matches(limits)
 	_check_map_limits_match(limits)
 
 	if not _failures.is_empty():
@@ -79,22 +80,45 @@ func _check_input_ranges_match_what_the_server_accepts(limits: Dictionary) -> vo
 
 
 ## ロビーが、サーバーの持つ段階を全部選べること。
+##
+## 段階の選択はCPU1体ごとの行にある。行はSnapshotが届いてから作られるので、
+## 選択肢の元になる一覧そのものを見る。
 func _check_the_lobby_offers_every_cpu_level(limits: Dictionary) -> void:
 	var menu = await _open_menu()
-	var cpu_level: Dictionary = limits.get("room_settings", {}).get("cpu_level", {})
-	var expected := int(cpu_level.get("max", 0)) - int(cpu_level.get("min", 0)) + 1
+	var cpu: Dictionary = limits.get("cpu", {})
+	var expected := int(cpu.get("max_level", 0)) - int(cpu.get("min_level", 0)) + 1
 
 	if menu.CPU_LEVEL_LABELS.size() != expected:
 		_failures.append(
 			"段階の選択肢の数が食い違う: 画面 %d / サーバー %d"
 			% [menu.CPU_LEVEL_LABELS.size(), expected]
 		)
-	if menu.cpu_level_option.item_count != expected:
-		_failures.append(
-			"選択肢が並んでいない: %d 個" % menu.cpu_level_option.item_count
-		)
 
 	await _close(menu)
+
+
+## 色の数がサーバーと一致すること。
+##
+## サーバーは番号だけを配る。画面側が少ないと、割り当てられた番号を
+## 表現できずに別の色へ化ける。
+func _check_the_palette_matches(limits: Dictionary) -> void:
+	var menu = await _open_menu()
+	var expected := int(limits.get("player_colors", {}).get("count", 0))
+	if menu.PLAYER_COLORS.size() != expected:
+		_failures.append(
+			"ロビーの色数が食い違う: 画面 %d / サーバー %d"
+			% [menu.PLAYER_COLORS.size(), expected]
+		)
+	if menu.PLAYER_COLOR_NAMES.size() != expected:
+		_failures.append("色の名前の数が食い違う: %d" % menu.PLAYER_COLOR_NAMES.size())
+	await _close(menu)
+
+	var game_screen := load("res://src/game_modes/match/game_screen.gd")
+	if game_screen.PLAYER_COLORS.size() != expected:
+		_failures.append(
+			"対戦画面の色数が食い違う: %d / サーバー %d"
+			% [game_screen.PLAYER_COLORS.size(), expected]
+		)
 
 
 ## マップの大きさの上限が一致すること。

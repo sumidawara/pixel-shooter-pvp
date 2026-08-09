@@ -17,7 +17,6 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await _check_the_toggle_reaches_the_room_settings()
-	await _check_the_cpu_level_reaches_the_room_settings()
 	await _check_the_start_button_says_what_will_happen()
 	await _check_the_hud_shows_the_sandbox_instead_of_a_frozen_clock()
 	_check_dummies_are_marked_apart_from_cpus()
@@ -46,30 +45,6 @@ func _check_the_toggle_reaches_the_room_settings() -> void:
 	menu._apply_room_settings({"sandbox": true, "map_id": "classic_arena"})
 	if not menu.sandbox_check.button_pressed:
 		_failures.append("Snapshotの設定が画面へ戻らない。今どちらか分からない")
-
-	await _close(menu)
-
-
-## CPUの強さがサーバーへ届き、返ってきたSnapshotから復元できること。
-##
-## 片道でも欠けると、選んだ強さと実際に出てくるCPUが食い違う。
-func _check_the_cpu_level_reaches_the_room_settings() -> void:
-	var menu = await _open_menu()
-
-	menu.cpu_level_option.select(0)
-	if int(menu.get_room_settings().get("cpu_level", 0)) != 1:
-		_failures.append("選んだ段階がルーム設定に入らない")
-	menu.cpu_level_option.select(3)
-	if int(menu.get_room_settings().get("cpu_level", 0)) != 4:
-		_failures.append("段階の番号が選択とずれている")
-
-	menu._apply_room_settings({"cpu_level": 2, "map_id": "classic_arena"})
-	if menu.cpu_level_option.selected != 1:
-		_failures.append("Snapshotの段階が画面へ戻らない")
-
-	# 段階の数は、サーバー側の段階数と揃っている必要がある。
-	if menu.CPU_LEVEL_LABELS.size() != 4:
-		_failures.append("段階の選択肢が4つでない: %d" % menu.CPU_LEVEL_LABELS.size())
 
 	await _close(menu)
 
