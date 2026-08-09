@@ -18,6 +18,7 @@ use pixel_shooter_protocol::{ITEM_RADIUS, ItemKind};
 use crate::{
     arena::{ArenaMap, GridPosition},
     model::{HeldItem, MatchState, Player, ScoreItem},
+    settings::GameSettings,
 };
 
 use super::is_playing_phase;
@@ -32,18 +33,6 @@ pub(super) const SANDBOX_ITEM_KINDS: [ItemKind; 6] = [
     ItemKind::Ghost,
 ];
 
-/// 取られたアイテムが戻ってくるまでの時間。
-///
-/// 短いのは、続けて何度も試せるようにするため。対戦の`item_spawn_interval`は
-/// 奪い合いを作るための値なので、練習場では使わない。
-pub(super) const ITEM_RESTOCK_SECONDS: f32 = 1.0;
-
-/// ダミーが倒れてから起き上がるまでの時間。
-///
-/// 通常の`respawn_seconds`より短くする。何発で倒せるかを繰り返し数えるとき、
-/// 待ち時間が長いと確かめること自体が面倒になる。
-const DUMMY_RESPAWN_SECONDS: f32 = 1.0;
-
 /// 置き場所どうしを離す最小距離。近すぎると1回歩いただけで複数拾ってしまう。
 const ITEM_SPACING: f32 = 64.0;
 
@@ -52,7 +41,11 @@ const ITEM_SPACING: f32 = 64.0;
 /// ダミーは動かない・撃たないというだけでなく、Ghostの的にもなる必要がある。
 /// Ghostは「アイテムを持っている他人」からしか奪えないため、何も持たせないと
 /// 全種類のうちGhostだけ試せない。
-pub(crate) fn update_sandbox_dummies(state: Res<MatchState>, mut players: Query<&mut Player>) {
+pub(crate) fn update_sandbox_dummies(
+    state: Res<MatchState>,
+    settings: Res<GameSettings>,
+    mut players: Query<&mut Player>,
+) {
     if !state.room_settings.sandbox || !is_playing_phase(state.phase) {
         return;
     }
@@ -68,7 +61,9 @@ pub(crate) fn update_sandbox_dummies(state: Res<MatchState>, mut players: Query<
         player.reload_requested = false;
 
         if !player.alive {
-            player.respawn_left = player.respawn_left.min(DUMMY_RESPAWN_SECONDS);
+            player.respawn_left = player
+                .respawn_left
+                .min(settings.sandbox.dummy_respawn_seconds);
             continue;
         }
         // 奪われたら補充する。奪えるものが無い状態が続くとGhostを試せない。
@@ -280,7 +275,8 @@ mod tests {
         );
 
         // 補充間隔ぶんだけ進める。対戦の既定間隔(5秒)では戻ってこない長さ。
-        for _ in 0..(ITEM_RESTOCK_SECONDS * 60.0).ceil() as i32 + 2 {
+        let restock = GameSettings::default().sandbox.item_restock_seconds;
+        for _ in 0..(restock * 60.0).ceil() as i32 + 2 {
             advance_one_tick(app.world_mut());
         }
 
@@ -375,7 +371,7 @@ mod tests {
             .expect("dummy")
             .respawn_left;
         assert!(
-            respawn_left <= DUMMY_RESPAWN_SECONDS,
+            respawn_left <= GameSettings::default().sandbox.dummy_respawn_seconds,
             "復活待ちが縮んでいない: {respawn_left}"
         );
     }

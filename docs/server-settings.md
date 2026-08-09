@@ -16,6 +16,8 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 - `control`: AdminServerだけが利用する内部API、公開URL、Ticket検証
 - `match`: 試合時間、カウントダウン、得点、アイテム生成、再接続猶予
 - `gameplay`: 移動、弾、反動、HP、リロード、無敵時間、ダッシュ、リスポーン
+- `items`: アイテムを使ったときに起きることの数値
+- `sandbox`: 練習場の手触り（アイテムの戻り、的の復活）
 - `cpu`: CPUの強さ。段階ごとの数値を上書きする
 
 `match`の主な項目:
@@ -29,6 +31,20 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 
 `gameplay`の`reload_seconds`は武器のリロードにかかる秒数です。設定変更後は
 Game Serverを再起動すると反映されます。
+
+## アイテムの効果
+
+`items` にまとめてある。バランス調整でいちばんよく触る類なので、
+組み立て直さずに試せるようにしてある。
+
+- `berserk_seconds` / `berserk_bullet_speed_multiplier`: バーサクの効果時間と弾速の倍率
+- `larokin_count` / `larokin_speed` / `larokin_radius` / `larokin_damage`: ラロキンポッポスの数・速さ・当たり判定・威力
+- `larokin_telegraph_seconds`: 突撃を始めるまでの溜め。避ける余地を作るための間
+- `ghost_thief_seconds`: ゴーストが飛んで戻るまでの時間（見せている時間だけで、
+  奪取そのものは使用したtickで確定している）
+
+`sandbox` は練習場だけに効く。`item_restock_seconds` は取られたアイテムが戻るまで、
+`dummy_respawn_seconds` は的が起き上がるまでの時間。
 
 ## CPUの強さ
 
