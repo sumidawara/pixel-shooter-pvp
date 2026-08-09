@@ -189,6 +189,9 @@ fn representative_messages() -> Vec<(&'static str, ServerMessage)> {
                     // 設定が届かなくなっても気付けない。
                     settings: RoomSettings {
                         sandbox: true,
+                        // CPUの段階も既定(3)以外を固定する。既定のままだと、
+                        // 届かなくなっても値が一致してしまい気付けない。
+                        cpu_level: 4,
                         ..RoomSettings::default()
                     },
                 },

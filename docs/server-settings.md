@@ -16,6 +16,7 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 - `control`: AdminServerだけが利用する内部API、公開URL、Ticket検証
 - `match`: 試合時間、カウントダウン、得点、アイテム生成、再接続猶予
 - `gameplay`: 移動、弾、反動、HP、リロード、無敵時間、ダッシュ、リスポーン
+- `cpu`: CPUの強さ。段階ごとの数値を上書きする
 
 `match`の主な項目:
 
@@ -28,6 +29,36 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 
 `gameplay`の`reload_seconds`は武器のリロードにかかる秒数です。設定変更後は
 Game Serverを再起動すると反映されます。
+
+## CPUの強さ
+
+`cpu.levels` に段階1から順に並べる。書かなかった段階は組み込みの値を使うので、
+調整したい段階だけを書けばよい。項目の意味は[ゲームルール](game-rules.md)にある。
+
+```json
+"cpu": {
+  "levels": [
+    {
+      "sight_radius": 110.0,
+      "reaction_ticks": 30,
+      "aim_turn_degrees": 90.0,
+      "aim_drift_degrees": 14.0,
+      "fire_cone_degrees": 35.0,
+      "strafe_bias": 0.0,
+      "leads_target": false,
+      "retreat_start_tiles": 0.0,
+      "seeks_items": false
+    }
+  ]
+}
+```
+
+配列の途中だけを書くことはできない（1番目が段階1、2番目が段階2）。
+1つの段階の中で書かなかった項目は、段階3の値で埋まる。
+
+極端な値は起動時に安全な範囲へ丸める。`aim_turn_degrees` を0にすると狙いが
+永久に動かず、`strafe_bias` を1.0にすると真横だけを向いて近づかなくなるため、
+どちらも下限・上限がある。
 
 ## ポートを探索するか、固定するか
 

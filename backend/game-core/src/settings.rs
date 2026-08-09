@@ -4,12 +4,16 @@ use bevy::prelude::Resource;
 use pixel_shooter_protocol::RoomSettings;
 use serde::Deserialize;
 
+use crate::cpu_skill::{CpuLevel, CpuSettings};
+
 #[derive(Resource, Clone, Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct GameSettings {
     #[serde(rename = "match")]
     pub match_rules: MatchRules,
     pub gameplay: GameplaySettings,
+    /// CPUの強さ。段階ごとの数値を上書きできる。
+    pub cpu: CpuSettings,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -55,6 +59,7 @@ impl GameSettings {
             item_spawn_interval: self.match_rules.item_spawn_interval,
             max_items: self.match_rules.max_items as u32,
             sandbox: false,
+            cpu_level: CpuLevel::default().number(),
         }
     }
 
@@ -65,6 +70,8 @@ impl GameSettings {
         room.item_points = room.item_points.clamp(0, 10_000);
         room.item_spawn_interval = room.item_spawn_interval.clamp(0.5, 60.0);
         room.max_items = room.max_items.clamp(1, 16);
+        // 段階は1〜4。範囲外は近い方へ寄せて返す。
+        room.cpu_level = CpuLevel::from_number(room.cpu_level).number();
         room
     }
 
@@ -93,6 +100,7 @@ impl GameSettings {
         self.gameplay.dash_speed = self.gameplay.dash_speed.max(1.0);
         self.gameplay.dash_duration = self.gameplay.dash_duration.max(0.01);
         self.gameplay.dash_cooldown = self.gameplay.dash_cooldown.max(0.01);
+        self.cpu.sanitize();
     }
 }
 

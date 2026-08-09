@@ -31,6 +31,8 @@ tests=(
   "forfeit_test:1"
   "cpu_orphan_test:1"
   "sandbox_test:"
+  "random_map_test:"
+  "cpu_level_test:"
 )
 
 # 実行しない試験と、その理由。

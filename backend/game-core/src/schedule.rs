@@ -49,7 +49,7 @@ impl Plugin for GameCorePlugin {
         app.insert_resource(GameClock::from_hz(self.tick_rate))
             .init_resource::<ArenaMap>()
             .init_resource::<PlayerInputOverrides>()
-            .init_resource::<game::CpuNavigation>()
+            .init_resource::<game::CpuMinds>()
             .init_schedule(GameTick)
             .add_systems(
                 GameTick,

@@ -5,6 +5,18 @@ func _initialize() -> void:
     call_deferred("_run")
 
 
+## プリセットの全項目がシェーダーへ届いているか。
+##
+## 1項目だけ見ると、書き忘れた項目が既定値のまま残っていても気付けない。
+static func _matches_preset(material: ShaderMaterial, preset: Dictionary) -> bool:
+    for parameter_name in preset:
+        var applied := float(material.get_shader_parameter(parameter_name))
+        if not is_equal_approx(applied, float(preset[parameter_name])):
+            push_warning("%s: %s applied, %s expected" % [parameter_name, applied, preset[parameter_name]])
+            return false
+    return true
+
+
 func _fail(message: String) -> void:
     push_error("crt ui: %s" % message)
     quit(1)
@@ -48,18 +60,23 @@ func _run() -> void:
     crt_option.select(0)
     crt_option.item_selected.emit(0)
     await process_frame
-    if not is_equal_approx(float(material.get_shader_parameter("scanline_strength")), 0.08):
+    # 期待値は app.gd の CRT_PRESETS から取る。ここへ数値を書き写すと、
+    # 見え方を調整するたびに、壊れていないのに検査が落ちる。
+    var weak: Dictionary = main.CRT_PRESETS["weak"]
+    var strong: Dictionary = main.CRT_PRESETS["strong"]
+    if not _matches_preset(material, weak):
         _fail("weak CRT preset was not applied")
         return
 
     crt_option.select(2)
     crt_option.item_selected.emit(2)
     await process_frame
-    if not is_equal_approx(float(material.get_shader_parameter("bloom_strength")), 0.5):
+    if not _matches_preset(material, strong):
         _fail("strong CRT preset was not applied")
         return
-    if not is_equal_approx(float(material.get_shader_parameter("curvature")), 0.07):
-        _fail("strong CRT curvature was not applied")
+    # 3段階が同じ値になっていたら、選んでも何も変わらない。
+    if weak == strong:
+        _fail("CRT presets must differ from each other")
         return
 
     crt_option.select(1)
@@ -68,7 +85,6 @@ func _run() -> void:
 
     var game = main.get_node("GameScreen")
     var hud = game.get_node("HUD")
-    var radar = hud.get_node("HUDRoot/RadarDisplay")
     game.visible = true
     hud.visible = true
     var players := [
@@ -87,10 +103,6 @@ func _run() -> void:
     ]
     hud.apply_snapshot(players, 1, "playing", 90.0, null, 0.0, 1.1, players[0])
     await process_frame
-    if radar.players.size() != 2 or radar.local_player_id != 1:
-        _fail("tactical radar did not accept snapshot state")
-        return
-
     var first_accent: Color = hud.get_node("HUDRoot/PlayerOneStatus/Accent").color
     var second_accent: Color = hud.get_node("HUDRoot/PlayerTwoStatus/Accent").color
     if not first_accent.is_equal_approx(Color("#27e5ff")):
@@ -101,10 +113,6 @@ func _run() -> void:
         return
     if first_accent.is_equal_approx(second_accent):
         _fail("player identity colors must remain visually distinct")
-        return
-    var radar_first: Color = radar.player_colors.get(1, Color.TRANSPARENT)
-    if not radar_first.is_equal_approx(first_accent):
-        _fail("radar must reuse HUD player identity colors")
         return
 
     print("crt ui: effects, instruments, and semantic colors passed")

@@ -18,6 +18,21 @@ const PLAYER_COLORS := [
 	Color("#ffe66d"),
 	Color("#7cff6b"),
 ]
+## CPUの強さの選択肢。数値の中身はサーバーが持ち、ここは番号だけを選ぶ。
+##
+## 名前を付けているのは、番号だけだと何が変わるのか分からないため。
+const CPU_LEVEL_LABELS := [
+	"1  ROOKIE",
+	"2  REGULAR",
+	"3  VETERAN",
+	"4  ACE",
+]
+
+## この操作を押したら、Play画面のフォーカスを最初の行から始める。
+const FOCUS_START_ACTIONS := [
+	"ui_up", "ui_down", "ui_focus_next", "ui_focus_prev", "ui_accept",
+]
+
 const CRT_PRESET_IDS := ["weak", "standard", "strong"]
 const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 
@@ -29,6 +44,8 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var settings_page: Control = %SettingsPage
 @onready var play_button: Button = %PlayButton
 @onready var create_room_button: Button = %CreateRoomButton
+@onready var open_join_button: Button = %OpenJoinButton
+@onready var create_room_hint: Label = %CreateRoomHint
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
@@ -49,6 +66,7 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var item_points_input: SpinBox = %ItemPointsInput
 @onready var max_items_input: SpinBox = %MaxItemsInput
 @onready var sandbox_check: CheckBox = %SandboxCheck
+@onready var cpu_level_option: OptionButton = %CpuLevelOption
 
 var is_web := false
 var is_room_host := false
@@ -66,7 +84,9 @@ func _ready() -> void:
 	server_input.text = NetworkConfig.initial_connection_url()
 	create_room_button.disabled = is_web
 	create_room_button.tooltip_text = "Desktop app only" if is_web else ""
-	%CreateRoomHint.text = "DESKTOP APP ONLY" if is_web else "START A LOCAL SERVER"
+	# 説明は押せないときだけ出す。押せるボタンの下に常時1行あると、
+	# 選択肢そのものより先に目へ入るうえ、読んでも何もすることがない。
+	create_room_hint.visible = is_web
 	_bind_buttons()
 	set_available_maps([{"id": "classic_arena", "name": "Classic Arena"}])
 	_bind_room_settings()
@@ -92,7 +112,9 @@ func _bind_buttons() -> void:
 
 
 func _bind_room_settings() -> void:
+	_configure_cpu_level_option()
 	map_option.item_selected.connect(_on_map_selected)
+	cpu_level_option.item_selected.connect(func(_index: int): _emit_room_settings())
 	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
 	for input in [
 		match_seconds_input,
@@ -227,6 +249,7 @@ func get_room_settings() -> Dictionary:
 		"item_spawn_interval": 5.0,
 		"max_items": int(max_items_input.value),
 		"sandbox": sandbox_check.button_pressed,
+		"cpu_level": cpu_level_option.selected + 1,
 	}
 
 
@@ -244,6 +267,29 @@ func set_status(text: String) -> void:
 func _show_page(page: Control) -> void:
 	for candidate in [title_page, play_page, join_page, create_page, settings_page]:
 		candidate.visible = candidate == page
+	if page == play_page:
+		# 開いた直後はどれも光らせない。押してもいないのに1つだけ強く出ていると、
+		# 既に選んだ後のように見える。
+		get_viewport().gui_release_focus()
+
+
+## キーボードで操作を始めたときだけ、最初の行へフォーカスを移す。
+##
+## どこにもフォーカスが無い状態では、方向キーの移動先が決まらず何も起きない。
+## マウスの人には最初から光らせず、キーを押した人にだけ起点を与える。
+func _unhandled_input(event: InputEvent) -> void:
+	if not play_page.visible or get_viewport().gui_get_focus_owner() != null:
+		return
+	for action in FOCUS_START_ACTIONS:
+		if event.is_action_pressed(action):
+			_focus_first_action()
+			get_viewport().set_input_as_handled()
+			return
+
+
+func _focus_first_action() -> void:
+	var first: Button = open_join_button if create_room_button.disabled else create_room_button
+	first.call_deferred("grab_focus")
 
 
 func _leave_room_to_play() -> void:
@@ -265,6 +311,7 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 		start_button.text = "START GAME (+1 CPU)" if player_count == 1 else "START GAME"
 	map_option.disabled = not is_room_host
 	sandbox_check.disabled = not is_room_host
+	cpu_level_option.disabled = not is_room_host
 	for input in [
 		match_seconds_input,
 		kill_points_input,
@@ -292,6 +339,7 @@ func _apply_room_settings(settings: Dictionary) -> void:
 	item_points_input.value = float(settings.get("item_points", 20))
 	max_items_input.value = float(settings.get("max_items", 3))
 	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
+	cpu_level_option.select(clampi(int(settings.get("cpu_level", 3)) - 1, 0, CPU_LEVEL_LABELS.size() - 1))
 	applying_room_snapshot = false
 
 
@@ -327,6 +375,14 @@ func _select_map(map_id: String) -> void:
 func _on_map_selected(index: int) -> void:
 	selected_map_id = str(map_option.get_item_metadata(index))
 	_emit_room_settings()
+
+## CPUの強さの選択肢を並べる。
+func _configure_cpu_level_option() -> void:
+	cpu_level_option.clear()
+	for label in CPU_LEVEL_LABELS:
+		cpu_level_option.add_item(label)
+	cpu_level_option.select(2)
+
 
 func _configure_crt_preset_option() -> void:
 	crt_preset_option.clear()

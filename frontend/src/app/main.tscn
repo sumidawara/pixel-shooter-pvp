@@ -1,33 +1,38 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://bgukksxifqhmw"]
 
-[ext_resource type="Script" path="res://src/app/app.gd" id="1_app"]
-[ext_resource type="PackedScene" path="res://src/ui/menu/menu_screen.tscn" id="2_menu"]
+[ext_resource type="Script" uid="uid://bvaxtr12l1epp" path="res://src/app/app.gd" id="1_app"]
+[ext_resource type="PackedScene" uid="uid://dme5lqg1ftgxq" path="res://src/ui/menu/menu_screen.tscn" id="2_menu"]
 [ext_resource type="PackedScene" path="res://src/game_modes/match/game_screen.tscn" id="3_game"]
-[ext_resource type="Script" path="res://src/networking/host_server_controller.gd" id="4_host"]
-[ext_resource type="Shader" path="res://src/shared/ui/crt_overlay.gdshader" id="5_crt"]
+[ext_resource type="Script" uid="uid://cty1ymwsfuw6i" path="res://src/networking/host_server_controller.gd" id="4_host"]
+[ext_resource type="Shader" uid="uid://cuge2um380toy" path="res://src/shared/ui/crt_overlay.gdshader" id="5_crt"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
 shader = ExtResource("5_crt")
+shader_parameter/phosphor_tint = Color(0.48, 1, 0.58, 1)
+shader_parameter/phosphor_tint_strength = 0.18
+shader_parameter/curvature = 0.045
+shader_parameter/scanline_strength = 0.18
+shader_parameter/bloom_strength = 0.34
+shader_parameter/ghost_strength = 0.16
+shader_parameter/noise_strength = 0.028
+shader_parameter/flicker_strength = 0.018
 
-[node name="Main" type="Node"]
+[node name="Main" type="Node" unique_id=1283943357]
 script = ExtResource("1_app")
 
-[node name="HostServerController" type="Node" parent="."]
+[node name="HostServerController" type="Node" parent="." unique_id=721201528]
 unique_name_in_owner = true
 script = ExtResource("4_host")
 
-[node name="MenuScreen" parent="." instance=ExtResource("2_menu")]
-unique_name_in_owner = true
+[node name="MenuScreen" parent="." unique_id=124819445 instance=ExtResource("2_menu")]
 
-[node name="GameScreen" parent="." instance=ExtResource("3_game")]
-unique_name_in_owner = true
+[node name="GameScreen" parent="." unique_id=1215043467 instance=ExtResource("3_game")]
 
-[node name="CRTDisplay" type="CanvasLayer" parent="."]
+[node name="CRTDisplay" type="CanvasLayer" parent="." unique_id=1012126336]
 layer = 100
 
-[node name="PostProcess" type="ColorRect" parent="CRTDisplay"]
+[node name="PostProcess" type="ColorRect" parent="CRTDisplay" unique_id=605680738]
 material = SubResource("ShaderMaterial_crt")
-layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

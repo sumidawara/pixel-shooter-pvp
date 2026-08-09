@@ -3,7 +3,7 @@ extends Node
 const CRT_PRESETS := {
 	"weak": {
 		"phosphor_tint_strength": 0.08,
-		"curvature": 0.018,
+		"curvature": 0.005,
 		"scanline_strength": 0.08,
 		"bloom_strength": 0.18,
 		"ghost_strength": 0.05,
@@ -12,7 +12,7 @@ const CRT_PRESETS := {
 	},
 	"standard": {
 		"phosphor_tint_strength": 0.18,
-		"curvature": 0.045,
+		"curvature": 0.015,
 		"scanline_strength": 0.18,
 		"bloom_strength": 0.34,
 		"ghost_strength": 0.16,
@@ -21,7 +21,7 @@ const CRT_PRESETS := {
 	},
 	"strong": {
 		"phosphor_tint_strength": 0.32,
-		"curvature": 0.07,
+		"curvature": 0.045,
 		"scanline_strength": 0.28,
 		"bloom_strength": 0.5,
 		"ghost_strength": 0.26,
