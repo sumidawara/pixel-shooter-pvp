@@ -34,6 +34,9 @@ Godot（4.7.1）とNode（22）の版は、それぞれ `frontend/project.godot`
 
 ## ローカルで通すもの
 
+どんなテストが存在し、それぞれ何を守っているかは
+[`testing.md`](testing.md) にまとめている。
+
 ```sh
 make verify
 ```

@@ -49,7 +49,9 @@ make integration
 ```
 
 ブランチ運用、変更の種類ごとの手順、CIが見る範囲と見られない範囲は
-[`docs/development-flow.md`](docs/development-flow.md)にまとめている。
+[`docs/development-flow.md`](docs/development-flow.md)、
+どんなテストがあり何を守っているかは
+[`docs/testing.md`](docs/testing.md)にまとめている。
 
 通常の開発では、Admin Server、Matchmaker、Game Server 2台をまとめて起動する。
 
