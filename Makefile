@@ -123,8 +123,9 @@ wait: ## Matchmaker、Admin Server、Game Serverの準備完了を待機
 	done
 	@printf ' ready\n'
 
-integration: wait ## 起動中のCompose環境に対して制御面の統合試験を実行
+integration: wait ## 起動中のCompose環境に対して制御面とルーム一覧の統合試験を実行
 	$(NODE) scripts/control_plane_test.mjs
+	$(NODE) scripts/room_browser_test.mjs
 
 # 各試験は状態を持つため、1本ごとにサーバーを作り直す必要がある。
 # 前提はスクリプト側にまとめてある。

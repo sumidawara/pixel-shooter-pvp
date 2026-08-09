@@ -3,6 +3,8 @@ extends Control
 signal join_requested(server_url: String, player_name: String)
 ## ロビーの接続先が変わった。一覧を取り直す。
 signal lobby_url_changed(lobby_url: String)
+## 一覧から部屋を選んだ。ロビーに入場券を出させてから繋ぐ。
+signal room_chosen(game_url: String, player_name: String)
 signal cancel_connection_requested
 signal create_requested(player_name: String, port: int)
 signal add_cpu_requested(level: int)
@@ -260,7 +262,7 @@ func _join_room_at(game_url: String) -> void:
 		set_status("THIS ROOM HAS NO ADDRESS")
 		return
 	set_connecting(true)
-	join_requested.emit(game_url, player_name_input.text)
+	room_chosen.emit(game_url, player_name_input.text)
 
 
 ## ルームを開けなかったので、選択画面へ戻す。

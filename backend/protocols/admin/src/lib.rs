@@ -104,6 +104,11 @@ pub struct RoomListResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AllocateRoomRequest {
     pub room_id: String,
+    /// この1台だけを見る。一覧から選んだ部屋へ確実に入れるために使う。
+    ///
+    /// 指定が無ければ従来どおり、合流できる部屋か空きサーバーを自動で選ぶ。
+    #[serde(default)]
+    pub server_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,6 +121,12 @@ pub struct AllocationResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchmakeRequest {
     pub player_name: String,
+    /// 一覧から選んだ部屋の接続先。
+    ///
+    /// 指定が無ければ空いている部屋へ自動で案内する。指定があると、その部屋の
+    /// 入場券を出す。一覧で選んだ部屋と違う所へ入れられては、一覧の意味が無い。
+    #[serde(default)]
+    pub game_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

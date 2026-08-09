@@ -48,6 +48,7 @@ func _ready() -> void:
 	room_directory = RoomDirectory.new()
 	add_child(room_directory)
 	menu_screen.lobby_url_changed.connect(_refresh_room_list)
+	menu_screen.room_chosen.connect(_on_room_chosen)
 	room_directory.rooms_received.connect(menu_screen.show_rooms)
 	room_directory.fetch_failed.connect(menu_screen.set_room_list_status)
 	menu_screen.create_requested.connect(_on_create_requested)
@@ -96,6 +97,20 @@ func _on_join_requested(server_url: String, player_name: String) -> void:
 		NetworkClient.connect_via_matchmaker(_as_http_url(normalized_url), player_name)
 	else:
 		NetworkClient.connect_to_server(normalized_url, player_name)
+
+
+## 一覧から選んだ部屋へ入る。
+##
+## ゲームサーバーへ直接繋いではいけない。プールのサーバーはまだ部屋が
+## 割り当たっておらず、直接来た参加を「部屋が無い」と断る。ロビーに
+## その部屋の入場券を出させてから繋ぐ。
+func _on_room_chosen(game_url: String, player_name: String) -> void:
+	hosting_room = false
+	joined_room = false
+	menu_screen.set_connecting(true)
+	NetworkClient.connect_via_matchmaker(
+		_as_http_url(menu_screen.lobby_url), player_name, game_url
+	)
 
 
 func _refresh_room_list(lobby_url: String) -> void:

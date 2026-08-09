@@ -35,6 +35,26 @@ struct AppState {
     room_sequence: Arc<AtomicU64>,
 }
 
+impl AppState {
+    /// 接続先から、その部屋を持っているサーバーを引き当てる。
+    ///
+    /// `server_id` は制御面のエンドポイントの鍵になるのでクライアントへ配っていない。
+    /// クライアントが知っているのは繋ぎ先だけなので、対応付けはここで行う。
+    async fn server_id_for(&self, game_url: &str) -> Option<String> {
+        let response = self
+            .client
+            .get(format!("{}/api/servers", self.admin_url))
+            .send()
+            .await
+            .ok()?;
+        let servers = response.json::<Vec<GameServerView>>().await.ok()?;
+        servers
+            .into_iter()
+            .find(|server| server.public_url == game_url)
+            .map(|server| server.server_id)
+    }
+}
+
 #[derive(Serialize)]
 struct ErrorBody {
     error: String,
@@ -171,10 +191,20 @@ async fn matchmake(
 ) -> Response {
     let now = unix_time();
     let room_id = next_room_id(now, state.room_sequence.fetch_add(1, Ordering::Relaxed));
+    // 一覧から選んだ部屋の接続先が来ていれば、その1台へ入れる。
+    // クライアントは server_id を知らない（制御面の鍵になるので配っていない）ので、
+    // ここで接続先から引き当てる。
+    let server_id = match &request.game_url {
+        Some(game_url) => match state.server_id_for(game_url).await {
+            Some(server_id) => Some(server_id),
+            None => return error(StatusCode::NOT_FOUND, "room_not_found"),
+        },
+        None => None,
+    };
     let allocation = state
         .client
         .post(format!("{}/internal/allocate", state.admin_url))
-        .json(&AllocateRoomRequest { room_id })
+        .json(&AllocateRoomRequest { room_id, server_id })
         .send()
         .await;
     let allocation = match allocation {

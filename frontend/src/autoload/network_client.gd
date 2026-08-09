@@ -45,8 +45,28 @@ func connect_to_server(url: String, requested_name: String) -> void:
 	_connect_websocket(url)
 
 
-func connect_via_matchmaker(url: String, requested_name: String) -> void:
+## ロビー経由で部屋へ入る。
+##
+## `game_url` を渡すと、一覧で選んだその部屋の入場券を求める。空にすると
+## 空いている部屋へ自動で案内される。
+## 一覧から選んだ部屋の接続先。空なら空き部屋へ自動で案内される。
+var target_game_url := ""
+
+
+## ロビーへ送る中身。
+##
+## 選んでいない場合に `game_url` を入れて送ると、サーバーは「その部屋が無い」と
+## 答える。選んでいないことは、空文字ではなく項目を出さないことで表す。
+func _matchmake_body() -> Dictionary:
+	var body := {"player_name": player_name}
+	if not target_game_url.is_empty():
+		body["game_url"] = target_game_url
+	return body
+
+
+func connect_via_matchmaker(url: String, requested_name: String, game_url: String = "") -> void:
 	matchmake_attempts = 0
+	target_game_url = game_url
 	_request_room(url, requested_name)
 
 
@@ -68,7 +88,7 @@ func _request_room(url: String, requested_name: String) -> void:
 		matchmaker_url + "/v1/matchmake",
 		headers,
 		HTTPClient.METHOD_POST,
-		JSON.stringify({"player_name": player_name})
+		JSON.stringify(_matchmake_body())
 	)
 	if error != OK:
 		matchmaking_request.queue_free()

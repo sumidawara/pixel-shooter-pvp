@@ -39,7 +39,12 @@ func _run() -> void:
 func _check_open_rooms_can_be_entered() -> void:
 	var menu = await _open_menu()
 	var requested: Array = []
-	menu.join_requested.connect(func(url: String, _name: String): requested.append(url))
+	# 直接繋いではいけない。プールのサーバーはまだ部屋が割り当たっておらず、
+	# 直接来た参加を「部屋が無い」と断る。ロビーに入場券を出させる経路を通る。
+	menu.room_chosen.connect(func(url: String, _name: String): requested.append(url))
+	menu.join_requested.connect(func(url: String, _name: String):
+		_failures.append("一覧の行から直接繋ごうとしている: %s" % url)
+	)
 
 	menu.show_rooms([_room("HOST-A", 2, true, "ws://10.0.0.2:9001")])
 	await process_frame

@@ -137,6 +137,59 @@ fn find_available_server(
         .cloned()
 }
 
+/// 指定された1台へ入れる。
+///
+/// 一覧から選んだ部屋は、その部屋でなければ意味がない。空いている所を自動で
+/// 選び直すと、押した行と違う試合に入ることになる。
+///
+/// 既に部屋が立っていれば席を1つ取り、まだ立っていなければここで立てる。
+/// 一覧には「割当済みで空きあり」と「まだ空のサーバー」の両方が並ぶので、
+/// どちらも入れる必要がある。
+async fn allocate_specific(
+    state: &AppState,
+    request: &AllocateRoomRequest,
+    server_id: &str,
+    now: Instant,
+) -> Response {
+    let candidate = {
+        let mut servers = state.servers.write().await;
+        let Some(server) = servers.get_mut(server_id) else {
+            return error(StatusCode::NOT_FOUND, "room_not_found");
+        };
+        if now.duration_since(server.last_seen) > HEALTH_TIMEOUT {
+            return error(StatusCode::SERVICE_UNAVAILABLE, "room_not_answering");
+        }
+        server.prune_reservations(now);
+        if server.status == GameServerStatus::Allocated {
+            // 既に立っている部屋。空きがあれば席を取って終わり。
+            if !server.accepting_players || server.occupied_seats() >= MAX_PLAYERS {
+                return error(StatusCode::CONFLICT, "room_is_full");
+            }
+            server.reservations.push(now);
+            return Json(allocation_response(server)).into_response();
+        }
+        if server.status != GameServerStatus::Available {
+            return error(StatusCode::CONFLICT, "room_is_not_available");
+        }
+        server.clone()
+    };
+
+    // まだ空のサーバー。ここで部屋を立ててから席を取る。
+    let url = format!("{}/internal/allocate", candidate.registration.control_url);
+    match state.client.post(url).json(request).send().await {
+        Ok(response) if response.status().is_success() => {}
+        _ => return error(StatusCode::BAD_GATEWAY, "game_server_allocation_failed"),
+    }
+    let mut servers = state.servers.write().await;
+    let Some(server) = servers.get_mut(server_id) else {
+        return error(StatusCode::CONFLICT, "game_server_disappeared");
+    };
+    server.status = GameServerStatus::Allocated;
+    server.room_id = Some(request.room_id.clone());
+    server.reservations.push(now);
+    Json(allocation_response(server)).into_response()
+}
+
 pub(crate) async fn allocate(
     State(state): State<AppState>,
     Json(request): Json<AllocateRoomRequest>,
@@ -144,6 +197,12 @@ pub(crate) async fn allocate(
     // 2つの同時マッチング要求が同じ空きサーバーを奪わないよう直列化する。
     let _allocation_guard = state.allocation_lock.lock().await;
     let now = Instant::now();
+
+    // 行き先が指定されている場合は、その1台だけを見る。
+    // 一覧から選んだ部屋と違う所へ入れられては、一覧を見た意味が無い。
+    if let Some(server_id) = request.server_id.clone() {
+        return allocate_specific(&state, &request, &server_id, now).await;
+    }
 
     // 先に、参加枠が残っている既存ルームへ合流させる。
     if let Some(response) = {

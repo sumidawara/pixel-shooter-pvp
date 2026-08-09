@@ -149,8 +149,10 @@ Compose環境を起動しているとポート9001が埋まる。別のポート
 make integration-server INTEGRATION_TEST_PORT=9031 INTEGRATION_TEST_CONTROL_PORT=9131
 ```
 
-`make integration`（`control_plane_test`）は別枠で、AdminServer・Matchmaker・GameServer を
-すべて起動したCompose環境に対して制御面を確かめる。
+`make integration` は別枠で、AdminServer・Matchmaker・GameServer をすべて起動した
+Compose環境に対して2本走る。`control_plane_test` が制御面を、`room_browser_test` が
+「一覧から選んだ部屋へ実際に入れること」を確かめる。後者は1台構成では成立しない。
+選んだ部屋と違う所へ案内されていないかを見るのに、2台以上が要る。
 
 ### 実行していないもの
 
