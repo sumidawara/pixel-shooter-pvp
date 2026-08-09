@@ -12,8 +12,49 @@ pub struct GameSettings {
     #[serde(rename = "match")]
     pub match_rules: MatchRules,
     pub gameplay: GameplaySettings,
+    /// アイテムの効果。
+    pub items: ItemSettings,
+    /// 練習場（サンドボックス）の手触り。
+    pub sandbox: SandboxSettings,
     /// CPUの強さ。段階ごとの数値を上書きできる。
     pub cpu: CpuSettings,
+}
+
+/// アイテムを使ったときに起きることの数値。
+///
+/// ここをRustの`const`ではなく設定に置いているのは、バランス調整でいちばん
+/// よく触る類だから。組み立て直さずに試せる方がよい。
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct ItemSettings {
+    /// バーサクの効果時間(秒)。
+    pub berserk_seconds: f32,
+    /// バーサク中に弾が速くなる倍率。
+    pub berserk_bullet_speed_multiplier: f32,
+    /// ラロキンポッポスが一度に出る数。
+    pub larokin_count: usize,
+    /// ラロキンポッポスの速さ(px/秒)。
+    pub larokin_speed: f32,
+    /// 突撃を始めるまでの溜め(秒)。避ける余地を作るための間。
+    pub larokin_telegraph_seconds: f32,
+    /// ラロキンポッポスの当たり判定の半径(px)。
+    pub larokin_radius: f32,
+    /// ラロキンポッポス1体あたりのダメージ。
+    pub larokin_damage: i32,
+    /// ゴーストが飛んで戻るまでの時間(秒)。
+    ///
+    /// 奪取そのものは使用したtickで確定しており、これは見せている時間だけを表す。
+    pub ghost_thief_seconds: f32,
+}
+
+/// 練習場の手触り。
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct SandboxSettings {
+    /// 取られたアイテムが戻ってくるまでの時間(秒)。
+    pub item_restock_seconds: f32,
+    /// 的が倒れてから起き上がるまでの時間(秒)。
+    pub dummy_respawn_seconds: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -100,6 +141,19 @@ impl GameSettings {
         self.gameplay.dash_speed = self.gameplay.dash_speed.max(1.0);
         self.gameplay.dash_duration = self.gameplay.dash_duration.max(0.01);
         self.gameplay.dash_cooldown = self.gameplay.dash_cooldown.max(0.01);
+        self.items.berserk_seconds = self.items.berserk_seconds.max(0.0);
+        self.items.berserk_bullet_speed_multiplier =
+            self.items.berserk_bullet_speed_multiplier.clamp(0.1, 10.0);
+        // 0にすると使っても何も起きない。上限は1回の使用で場が埋まらない程度。
+        self.items.larokin_count = self.items.larokin_count.clamp(1, 64);
+        self.items.larokin_speed = self.items.larokin_speed.max(1.0);
+        self.items.larokin_telegraph_seconds = self.items.larokin_telegraph_seconds.max(0.0);
+        self.items.larokin_radius = self.items.larokin_radius.max(1.0);
+        self.items.larokin_damage = self.items.larokin_damage.max(0);
+        // 0にすると演出が1tickも見えないまま消える。
+        self.items.ghost_thief_seconds = self.items.ghost_thief_seconds.max(0.05);
+        self.sandbox.item_restock_seconds = self.sandbox.item_restock_seconds.max(0.05);
+        self.sandbox.dummy_respawn_seconds = self.sandbox.dummy_respawn_seconds.max(0.05);
         self.cpu.sanitize();
     }
 }
@@ -116,6 +170,30 @@ impl Default for MatchRules {
             item_points: 20,
             item_spawn_interval: 5.0,
             max_items: 3,
+        }
+    }
+}
+
+impl Default for ItemSettings {
+    fn default() -> Self {
+        Self {
+            berserk_seconds: 3.0,
+            berserk_bullet_speed_multiplier: 1.3,
+            larokin_count: 10,
+            larokin_speed: 230.0,
+            larokin_telegraph_seconds: 0.7,
+            larokin_radius: 8.0,
+            larokin_damage: 1,
+            ghost_thief_seconds: 0.9,
+        }
+    }
+}
+
+impl Default for SandboxSettings {
+    fn default() -> Self {
+        Self {
+            item_restock_seconds: 1.0,
+            dummy_respawn_seconds: 1.0,
         }
     }
 }
