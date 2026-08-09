@@ -37,6 +37,12 @@ pub mod player_colors {
     pub const COUNT: u8 = 4;
 }
 
+/// 1ルームに入れる人数の上限。
+///
+/// サーバー・クライアント・ロビーの3者が同じ値を見る必要がある。ロビーは
+/// 「2/4」の分母として使うので、ここがずれると満室の部屋が空いて見える。
+pub const MAX_PLAYERS: usize = 4;
+
 pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
 pub const ITEM_RADIUS: f32 = 10.0;

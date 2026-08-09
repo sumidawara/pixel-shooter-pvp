@@ -35,6 +35,7 @@ const CRT_PRESETS := {
 @onready var host_server := %HostServerController
 @onready var crt_post_process: ColorRect = $CRTDisplay/PostProcess
 
+var room_directory: RoomDirectory
 var hosting_room := false
 var joined_room := false
 var local_player_id := 0
@@ -44,6 +45,11 @@ func _ready() -> void:
 	get_window().title = "Pixel Shooter PvP"
 	menu_screen.join_requested.connect(_on_join_requested)
 	menu_screen.cancel_connection_requested.connect(_cancel_join_attempt)
+	room_directory = RoomDirectory.new()
+	add_child(room_directory)
+	menu_screen.lobby_url_changed.connect(_refresh_room_list)
+	room_directory.rooms_received.connect(menu_screen.show_rooms)
+	room_directory.fetch_failed.connect(menu_screen.set_room_list_status)
 	menu_screen.create_requested.connect(_on_create_requested)
 	menu_screen.add_cpu_requested.connect(NetworkClient.add_cpu)
 	menu_screen.remove_cpu_requested.connect(NetworkClient.remove_cpu)
@@ -92,6 +98,10 @@ func _on_join_requested(server_url: String, player_name: String) -> void:
 		NetworkClient.connect_to_server(normalized_url, player_name)
 
 
+func _refresh_room_list(lobby_url: String) -> void:
+	room_directory.fetch(lobby_url)
+
+
 func _cancel_join_attempt() -> void:
 	NetworkClient.disconnect_from_server()
 	joined_room = false
@@ -135,7 +145,8 @@ func _url_uses_port(url: String, port: int) -> bool:
 func _on_create_requested(player_name: String, port: int) -> void:
 	hosting_room = true
 	joined_room = false
-	host_server.start_server(port)
+	# 作った部屋をロビーの一覧へ載せる。ロビーの指定が無ければ名乗らない。
+	host_server.start_server(port, menu_screen.lobby_url)
 	NetworkClient.player_name = player_name.strip_edges()
 
 

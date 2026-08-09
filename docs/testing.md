@@ -9,9 +9,9 @@
 
 | 層 | 数 | 守っているもの | 実行 |
 | --- | --- | --- | --- |
-| Rust 単体 | 117 | ゲーム計算、設定の解釈、サーバーの部品 | `make test` |
+| Rust 単体 | 125 | ゲーム計算、設定の解釈、サーバーの部品 | `make test` |
 | 契約（ゴールデン） | 3組 | RustとGodotが同じ前提で動いていること | 上の2つに含まれる |
-| Godot 画面 | 20本 | 画面の作りと、失敗したときの逃げ道 | `make test-frontend` |
+| Godot 画面 | 21本 | 画面の作りと、失敗したときの逃げ道 | `make test-frontend` |
 | 統合（実サーバー） | 8本＋Compose1本 | 実際に繋いだときの通しの動き | `make integration-server` / `make integration` |
 
 `make verify` が下3つ以外をまとめて実行する（整形・Clippy・Rust・Web型検査・Godot）。
@@ -72,8 +72,7 @@ I/Oを持たず、同じ入力から必ず同じ結果になる。乱数を使�
 
 ### matchmaker / admin-server / protocols
 
-- `matchmaker`（6件）— 入場券の発行。**券に載る部屋IDが、希望した番号ではなく実際に
-  割り当てられた方であること**を含む。取り違えると券は正しいのに入場できない
+- `matchmaker`（11件）— 入場券に加えて、公開用のルーム一覧。**制御面のURLが混ざらないこと**を含む
 - `admin-server/routes/registry.rs`（7件）— 空きサーバーの選び方と失効の扱い
 - `protocols/admin`（2件）— 入場券の署名と改竄検知
 - `protocols/game`（4件）— メッセージの往復
@@ -101,6 +100,7 @@ I/Oを持たず、同じ入力から必ず同じ結果になる。乱数を使�
 | `game_view_test` | HUDがマップに重ならない、カメラが自機を追う、狙いがワールド座標 |
 | `player_facing_test` | 絵が進む向きを向き、止まっても正面へ戻らない |
 | `lobby_layout_test` | 設定が属する対象の行にあり、色が並び順で変わらない |
+| `room_list_test` | 満室が押せない、モーダルが一覧を消さない、断られたら一覧へ戻る |
 | `sandbox_ui_test` | 練習場の設定が往復し、画面から分かる |
 | `host_server_test` | CREATE ROOM の失敗経路と、同梱サーバーの生存監視 |
 | `room_flow_test` / `join_room_flow_test` | ロビーから試合開始までの通し |

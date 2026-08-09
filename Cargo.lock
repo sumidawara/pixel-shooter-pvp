@@ -2560,6 +2560,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "pixel-shooter-admin-protocol",
+ "pixel-shooter-protocol",
  "reqwest",
  "serde",
  "serde_json",

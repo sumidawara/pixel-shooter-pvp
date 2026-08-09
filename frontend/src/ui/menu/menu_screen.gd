@@ -1,6 +1,8 @@
 extends Control
 
 signal join_requested(server_url: String, player_name: String)
+## ロビーの接続先が変わった。一覧を取り直す。
+signal lobby_url_changed(lobby_url: String)
 signal cancel_connection_requested
 signal create_requested(player_name: String, port: int)
 signal add_cpu_requested(level: int)
@@ -49,7 +51,14 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 
 
 @onready var title_page: Control = %TitlePage
+@onready var room_list_page: Control = %RoomListPage
+## 接続先を変えるモーダル。ルーム一覧の上に重ねて出す。
 @onready var join_page: Control = %JoinPage
+@onready var lobby_label: Label = %LobbyLabel
+@onready var change_server_button: Button = %ChangeServerButton
+@onready var room_list_status: Label = %RoomListStatus
+@onready var room_list_box: VBoxContainer = %RoomListBox
+@onready var refresh_button: Button = %RefreshButton
 @onready var create_page: Control = %CreatePage
 @onready var settings_page: Control = %SettingsPage
 @onready var play_button: Button = %PlayButton
@@ -94,6 +103,8 @@ var _received_room_settings := false
 ## 取り出しと書き戻しを1つの表から作る。別々に書くと、片方だけ足して
 ## もう片方を忘れる。
 var _setting_inputs: Dictionary = {}
+## いま一覧を引いているロビーのURL。
+var lobby_url := ""
 var last_cpu_id := 0
 var next_cpu_level := DEFAULT_CPU_LEVEL
 var is_connecting := false
@@ -105,7 +116,8 @@ func _ready() -> void:
 	_configure_crt_preset_option()
 	is_web = OS.has_feature("web")
 	_load_local_settings()
-	server_input.text = NetworkConfig.initial_connection_url()
+	lobby_url = NetworkConfig.initial_connection_url()
+	server_input.text = lobby_url
 	# web版はサーバーを起動できない。部屋に入ることはできるので、
 	# 押せない選択肢は残したまま理由を添える。黙って消すと、
 	# 別の端末では見えているものが無いことに気付けない。
@@ -122,15 +134,18 @@ func _ready() -> void:
 func _bind_buttons() -> void:
 	# PLAY は部屋を作る操作そのものにする。作る／入るの二択を先に迫らない。
 	play_button.pressed.connect(_request_create_room)
-	title_join_button.pressed.connect(func(): _show_page(join_page))
+	title_join_button.pressed.connect(show_room_list)
+	change_server_button.pressed.connect(_open_server_modal)
+	refresh_button.pressed.connect(func(): lobby_url_changed.emit(lobby_url))
+	%RoomListBackButton.pressed.connect(show_title)
 	%SettingsButton.pressed.connect(func(): _show_page(settings_page))
 	%QuitButton.pressed.connect(func(): quit_requested.emit())
-	%JoinBackButton.pressed.connect(_leave_join_page)
+	%JoinBackButton.pressed.connect(_close_server_modal)
 	%CreateBackButton.pressed.connect(_leave_room_to_title)
 	crt_preset_option.item_selected.connect(_on_crt_preset_selected)
 	%SettingsBackButton.pressed.connect(_save_settings_and_return)
 	join_button.pressed.connect(_on_join_button_pressed)
-	server_input.text_submitted.connect(func(_value: String): request_connection())
+	server_input.text_submitted.connect(func(_value: String): _apply_server_url())
 	advanced_toggle.pressed.connect(_toggle_advanced)
 	add_cpu_button.pressed.connect(func(): add_cpu_requested.emit(next_cpu_level))
 	remove_cpu_button.pressed.connect(func(): remove_cpu_requested.emit(last_cpu_id))
@@ -158,16 +173,105 @@ func show_title() -> void:
 
 
 func show_join() -> void:
-	_show_page(join_page)
+	show_room_list()
+
+
+## ルーム一覧を開き、取り直す。
+func show_room_list() -> void:
+	_show_page(room_list_page)
+	lobby_label.text = lobby_url
+	set_room_list_status("SEARCHING...")
+	lobby_url_changed.emit(lobby_url)
+
+
+## 接続先を変えるモーダルを、一覧の上に重ねて出す。
+##
+## 一覧を消してしまうと「今どこを見ているのか」が分からなくなる。
+func _open_server_modal() -> void:
+	server_input.text = lobby_url
+	join_page.visible = true
+	server_input.call_deferred("grab_focus")
+
+
+func _close_server_modal() -> void:
+	if is_connecting:
+		cancel_connection_requested.emit()
+		set_connecting(false)
+	join_page.visible = false
+
+
+## モーダルで入れたURLを採用し、一覧を取り直す。
+func _apply_server_url() -> void:
+	var next := server_input.text.strip_edges()
+	if next.is_empty():
+		set_status("ENTER A LOBBY ADDRESS")
+		return
+	lobby_url = next
+	join_page.visible = false
+	show_room_list()
+
+
+func set_room_list_status(text: String) -> void:
+	room_list_status.text = text
+
+
+## 一覧を並べ直す。
+##
+## 満室と試合中は押せなくする。押してから断られるより、押せないほうが早く分かる。
+func show_rooms(rooms: Array) -> void:
+	for child in room_list_box.get_children():
+		child.queue_free()
+	if rooms.is_empty():
+		set_room_list_status("NO OPEN ROOMS")
+		return
+	set_room_list_status("%d ROOM(S)" % rooms.size())
+	for room in rooms:
+		if typeof(room) != TYPE_DICTIONARY:
+			continue
+		room_list_box.add_child(_build_room_button(room))
+
+
+func _build_room_button(room: Dictionary) -> Button:
+	var button := Button.new()
+	var host := str(room.get("host_name", "")).strip_edges()
+	var open := bool(room.get("accepting_players", false))
+	button.text = "%-16s %d/%d  %s" % [
+		host if not host.is_empty() else "NO HOST",
+		int(room.get("player_count", 0)),
+		int(room.get("max_players", 4)),
+		"OPEN" if open else "IN MATCH",
+	]
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	button.disabled = not open
+	var game_url := str(room.get("game_url", ""))
+	button.pressed.connect(func(): _join_room_at(game_url))
+	return button
+
+
+## 一覧から選んだ部屋へ入る。
+##
+## 一覧は必ず古い。押した瞬間に埋まっていることがあるので、断られたら
+## 一覧へ戻して取り直す（`show_room_failed`）。
+func _join_room_at(game_url: String) -> void:
+	if game_url.is_empty():
+		set_status("THIS ROOM HAS NO ADDRESS")
+		return
+	set_connecting(true)
+	join_requested.emit(game_url, player_name_input.text)
 
 
 ## ルームを開けなかったので、選択画面へ戻す。
 ##
 ## ルーム画面に残すと、ADD CPU も START GAME も効かない画面で詰む。
 ## 原因は status に出るが、そこから抜ける手段が LEAVE ROOM しかない状態になる。
+## ルームへ入れなかったので、一覧へ戻して取り直す。
+##
+## 一覧はGameServerの報告間隔ぶん遅れるため、押した瞬間に満室は普通に起こる。
+## タイトルまで戻すと、選び直すのに最初からやり直すことになる。
 func show_room_failed(reason: String) -> void:
 	is_room_host = false
-	_show_page(title_page)
+	show_room_list()
 	set_status(reason)
 
 
@@ -199,15 +303,7 @@ func _on_join_button_pressed() -> void:
 		set_connecting(false)
 		set_status("CONNECTION CANCELLED")
 	else:
-		request_connection()
-
-
-func _leave_join_page() -> void:
-	if is_connecting:
-		cancel_connection_requested.emit()
-		set_connecting(false)
-	_show_page(title_page)
-	set_status("READY")
+		_apply_server_url()
 
 
 func _request_create_room() -> void:
@@ -350,7 +446,7 @@ func set_connecting(connecting: bool) -> void:
 	is_connecting = connecting
 	# 接続中もボタンを無効化せず、同じ場所から即座に中止できるようにする。
 	join_button.disabled = false
-	join_button.text = "CANCEL" if connecting else "JOIN ROOM"
+	join_button.text = "CANCEL" if connecting else "SEARCH"
 
 
 func set_status(text: String) -> void:
@@ -358,8 +454,10 @@ func set_status(text: String) -> void:
 
 
 func _show_page(page: Control) -> void:
-	for candidate in [title_page, join_page, create_page, settings_page]:
+	for candidate in [title_page, room_list_page, create_page, settings_page]:
 		candidate.visible = candidate == page
+	# モーダルはページの切り替えで残さない。
+	join_page.visible = false
 
 
 ## キーボードで操作を始めたときだけ、最初の行へフォーカスを移す。

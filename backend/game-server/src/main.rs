@@ -46,6 +46,10 @@ fn main() {
     }
 
     let mut settings = ServerSettings::load();
+    // 手元で開いた部屋をロビーの一覧へ載せる。指定が無ければどこへも名乗らない。
+    if let Some(lobby_url) = command_line_value("--lobby-url").filter(|url| !url.is_empty()) {
+        settings.control.lobby_url = lobby_url;
+    }
     if let Some(bind_address) = command_line_value("--bind") {
         settings.network.bind_address = bind_address;
     }

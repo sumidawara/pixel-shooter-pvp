@@ -16,9 +16,11 @@ use axum::{
     routing::{get, post},
 };
 use pixel_shooter_admin_protocol::{
-    AllocateRoomRequest, AllocationResponse, JoinTicketClaims, MatchmakeRequest, MatchmakeResponse,
-    encode_join_ticket,
+    AllocateRoomRequest, AllocationResponse, GameServerHeartbeat, GameServerRegistration,
+    GameServerView, JoinTicketClaims, MatchmakeRequest, MatchmakeResponse, RoomListEntry,
+    RoomListResponse, encode_join_ticket,
 };
+use pixel_shooter_protocol::MAX_PLAYERS;
 use serde::Serialize;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -55,6 +57,9 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         .route("/v1/matchmake", post(matchmake))
+        .route("/v1/rooms", get(list_rooms))
+        .route("/v1/game-servers/register", post(relay_register))
+        .route("/v1/game-servers/heartbeat", post(relay_heartbeat))
         .with_state(state)
         .layer(CorsLayer::permissive());
     let listener = TcpListener::bind(&bind_address)
@@ -66,6 +71,98 @@ async fn main() {
 
 async fn health() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
+}
+
+/// プレイヤーへ見せるルームの一覧。
+///
+/// AdminServerの`/api/servers`をそのまま転送してはいけない。あちらの
+/// `GameServerView`には`control_url`が入っており、それは試合を止める・1tick進める
+/// 操作の宛先そのものになる。運用のための面と、参加先を選ぶための面は分ける。
+///
+/// 並びは「入れる部屋が先、その中では空いている順」。押せない行が上に溜まると、
+/// 一覧を見る意味が薄れる。
+async fn list_rooms(State(state): State<AppState>) -> Response {
+    let response = state
+        .client
+        .get(format!("{}/api/servers", state.admin_url))
+        .send()
+        .await;
+    let Ok(response) = response else {
+        return error(StatusCode::BAD_GATEWAY, "lobby_unreachable");
+    };
+    let Ok(servers) = response.json::<Vec<GameServerView>>().await else {
+        return error(StatusCode::BAD_GATEWAY, "lobby_returned_garbage");
+    };
+    Json(RoomListResponse {
+        rooms: visible_rooms(servers),
+    })
+    .into_response()
+}
+
+/// 運用向けのサーバー一覧を、プレイヤーへ見せるルーム一覧へ落とす。
+///
+/// 落とすことが目的の関数である。`GameServerView` の `control_url` や
+/// `server_id` はここで捨てる。
+///
+/// 並びは「入れる部屋が先、その中では空いている順」。押せない行が上に溜まると、
+/// 一覧を見る意味が薄れる。
+fn visible_rooms(servers: Vec<GameServerView>) -> Vec<RoomListEntry> {
+    let mut rooms: Vec<RoomListEntry> = servers
+        .into_iter()
+        // 応答が途絶えたサーバーは載せない。押しても繋がらない行が並ぶだけになる。
+        .filter(|server| server.healthy)
+        .map(|server| RoomListEntry {
+            game_url: server.public_url,
+            host_name: server.host_name,
+            player_count: server.player_count,
+            max_players: MAX_PLAYERS,
+            accepting_players: server.accepting_players,
+        })
+        .collect();
+    rooms.sort_by(|left, right| {
+        right
+            .accepting_players
+            .cmp(&left.accepting_players)
+            .then(left.player_count.cmp(&right.player_count))
+            .then(left.host_name.cmp(&right.host_name))
+    });
+    rooms
+}
+
+/// GameServerの登録をAdminServerへ中継する。
+///
+/// 手元で開いた部屋を一覧へ載せるには、GameServerがロビーへ名乗る必要がある。
+/// そのためにAdminServerのURLをクライアントへ配ると、`/api/servers/{id}/pause` も
+/// 一緒に配ることになる。窓口をこちらに一本化し、制御面は外から見えないままにする。
+async fn relay_register(
+    State(state): State<AppState>,
+    Json(registration): Json<GameServerRegistration>,
+) -> Response {
+    relay(&state, "/internal/game-servers/register", &registration).await
+}
+
+async fn relay_heartbeat(
+    State(state): State<AppState>,
+    Json(heartbeat): Json<GameServerHeartbeat>,
+) -> Response {
+    relay(&state, "/internal/game-servers/heartbeat", &heartbeat).await
+}
+
+async fn relay<T: Serialize>(state: &AppState, path: &str, body: &T) -> Response {
+    match state
+        .client
+        .post(format!("{}{path}", state.admin_url))
+        .json(body)
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => StatusCode::NO_CONTENT.into_response(),
+        Ok(response) => error(
+            StatusCode::BAD_GATEWAY,
+            &format!("lobby_rejected_{}", response.status().as_u16()),
+        ),
+        Err(_) => error(StatusCode::BAD_GATEWAY, "lobby_unreachable"),
+    }
 }
 
 async fn matchmake(
@@ -178,9 +275,85 @@ fn unix_time() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pixel_shooter_admin_protocol::{TicketError, decode_join_ticket};
+    use pixel_shooter_admin_protocol::{
+        GameServerStatus, SimulationMode, TicketError, decode_join_ticket,
+    };
 
     const SECRET: &[u8] = b"matchmaker-test-secret";
+
+    fn server(host: &str, players: usize, accepting: bool, healthy: bool) -> GameServerView {
+        GameServerView {
+            server_id: format!("game-server-{host}"),
+            public_url: format!("ws://127.0.0.1:9001/{host}"),
+            // これが外へ漏れてはいけない。試合を止める操作の宛先そのもの。
+            control_url: "http://127.0.0.1:9101".into(),
+            status: GameServerStatus::Allocated,
+            room_id: Some("room-1".into()),
+            player_count: players,
+            accepting_players: accepting,
+            host_name: host.into(),
+            reserved_players: players,
+            tick: 100,
+            simulation_mode: SimulationMode::Realtime,
+            healthy,
+        }
+    }
+
+    /// 制御面のURLが一覧へ混ざらないこと。
+    ///
+    /// `GameServerView`をそのまま返すと、誰でも他人の試合を止められる。
+    /// 型を分けてあるので取り違えは起きにくいが、落とすこと自体が目的なので
+    /// ここで固定する。
+    #[test]
+    fn the_room_list_never_carries_the_control_plane() {
+        let rooms = visible_rooms(vec![server("A", 1, true, true)]);
+        let json = serde_json::to_string(&rooms).expect("serialize rooms");
+        assert!(!json.contains("9101"), "制御APIのURLが漏れている: {json}");
+        assert!(
+            !json.contains("control"),
+            "制御面の項目が漏れている: {json}"
+        );
+        assert!(
+            !json.contains("game-server-A"),
+            "server_id が漏れている: {json}"
+        );
+    }
+
+    #[test]
+    fn rooms_you_can_enter_come_first() {
+        let rooms = visible_rooms(vec![
+            server("Full", 4, false, true),
+            server("Open", 2, true, true),
+        ]);
+        assert_eq!(rooms[0].host_name, "Open");
+        assert_eq!(rooms[1].host_name, "Full");
+    }
+
+    /// 入れる部屋どうしは、空いている順。
+    #[test]
+    fn emptier_rooms_come_first_among_the_open_ones() {
+        let rooms = visible_rooms(vec![
+            server("Crowded", 3, true, true),
+            server("Quiet", 1, true, true),
+        ]);
+        assert_eq!(rooms[0].host_name, "Quiet");
+    }
+
+    /// 応答が途絶えたサーバーは載せない。
+    ///
+    /// 押しても繋がらない行を並べると、一覧そのものが信用されなくなる。
+    #[test]
+    fn a_server_that_stopped_answering_is_not_listed() {
+        let rooms = visible_rooms(vec![server("Gone", 1, true, false)]);
+        assert!(rooms.is_empty());
+    }
+
+    /// 分母はサーバーと同じ値を使うこと。
+    #[test]
+    fn the_capacity_matches_the_server() {
+        let rooms = visible_rooms(vec![server("A", 1, true, true)]);
+        assert_eq!(rooms[0].max_players, MAX_PLAYERS);
+    }
 
     fn allocation() -> AllocationResponse {
         AllocationResponse {

@@ -48,6 +48,14 @@ pub(crate) struct ControlSettings {
     pub(crate) server_id: String,
     pub(crate) public_url: String,
     pub(crate) admin_url: String,
+    /// ロビー（Matchmaker）のURL。設定するとルーム一覧へ自分の部屋を載せる。
+    ///
+    /// `admin_url` と役割は同じだが、宛先が違う。AdminServerには試合を止める
+    /// 操作の口があり、そのURLをプレイヤーへ配るわけにはいかない。手元で開いた
+    /// 部屋を一覧へ載せる用途では、公開窓口であるMatchmakerを経由する。
+    /// 両方あるときは lobby_url を使う。
+    #[serde(default)]
+    pub(crate) lobby_url: String,
     pub(crate) require_join_ticket: bool,
     pub(crate) join_secret: String,
 }
@@ -154,6 +162,8 @@ impl ServerSettings {
             .unwrap_or_else(|_| self.control.public_url.clone());
         self.control.admin_url = std::env::var("PIXEL_SHOOTER_ADMIN_URL")
             .unwrap_or_else(|_| self.control.admin_url.clone());
+        self.control.lobby_url = std::env::var("PIXEL_SHOOTER_LOBBY_URL")
+            .unwrap_or_else(|_| self.control.lobby_url.clone());
         self.control.require_join_ticket = env_bool(
             "PIXEL_SHOOTER_REQUIRE_JOIN_TICKET",
             self.control.require_join_ticket,
@@ -203,6 +213,7 @@ impl Default for ControlSettings {
             server_id: "local-game-1".into(),
             public_url: "ws://127.0.0.1:9001".into(),
             admin_url: String::new(),
+            lobby_url: String::new(),
             require_join_ticket: false,
             join_secret: "development-only-secret".into(),
         }

@@ -41,16 +41,22 @@ func _run() -> void:
 
 	network.connection_requested = true
 	menu.set_connecting(true)
-	menu._leave_join_page()
+	menu._close_server_modal()
 	await process_frame
 	if network.connection_requested or menu.is_connecting:
 		push_error("connection cancel: BACK did not stop the pending connection")
 		quit(1)
 		return
 
+	# 断られたらルーム一覧へ戻す。一覧は必ず古いので、押した瞬間に満室は起こる。
+	# タイトルまで戻すと、選び直すのに最初からやり直すことになる。
 	main._on_rejected("test rejection")
-	if not menu.join_page.visible or menu.join_button.text != "JOIN ROOM":
-		push_error("connection cancel: rejection did not return to a retryable Join screen")
+	if not menu.room_list_page.visible:
+		push_error("connection cancel: rejection did not return to the room list")
+		quit(1)
+		return
+	if menu.join_button.text != "SEARCH":
+		push_error("connection cancel: the search button stayed in its cancelling state")
 		quit(1)
 		return
 

@@ -38,6 +38,9 @@ pub(crate) async fn register(
             accepting_players: previous
                 .as_ref()
                 .is_some_and(|server| server.accepting_players),
+            host_name: previous
+                .as_ref()
+                .map_or_else(String::new, |server| server.host_name.clone()),
             reservations: previous
                 .as_ref()
                 .map_or_else(Vec::new, |server| server.reservations.clone()),
@@ -64,6 +67,7 @@ pub(crate) async fn heartbeat(
     server.room_id = heartbeat.room_id;
     server.player_count = heartbeat.player_count;
     server.accepting_players = heartbeat.accepting_players;
+    server.host_name = heartbeat.host_name;
     if heartbeat.status == GameServerStatus::Available {
         // ルームが空へ戻ったので、残っている割当も破棄する。
         server.reservations.clear();
@@ -210,6 +214,7 @@ mod tests {
             room_id: (status == GameServerStatus::Allocated).then(|| format!("room-{server_id}")),
             player_count,
             accepting_players,
+            host_name: format!("host-{server_id}"),
             reservations: vec![now; player_count],
             tick: 0,
             simulation_mode: SimulationMode::Realtime,

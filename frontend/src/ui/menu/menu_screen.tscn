@@ -311,6 +311,88 @@ theme_override_styles/pressed = SubResource("StyleSecondaryHover")
 action_mode = 0
 text = "QUIT"
 
+[node name="RoomListPage" type="Control" parent="." unique_id=543464540]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="RoomListPage"]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 50.0
+offset_right = 530.0
+offset_bottom = 330.0
+
+[node name="Margin" type="MarginContainer" parent="RoomListPage/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 16
+
+[node name="Content" type="VBoxContainer" parent="RoomListPage/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="RoomListPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ROOMS"
+
+[node name="LobbyRow" type="HBoxContainer" parent="RoomListPage/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LobbyLabel" type="Label" parent="RoomListPage/Panel/Margin/Content/LobbyRow" unique_id=543464541]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.47, 0.56, 0.62, 1)
+theme_override_font_sizes/font_size = 11
+text = "-"
+
+[node name="ChangeServerButton" type="Button" parent="RoomListPage/Panel/Margin/Content/LobbyRow" unique_id=543464542]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+flat = true
+action_mode = 0
+text = "> CHANGE SERVER"
+
+[node name="RoomListStatus" type="Label" parent="RoomListPage/Panel/Margin/Content" unique_id=543464543]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.47, 0.56, 0.62, 1)
+theme_override_font_sizes/font_size = 11
+text = "SEARCHING..."
+
+[node name="RoomListScroll" type="ScrollContainer" parent="RoomListPage/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RoomListBox" type="VBoxContainer" parent="RoomListPage/Panel/Margin/Content/RoomListScroll" unique_id=543464544]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="RefreshButton" type="Button" parent="RoomListPage/Panel/Margin/Content" unique_id=543464545]
+unique_name_in_owner = true
+layout_mode = 2
+action_mode = 0
+text = "REFRESH"
+
+[node name="RoomListBackButton" type="Button" parent="RoomListPage/Panel/Margin/Content" unique_id=543464546]
+unique_name_in_owner = true
+layout_mode = 2
+action_mode = 0
+text = "BACK"
+
 [node name="JoinPage" type="Control" parent="." unique_id=543464538]
 unique_name_in_owner = true
 visible = false
@@ -341,23 +423,23 @@ theme_override_constants/separation = 10
 [node name="Title" type="Label" parent="JoinPage/Panel/Margin/Content" unique_id=558673126]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "JOIN ROOM"
+text = "CHANGE SERVER"
 
 [node name="UrlLabel" type="Label" parent="JoinPage/Panel/Margin/Content" unique_id=682718282]
 layout_mode = 2
-text = "MATCHMAKER OR GAME URL"
+text = "LOBBY OR GAME SERVER URL"
 
 [node name="ServerUrlInput" type="LineEdit" parent="JoinPage/Panel/Margin/Content" unique_id=485117564]
 unique_name_in_owner = true
 layout_mode = 2
-placeholder_text = "MATCHMAKER OR GAME SERVER URL"
+placeholder_text = "http://127.0.0.1:8080"
 
 [node name="JoinButton" type="Button" parent="JoinPage/Panel/Margin/Content" unique_id=665995599]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 action_mode = 0
-text = "JOIN ROOM"
+text = "SEARCH"
 
 [node name="JoinBackButton" type="Button" parent="JoinPage/Panel/Margin/Content" unique_id=307937819]
 unique_name_in_owner = true

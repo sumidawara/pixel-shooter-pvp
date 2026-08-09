@@ -48,8 +48,8 @@ func _check_the_title_reaches_both_ways_in_one_step() -> void:
 
 	menu.title_join_button.pressed.emit()
 	await process_frame
-	if not menu.join_page.visible:
-		_failures.append("JOIN からルーム参加画面へ行けない")
+	if not menu.room_list_page.visible:
+		_failures.append("JOIN からルーム一覧へ行けない")
 
 	await _close(menu)
 

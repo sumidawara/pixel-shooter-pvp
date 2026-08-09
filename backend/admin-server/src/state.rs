@@ -45,6 +45,8 @@ pub(crate) struct ServerRecord {
     pub(crate) player_count: usize,
     /// GameServerが報告した、今すぐ参加を受け入れられるか。
     pub(crate) accepting_players: bool,
+    /// このルームを開いた人の名前。空なら誰も居ない。
+    pub(crate) host_name: String,
     /// Join Ticketを発行したが、まだ接続を確認できていない割当の発行時刻。
     pub(crate) reservations: Vec<Instant>,
     pub(crate) tick: u64,
@@ -77,6 +79,7 @@ pub(crate) fn server_view(server: &ServerRecord) -> GameServerView {
         room_id: server.room_id.clone(),
         player_count: server.player_count,
         accepting_players: server.accepting_players,
+        host_name: server.host_name.clone(),
         reserved_players: server.occupied_seats(),
         tick: server.tick,
         simulation_mode: server.simulation_mode,

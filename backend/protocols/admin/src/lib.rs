@@ -51,6 +51,12 @@ pub struct GameServerHeartbeat {
     /// 案内してしまい、プレイヤーはGameServerに拒否されて行き止まりになる。
     #[serde(default)]
     pub accepting_players: bool,
+    /// このルームを開いた人の名前。空なら誰も居ない。
+    ///
+    /// 一覧に出すのは room_id ではなくこちら。`room-1786253498-3` では
+    /// どれが誰の部屋か分からず、選びようがない。
+    #[serde(default)]
+    pub host_name: String,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
 }
@@ -64,11 +70,35 @@ pub struct GameServerView {
     pub room_id: Option<String>,
     pub player_count: usize,
     pub accepting_players: bool,
+    #[serde(default)]
+    pub host_name: String,
     /// 参加確定前の割当を含めて、この時点で埋まっているとみなす席数。
     pub reserved_players: usize,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
     pub healthy: bool,
+}
+
+/// プレイヤーへ見せるルーム1件。
+///
+/// `GameServerView` をそのまま配ってはいけない。あちらには `control_url` が入っており、
+/// 試合を止める・1tick進めるといった操作の宛先そのものになる。運用のために持っている
+/// 情報と、参加先を選ぶために要る情報は別物なので、型から分ける。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoomListEntry {
+    /// 繋ぎ先。ここだけがクライアントに要るURL。
+    pub game_url: String,
+    /// 部屋を開いた人の名前。空なら「NO HOST」として見せる。
+    pub host_name: String,
+    pub player_count: usize,
+    pub max_players: usize,
+    /// 今すぐ入れるか。満室と試合中はfalse。
+    pub accepting_players: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoomListResponse {
+    pub rooms: Vec<RoomListEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,6 +187,9 @@ pub struct ControlState {
     pub player_count: usize,
     #[serde(default)]
     pub accepting_players: bool,
+    /// このルームを開いた人の名前。一覧で部屋を見分けるために外へ出す。
+    #[serde(default)]
+    pub host_name: String,
     pub tick: u64,
     pub simulation_mode: SimulationMode,
     pub pending_steps: u64,

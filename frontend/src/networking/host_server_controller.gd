@@ -32,7 +32,7 @@ var _address_path := ""
 var _address_wait_left := 0.0
 
 
-func start_server(port: int) -> void:
+func start_server(port: int, lobby_url: String = "") -> void:
 	stop_server()
 	if OS.has_feature("web"):
 		server_failed.emit("CREATE ROOM IS NOT AVAILABLE IN WEB BUILDS")
@@ -56,16 +56,18 @@ func start_server(port: int) -> void:
 	DirAccess.remove_absolute(_address_path)
 
 	log_path = _log_path()
-	server_pid = OS.create_process(
-		server_path,
-		[
-			"--bind", NetworkConfig.local_server_bind_address(port),
-			"--debug-bind", NetworkConfig.local_server_bind_address(port + CONTROL_PORT_OFFSET),
-			"--log-file", log_path,
-			"--address-file", _address_path,
-		],
-		false
-	)
+	var arguments := [
+		"--bind", NetworkConfig.local_server_bind_address(port),
+		"--debug-bind", NetworkConfig.local_server_bind_address(port + CONTROL_PORT_OFFSET),
+		"--log-file", log_path,
+		"--address-file", _address_path,
+	]
+	# ロビーが指定されていれば、作った部屋を一覧へ載せる。
+	# 指定が無ければ名乗らない。手元で遊ぶだけの部屋が黙って外へ出ないようにする。
+	var lobby := lobby_url.strip_edges()
+	if not lobby.is_empty():
+		arguments.append_array(["--lobby-url", lobby])
+	server_pid = OS.create_process(server_path, arguments, false)
 	if server_pid <= 0:
 		server_pid = -1
 		server_failed.emit("COULD NOT START THE RUST SERVER\n%s" % server_path)

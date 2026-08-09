@@ -5,7 +5,7 @@ use pixel_shooter_protocol::{ItemKind, MatchPhase, RoomSettings};
 
 use crate::cpu_skill::CpuLevel;
 
-pub const MAX_PLAYERS: usize = 4;
+pub use pixel_shooter_protocol::MAX_PLAYERS;
 
 /// 試合全体で1つだけ存在する状態。
 ///

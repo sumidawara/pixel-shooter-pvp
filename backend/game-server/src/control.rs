@@ -151,6 +151,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
         status: GameServerStatus::Available,
         room_id: None,
         player_count: 0,
+        host_name: String::new(),
         tick: 0,
         accepting_players: false,
         simulation_mode: SimulationMode::Realtime,
@@ -161,7 +162,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
     start_http_thread(
         settings.control.bind_address.clone(),
         settings.control.port_search_range,
-        settings.control.admin_url.clone(),
+        registry_urls(&settings.control.lobby_url, &settings.control.admin_url),
         GameServerRegistration {
             server_id: settings.control.server_id.clone(),
             public_url: settings.control.public_url.clone(),
@@ -197,7 +198,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
 fn start_http_thread(
     bind_address: String,
     port_search_range: u32,
-    admin_url: String,
+    registry: Option<RegistryUrls>,
     registration: GameServerRegistration,
     state: HttpState,
     bind_result: Sender<Result<String, String>>,
@@ -205,9 +206,9 @@ fn start_http_thread(
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("control Tokio runtime");
         runtime.block_on(async move {
-            if !admin_url.is_empty() {
-                tokio::spawn(report_to_admin(
-                    admin_url,
+            if let Some(registry) = registry {
+                tokio::spawn(report_to_registry(
+                    registry,
                     registration,
                     state.shared_state.clone(),
                 ));
@@ -239,14 +240,41 @@ fn start_http_thread(
     });
 }
 
-async fn report_to_admin(
-    admin_url: String,
+/// 名乗り先。ロビー経由か、AdminServerへ直接か。
+struct RegistryUrls {
+    register: String,
+    heartbeat: String,
+}
+
+/// どこへ名乗るかを決める。
+///
+/// 両方あるときはロビーを選ぶ。手元で開いた部屋を一覧へ載せる用途では、
+/// クライアントが知ってよいURLはロビーだけであり、そちらが指定されている
+/// ということは「一覧へ出したい」という意思表示になる。
+fn registry_urls(lobby_url: &str, admin_url: &str) -> Option<RegistryUrls> {
+    if !lobby_url.is_empty() {
+        return Some(RegistryUrls {
+            register: format!("{lobby_url}/v1/game-servers/register"),
+            heartbeat: format!("{lobby_url}/v1/game-servers/heartbeat"),
+        });
+    }
+    if !admin_url.is_empty() {
+        return Some(RegistryUrls {
+            register: format!("{admin_url}/internal/game-servers/register"),
+            heartbeat: format!("{admin_url}/internal/game-servers/heartbeat"),
+        });
+    }
+    None
+}
+
+async fn report_to_registry(
+    registry: RegistryUrls,
     registration: GameServerRegistration,
     shared_state: Arc<RwLock<ControlState>>,
 ) {
     let client = reqwest::Client::new();
-    let register_url = format!("{admin_url}/internal/game-servers/register");
-    let heartbeat_url = format!("{admin_url}/internal/game-servers/heartbeat");
+    let register_url = registry.register;
+    let heartbeat_url = registry.heartbeat;
     let mut registered = false;
     loop {
         if !registered {
@@ -264,6 +292,7 @@ async fn report_to_admin(
                 room_id: state.room_id,
                 player_count: state.player_count,
                 accepting_players: state.accepting_players,
+                host_name: state.host_name,
                 tick: state.tick,
                 simulation_mode: state.simulation_mode,
             };
@@ -396,6 +425,7 @@ pub(crate) fn process_commands(
                         &allocation,
                         &state,
                         players.iter().len(),
+                        host_name_of(&state, &players),
                     ))
                 } else {
                     Err("game_server_not_available".into())
@@ -413,6 +443,7 @@ pub(crate) fn process_commands(
                     &allocation,
                     &state,
                     players.iter().len(),
+                    host_name_of(&state, &players),
                 ));
                 let _ = reply.send(result.clone());
                 result
@@ -429,6 +460,7 @@ pub(crate) fn process_commands(
                         &allocation,
                         &state,
                         players.iter().len(),
+                        host_name_of(&state, &players),
                     ))
                 } else {
                     Err("pause_before_stepping".into())
@@ -446,6 +478,7 @@ pub(crate) fn process_commands(
                     &allocation,
                     &state,
                     players.iter().len(),
+                    host_name_of(&state, &players),
                 ));
                 let _ = reply.send(result.clone());
                 result
@@ -462,6 +495,7 @@ pub(crate) fn process_commands(
                         &allocation,
                         &state,
                         players.iter().len(),
+                        host_name_of(&state, &players),
                     )
                 });
                 let _ = reply.send(result.clone());
@@ -476,6 +510,7 @@ pub(crate) fn process_commands(
                     &allocation,
                     &state,
                     players.iter().len(),
+                    host_name_of(&state, &players),
                 ));
                 let _ = reply.send(result.clone());
                 result
@@ -496,6 +531,7 @@ pub(crate) fn publish_state(
     players: Query<&Player>,
 ) {
     let player_count = players.iter().len();
+    let host_name = host_name_of(&state, &players);
     if allocation.status == GameServerStatus::Allocated {
         allocation.had_players |= player_count > 0;
         if allocation.had_players && player_count == 0 && state.phase == MatchPhase::Waiting {
@@ -511,7 +547,19 @@ pub(crate) fn publish_state(
         &allocation,
         &state,
         player_count,
+        host_name,
     );
+}
+
+/// ルームを開いた人の名前。誰も居なければ空。
+///
+/// 一覧では room_id ではなくこの名前で部屋を見分ける。
+fn host_name_of(state: &MatchState, players: &Query<&Player>) -> String {
+    state
+        .host_player_id
+        .and_then(|host_id| players.iter().find(|player| player.id == host_id))
+        .map(|player| player.name.clone())
+        .unwrap_or_default()
 }
 
 fn build_state(
@@ -521,6 +569,7 @@ fn build_state(
     allocation: &AllocationState,
     state: &MatchState,
     player_count: usize,
+    host_name: String,
 ) -> ControlState {
     let server_id = control
         .shared_state
@@ -533,6 +582,7 @@ fn build_state(
         status: allocation.status,
         room_id: allocation.room_id.clone(),
         player_count,
+        host_name,
         // network::process_network の Join 受理条件と同じ判定を、そのまま外へ公開する。
         // ここがずれると、AdminServerが参加できないルームへ案内してしまう。
         accepting_players: state.phase == MatchPhase::Waiting
@@ -584,6 +634,37 @@ fn unix_time() -> u64 {
 
 #[cfg(test)]
 mod tests {
+
+    /// ロビーが指定されていれば、そちらへ名乗ること。
+    ///
+    /// AdminServerのURLをプレイヤーへ配ると、試合を止める操作の口も一緒に配ることに
+    /// なる。手元の部屋を一覧へ載せる経路は、公開窓口であるMatchmakerを通す。
+    #[test]
+    fn a_lobby_url_wins_over_the_admin_url() {
+        let urls = registry_urls("http://lobby:8080", "http://admin:8081").expect("registry");
+        assert_eq!(urls.register, "http://lobby:8080/v1/game-servers/register");
+        assert_eq!(
+            urls.heartbeat,
+            "http://lobby:8080/v1/game-servers/heartbeat"
+        );
+    }
+
+    #[test]
+    fn without_a_lobby_it_still_reports_to_the_admin_server() {
+        let urls = registry_urls("", "http://admin:8081").expect("registry");
+        assert_eq!(
+            urls.register,
+            "http://admin:8081/internal/game-servers/register"
+        );
+    }
+
+    /// どちらも空なら、どこへも名乗らない。
+    ///
+    /// 既定はこちら。手元で遊ぶだけの部屋が、黙って外の一覧へ出ないようにする。
+    #[test]
+    fn a_room_stays_private_unless_a_registry_is_configured() {
+        assert!(registry_urls("", "").is_none());
+    }
     use std::collections::BTreeMap;
 
     use pixel_shooter_admin_protocol::{InputFrame, PlayerInput, PlayerInputCommand};
