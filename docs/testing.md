@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | Rust 単体 | 111 | ゲーム計算、設定の解釈、サーバーの部品 | `make test` |
 | 契約（ゴールデン） | 3組 | RustとGodotが同じ前提で動いていること | 上の2つに含まれる |
-| Godot 画面 | 19本 | 画面の作りと、失敗したときの逃げ道 | `make test-frontend` |
+| Godot 画面 | 20本 | 画面の作りと、失敗したときの逃げ道 | `make test-frontend` |
 | 統合（実サーバー） | 8本＋Compose1本 | 実際に繋いだときの通しの動き | `make integration-server` / `make integration` |
 
 `make verify` が下3つ以外をまとめて実行する（整形・Clippy・Rust・Web型検査・Godot）。
@@ -98,6 +98,7 @@ I/Oを持たず、同じ入力から必ず同じ結果になる。乱数を使�
 | `shared_limits_test` | 入力欄・マップ検証・段階数がサーバーと一致 |
 | `room_settings_test` | ルーム設定がサーバーの持ち物として扱われている |
 | `game_view_test` | HUDがマップに重ならない、カメラが自機を追う、狙いがワールド座標 |
+| `player_facing_test` | 絵が進む向きを向き、止まっても正面へ戻らない |
 | `play_page_layout_test` | 選んでいる行だけが目立つ、戻るが一段弱い |
 | `sandbox_ui_test` | 練習場の設定が往復し、画面から分かる |
 | `host_server_test` | CREATE ROOM の失敗経路と、同梱サーバーの生存監視 |
