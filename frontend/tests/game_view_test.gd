@@ -12,6 +12,14 @@ extends SceneTree
 ## マップ帯との重なりは見ない。ここに書いていないHUDはすべて検査対象になる。
 const TRANSIENT_OVERLAYS := ["CountdownLabel", "ResultOverlay"]
 
+## CPUが見通せる最大の距離。
+##
+## backend/game-core/src/cpu_skill.rs の MAX_SIGHT_RADIUS と対になっている。
+## 「CPUがプレイヤーより遠くを見ない」という決め事は、寄り具合(FOLLOW_ZOOM)を
+## 持っているこちら側でしか確かめられない。サーバー側へ画面の数値を書き写すと、
+## 寄り具合を変えたときにあちらの前提だけが静かに古くなる。
+const CPU_MAX_SIGHT_RADIUS := 250.0
+
 var _failures: PackedStringArray = PackedStringArray()
 
 
@@ -25,6 +33,7 @@ func _run() -> void:
 	await _check_the_camera_centers_the_local_player()
 	await _check_the_camera_never_leaves_the_map()
 	await _check_aim_is_measured_in_world_space()
+	await _check_the_player_sees_at_least_as_far_as_the_cpu()
 	await _check_the_camera_is_off_outside_a_match()
 
 	if not _failures.is_empty():
@@ -165,6 +174,36 @@ func _check_aim_is_measured_in_world_space() -> void:
 		)
 	if world_mouse.distance_to(screen_mouse) < 1.0:
 		_failures.append("画面座標のまま扱っている。カメラの移動ぶん狙いがずれる")
+
+	await _close(main)
+
+
+## プレイヤーの見える範囲が、CPUの視界より狭くならないこと。
+##
+## CPUの方が遠くを見ると、こちらから見えない所から撃たれる。それは強さではなく
+## 理不尽になる。寄り具合を上げるとプレイヤーの視野は狭くなるので、
+## FOLLOW_ZOOM を上げすぎたらここで落ちる。
+func _check_the_player_sees_at_least_as_far_as_the_cpu() -> void:
+	var main = await _open_main()
+	var game = main.get_node("GameScreen")
+	var hud = game.get_node("HUD")
+
+	# 自機は画面の中心にいる。中心から、マップを映す帯の縁までの距離。
+	var screen: Vector2 = game.get_viewport_rect().size
+	var visible_half_width: float = screen.x / game.FOLLOW_ZOOM / 2.0
+	var band_height: float = hud.WORLD_VIEW_BOTTOM - hud.WORLD_VIEW_TOP
+	var visible_half_height: float = band_height / game.FOLLOW_ZOOM / 2.0
+
+	if visible_half_width < CPU_MAX_SIGHT_RADIUS:
+		_failures.append(
+			"横方向でCPUより見えていない: %.0fpx / CPU %.0fpx (FOLLOW_ZOOM=%s)"
+			% [visible_half_width, CPU_MAX_SIGHT_RADIUS, game.FOLLOW_ZOOM]
+		)
+	# 縦は画面が横長なぶん狭い。全周で勝つのは無理なので、半分は超えていること。
+	if visible_half_height < CPU_MAX_SIGHT_RADIUS * 0.5:
+		_failures.append(
+			"縦方向で見えなさすぎる: %.0fpx / CPU %.0fpx" % [visible_half_height, CPU_MAX_SIGHT_RADIUS]
+		)
 
 	await _close(main)
 
