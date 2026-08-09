@@ -2,7 +2,7 @@ extends Control
 
 signal join_requested(server_url: String, player_name: String)
 signal cancel_connection_requested
-signal create_requested(player_name: String, port: int, settings: Dictionary)
+signal create_requested(player_name: String, port: int)
 signal add_cpu_requested
 signal remove_cpu_requested(player_id: int)
 signal start_match_requested
@@ -71,6 +71,19 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 var is_web := false
 var is_room_host := false
 var applying_room_snapshot := false
+## サーバーから最後に届いたルーム設定。
+##
+## 画面に無い項目は、こちらで値を作らずここからそのまま返す。作ってしまうと
+## server.json に書いた値を、クライアントの思い込みで上書きすることになる
+## （`item_spawn_interval` が実際にそうなっていた）。
+var _room_settings: Dictionary = {}
+## サーバーから一度でも設定が届いたか。届く前は送らない。
+var _received_room_settings := false
+## 設定名 → 編集するSpinBoxと、整数かどうか。
+##
+## 取り出しと書き戻しを1つの表から作る。別々に書くと、片方だけ足して
+## もう片方を忘れる。
+var _setting_inputs: Dictionary = {}
 var last_cpu_id := 0
 var is_connecting := false
 var selected_map_id := "classic_arena"
@@ -113,17 +126,18 @@ func _bind_buttons() -> void:
 
 func _bind_room_settings() -> void:
 	_configure_cpu_level_option()
+	_setting_inputs = {
+		"match_seconds": {"input": match_seconds_input, "integer": false},
+		"kill_points": {"input": kill_points_input, "integer": true},
+		"death_penalty": {"input": death_penalty_input, "integer": true},
+		"item_points": {"input": item_points_input, "integer": true},
+		"max_items": {"input": max_items_input, "integer": true},
+	}
 	map_option.item_selected.connect(_on_map_selected)
 	cpu_level_option.item_selected.connect(func(_index: int): _emit_room_settings())
 	sandbox_check.toggled.connect(func(_pressed: bool): _emit_room_settings())
-	for input in [
-		match_seconds_input,
-		kill_points_input,
-		death_penalty_input,
-		item_points_input,
-		max_items_input,
-	]:
-		input.value_changed.connect(func(_value: float): _emit_room_settings())
+	for spec in _setting_inputs.values():
+		spec["input"].value_changed.connect(func(_value: float): _emit_room_settings())
 
 
 func show_title() -> void:
@@ -192,7 +206,9 @@ func _request_create_room() -> void:
 	set_connecting(true)
 	var port := int(port_input.value)
 	show_room(true, NetworkConfig.local_game_server_url(port))
-	create_requested.emit(player_name_input.text, port, get_room_settings())
+	# 設定は送らない。この時点の画面の値はシーンの初期値であり、サーバーが
+	# server.json から決めた設定を上書きしてしまう。設定はサーバーから届く。
+	create_requested.emit(player_name_input.text, port)
 
 
 func _request_start_match() -> void:
@@ -239,18 +255,20 @@ func apply_room_snapshot(players: Array, room: Dictionary, local_player_id: int)
 	_update_host_controls(sorted.size(), can_start)
 
 
+## サーバーへ送るルーム設定。
+##
+## サーバーから届いた設定を土台にし、画面で編集できる項目だけを上書きする。
+## 画面に無い項目をこちらで作ると、server.json の値を潰してしまう。
 func get_room_settings() -> Dictionary:
-	return {
-		"map_id": selected_map_id,
-		"match_seconds": match_seconds_input.value,
-		"kill_points": int(kill_points_input.value),
-		"death_penalty": int(death_penalty_input.value),
-		"item_points": int(item_points_input.value),
-		"item_spawn_interval": 5.0,
-		"max_items": int(max_items_input.value),
-		"sandbox": sandbox_check.button_pressed,
-		"cpu_level": cpu_level_option.selected + 1,
-	}
+	var settings := _room_settings.duplicate()
+	settings["map_id"] = selected_map_id
+	settings["sandbox"] = sandbox_check.button_pressed
+	settings["cpu_level"] = cpu_level_option.selected + 1
+	for key in _setting_inputs:
+		var spec: Dictionary = _setting_inputs[key]
+		var value: float = spec["input"].value
+		settings[key] = int(value) if spec["integer"] else value
+	return settings
 
 
 func set_connecting(connecting: bool) -> void:
@@ -323,21 +341,25 @@ func _update_host_controls(player_count: int, can_start: bool) -> void:
 
 
 func _emit_room_settings() -> void:
-	if is_room_host and not applying_room_snapshot:
-		room_settings_changed.emit(get_room_settings())
+	# サーバーから設定が届く前は送らない。届く前の画面の値はシーンに書かれた
+	# 初期値でしかなく、送ると server.json に書いた値をそれで潰してしまう。
+	if not _received_room_settings or applying_room_snapshot or not is_room_host:
+		return
+	room_settings_changed.emit(get_room_settings())
 
 
 func _apply_room_settings(settings: Dictionary) -> void:
 	if settings.is_empty():
 		return
 	applying_room_snapshot = true
+	# 画面に無い項目も含めて丸ごと覚える。送り返すときの土台になる。
+	_room_settings = settings.duplicate()
+	_received_room_settings = true
 	selected_map_id = str(settings.get("map_id", "classic_arena"))
 	_select_map(selected_map_id)
-	match_seconds_input.value = float(settings.get("match_seconds", 120.0))
-	kill_points_input.value = float(settings.get("kill_points", 100))
-	death_penalty_input.value = float(settings.get("death_penalty", 25))
-	item_points_input.value = float(settings.get("item_points", 20))
-	max_items_input.value = float(settings.get("max_items", 3))
+	for key in _setting_inputs:
+		if settings.has(key):
+			_setting_inputs[key]["input"].value = float(settings[key])
 	sandbox_check.button_pressed = bool(settings.get("sandbox", false))
 	cpu_level_option.select(clampi(int(settings.get("cpu_level", 3)) - 1, 0, CPU_LEVEL_LABELS.size() - 1))
 	applying_room_snapshot = false

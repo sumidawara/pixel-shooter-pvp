@@ -3,7 +3,11 @@
 // ルーム設定を送る → 開始する → 的とアイテムが揃う、という一連の流れは
 // プロトコル・ルーム設定・試合進行・アイテム出現をまたぐ。単体試験では
 // それぞれの部品しか見られないため、ここで通しで確かめる。
+
+import { roomSettings } from "./room_settings.mjs";
+
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
+
 
 /// 練習場に必ず置かれている必要があるアイテム。1つでも欠けると試せない種類が出る。
 const REQUIRED_ITEM_KINDS = [
@@ -89,16 +93,7 @@ const poll = setInterval(() => {
     host.socket.send(
       JSON.stringify({
         type: "update_room_settings",
-        settings: {
-          map_id: "classic_arena",
-          match_seconds: 120.0,
-          kill_points: 100,
-          death_penalty: 25,
-          item_points: 20,
-          item_spawn_interval: 5.0,
-          max_items: 3,
-          sandbox: true,
-        },
+        settings: roomSettings({ sandbox: true }),
       }),
     );
     return;

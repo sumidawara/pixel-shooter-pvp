@@ -24,7 +24,7 @@ use crate::{
     settings::GameSettings,
 };
 
-use super::{combat::BERSERK_BULLET_SPEED_MULTIPLIER, is_playing_phase};
+use super::is_playing_phase;
 
 const ROUTE_REFRESH_TICKS: u64 = 15;
 const WAYPOINT_REACHED_DISTANCE: f32 = 6.0;
@@ -340,7 +340,7 @@ fn lead_point(shooter: Vec2, target: Vec2, velocity: Vec2, bullet_speed: f32) ->
 /// 自分の弾が実際に出る速さ。バーサク中は速くなる。
 fn bullet_speed(settings: &GameSettings, player: &Player) -> f32 {
     let multiplier = if player.berserk_left > 0.0 {
-        BERSERK_BULLET_SPEED_MULTIPLIER
+        settings.items.berserk_bullet_speed_multiplier
     } else {
         1.0
     };

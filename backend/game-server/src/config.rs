@@ -265,6 +265,38 @@ mod tests {
         assert_eq!(settings.control.port_search_range, 0);
     }
 
+    /// 配る`server.json`に、調整して遊ぶ数値が載っていること。
+    ///
+    /// 既定値はRust側にもあるが、書かれていない設定は存在に気付かれない。
+    /// バランスを触りたい人が最初に開くのはこのファイルになる。
+    #[test]
+    fn the_shipped_config_documents_the_tunable_numbers() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../server.json");
+        let text = std::fs::read_to_string(path).expect("server.json");
+        let settings: ServerSettings = serde_json::from_str(&text).expect("server.json parses");
+
+        for section in ["\"items\"", "\"sandbox\"", "\"cpu\""] {
+            assert!(
+                text.contains(section),
+                "server.json に {section} の節が無い。調整できることに気付けない"
+            );
+        }
+        // 節はあるが中身が既定と違う、という取り違えも防ぐ。
+        let defaults = pixel_shooter_game_core::GameSettings::default();
+        assert_eq!(
+            settings.game.items.berserk_seconds,
+            defaults.items.berserk_seconds
+        );
+        assert_eq!(
+            settings.game.items.larokin_count,
+            defaults.items.larokin_count
+        );
+        assert_eq!(
+            settings.game.sandbox.dummy_respawn_seconds,
+            defaults.sandbox.dummy_respawn_seconds
+        );
+    }
+
     /// 配る`server.json`にポート設定が載っていること。
     ///
     /// 既定値はRust側にもあるが、書かれていない設定は存在に気付かれない。

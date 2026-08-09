@@ -1,5 +1,32 @@
 use serde::{Deserialize, Serialize};
 
+/// `RoomSettings`の各項目が取り得る範囲。
+///
+/// サーバーが丸める範囲と、クライアントの入力欄が許す範囲は同じでなければならない。
+/// 別々に書くと、片方だけ動かしても誰も気付かない。ここを正とし、
+/// `frontend/tests/shared_limits_test.gd` が画面側との一致を検査する。
+pub mod room_settings_bounds {
+    pub const MATCH_SECONDS: (f32, f32) = (30.0, 900.0);
+    pub const KILL_POINTS: (i32, i32) = (0, 10_000);
+    pub const DEATH_PENALTY: (i32, i32) = (0, 10_000);
+    pub const ITEM_POINTS: (i32, i32) = (0, 10_000);
+    pub const ITEM_SPAWN_INTERVAL: (f32, f32) = (0.5, 60.0);
+    pub const MAX_ITEMS: (u32, u32) = (1, 16);
+    /// CPUの強さの段階。数はロビーの選択肢の数と揃う。
+    pub const CPU_LEVEL: (u8, u8) = (1, 4);
+}
+
+/// `MapDefinition`として受け付ける大きさの範囲。
+///
+/// サーバーの検証とクライアントの検証が食い違うと、サーバーが正しいと判断した
+/// マップをクライアントが拒む。
+pub mod map_limits {
+    pub const MAX_WIDTH: usize = 256;
+    pub const MAX_HEIGHT: usize = 256;
+    pub const MIN_TILE_SIZE: u32 = 8;
+    pub const MAX_TILE_SIZE: u32 = 128;
+}
+
 pub const PLAYER_RADIUS: f32 = 12.0;
 pub const BULLET_RADIUS: f32 = 4.0;
 pub const ITEM_RADIUS: f32 = 10.0;

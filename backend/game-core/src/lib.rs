@@ -8,10 +8,12 @@ mod schedule;
 mod settings;
 
 pub mod cpu_skill;
+pub mod match_log;
 
 pub use arena::{ArenaMap, GridPosition, MapLoadError, RANDOM_MAP_ID, TileKind};
 pub use cpu_skill::{CPU_LEVEL_COUNT, CpuLevel, CpuSettings, CpuSkill};
 pub use input::{PlayerInputOverrides, apply_network_player_input};
+pub use match_log::{MatchEvent, MatchLog};
 pub use model::{
     Bullet, GhostThief, HeldItem, LarokinPoppos, MAX_PLAYERS, MatchState, Player, ScoreItem,
 };

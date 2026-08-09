@@ -3,18 +3,11 @@
 // 強さの中身（視界や反応）はRust側の単体試験が段階ごとに見ている。ここで見るのは
 // 繋ぎ込み: 選んだ番号が届くか、範囲外を送っても壊れないか、その状態でCPUを
 // 追加できるか。ここが切れると、選んでも何も変わらない。
+
+import { roomSettings } from "./room_settings.mjs";
+
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
 
-const BASE_SETTINGS = {
-  map_id: "classic_arena",
-  match_seconds: 120.0,
-  kill_points: 100,
-  death_penalty: 25,
-  item_points: 20,
-  item_spawn_interval: 5.0,
-  max_items: 3,
-  sandbox: false,
-};
 
 const host = {
   socket: new WebSocket(SERVER_URL),
@@ -45,7 +38,7 @@ function sendLevel(level) {
   host.socket.send(
     JSON.stringify({
       type: "update_room_settings",
-      settings: { ...BASE_SETTINGS, cpu_level: level },
+      settings: roomSettings({ cpu_level: level }),
     }),
   );
 }

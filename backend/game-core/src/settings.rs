@@ -1,7 +1,7 @@
 //! GameCoreだけが参照する試合ルールと操作パラメーター。
 
 use bevy::prelude::Resource;
-use pixel_shooter_protocol::RoomSettings;
+use pixel_shooter_protocol::{RoomSettings, room_settings_bounds as bounds};
 use serde::Deserialize;
 
 use crate::cpu_skill::{CpuLevel, CpuSettings};
@@ -12,8 +12,49 @@ pub struct GameSettings {
     #[serde(rename = "match")]
     pub match_rules: MatchRules,
     pub gameplay: GameplaySettings,
+    /// アイテムの効果。
+    pub items: ItemSettings,
+    /// 練習場（サンドボックス）の手触り。
+    pub sandbox: SandboxSettings,
     /// CPUの強さ。段階ごとの数値を上書きできる。
     pub cpu: CpuSettings,
+}
+
+/// アイテムを使ったときに起きることの数値。
+///
+/// ここをRustの`const`ではなく設定に置いているのは、バランス調整でいちばん
+/// よく触る類だから。組み立て直さずに試せる方がよい。
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct ItemSettings {
+    /// バーサクの効果時間(秒)。
+    pub berserk_seconds: f32,
+    /// バーサク中に弾が速くなる倍率。
+    pub berserk_bullet_speed_multiplier: f32,
+    /// ラロキンポッポスが一度に出る数。
+    pub larokin_count: usize,
+    /// ラロキンポッポスの速さ(px/秒)。
+    pub larokin_speed: f32,
+    /// 突撃を始めるまでの溜め(秒)。避ける余地を作るための間。
+    pub larokin_telegraph_seconds: f32,
+    /// ラロキンポッポスの当たり判定の半径(px)。
+    pub larokin_radius: f32,
+    /// ラロキンポッポス1体あたりのダメージ。
+    pub larokin_damage: i32,
+    /// ゴーストが飛んで戻るまでの時間(秒)。
+    ///
+    /// 奪取そのものは使用したtickで確定しており、これは見せている時間だけを表す。
+    pub ghost_thief_seconds: f32,
+}
+
+/// 練習場の手触り。
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct SandboxSettings {
+    /// 取られたアイテムが戻ってくるまでの時間(秒)。
+    pub item_restock_seconds: f32,
+    /// 的が倒れてから起き上がるまでの時間(秒)。
+    pub dummy_respawn_seconds: f32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -64,12 +105,25 @@ impl GameSettings {
     }
 
     pub fn sanitize_room_settings(&self, mut room: RoomSettings) -> RoomSettings {
-        room.match_seconds = room.match_seconds.clamp(30.0, 900.0);
-        room.kill_points = room.kill_points.clamp(0, 10_000);
-        room.death_penalty = room.death_penalty.clamp(0, 10_000);
-        room.item_points = room.item_points.clamp(0, 10_000);
-        room.item_spawn_interval = room.item_spawn_interval.clamp(0.5, 60.0);
-        room.max_items = room.max_items.clamp(1, 16);
+        // 範囲はプロトコル側が持つ。画面の入力欄と同じ値でなければならない。
+        room.match_seconds = room
+            .match_seconds
+            .clamp(bounds::MATCH_SECONDS.0, bounds::MATCH_SECONDS.1);
+        room.kill_points = room
+            .kill_points
+            .clamp(bounds::KILL_POINTS.0, bounds::KILL_POINTS.1);
+        room.death_penalty = room
+            .death_penalty
+            .clamp(bounds::DEATH_PENALTY.0, bounds::DEATH_PENALTY.1);
+        room.item_points = room
+            .item_points
+            .clamp(bounds::ITEM_POINTS.0, bounds::ITEM_POINTS.1);
+        room.item_spawn_interval = room
+            .item_spawn_interval
+            .clamp(bounds::ITEM_SPAWN_INTERVAL.0, bounds::ITEM_SPAWN_INTERVAL.1);
+        room.max_items = room
+            .max_items
+            .clamp(bounds::MAX_ITEMS.0, bounds::MAX_ITEMS.1);
         // 段階は1〜4。範囲外は近い方へ寄せて返す。
         room.cpu_level = CpuLevel::from_number(room.cpu_level).number();
         room
@@ -85,7 +139,10 @@ impl GameSettings {
         self.match_rules.death_penalty = self.match_rules.death_penalty.max(0);
         self.match_rules.item_points = self.match_rules.item_points.max(0);
         self.match_rules.item_spawn_interval = self.match_rules.item_spawn_interval.max(0.1);
-        self.match_rules.max_items = self.match_rules.max_items.clamp(1, 16);
+        self.match_rules.max_items = self
+            .match_rules
+            .max_items
+            .clamp(bounds::MAX_ITEMS.0 as usize, bounds::MAX_ITEMS.1 as usize);
         self.gameplay.move_speed = self.gameplay.move_speed.max(1.0);
         self.gameplay.bullet_speed = self.gameplay.bullet_speed.max(1.0);
         self.gameplay.shot_interval = self.gameplay.shot_interval.max(0.01);
@@ -100,6 +157,19 @@ impl GameSettings {
         self.gameplay.dash_speed = self.gameplay.dash_speed.max(1.0);
         self.gameplay.dash_duration = self.gameplay.dash_duration.max(0.01);
         self.gameplay.dash_cooldown = self.gameplay.dash_cooldown.max(0.01);
+        self.items.berserk_seconds = self.items.berserk_seconds.max(0.0);
+        self.items.berserk_bullet_speed_multiplier =
+            self.items.berserk_bullet_speed_multiplier.clamp(0.1, 10.0);
+        // 0にすると使っても何も起きない。上限は1回の使用で場が埋まらない程度。
+        self.items.larokin_count = self.items.larokin_count.clamp(1, 64);
+        self.items.larokin_speed = self.items.larokin_speed.max(1.0);
+        self.items.larokin_telegraph_seconds = self.items.larokin_telegraph_seconds.max(0.0);
+        self.items.larokin_radius = self.items.larokin_radius.max(1.0);
+        self.items.larokin_damage = self.items.larokin_damage.max(0);
+        // 0にすると演出が1tickも見えないまま消える。
+        self.items.ghost_thief_seconds = self.items.ghost_thief_seconds.max(0.05);
+        self.sandbox.item_restock_seconds = self.sandbox.item_restock_seconds.max(0.05);
+        self.sandbox.dummy_respawn_seconds = self.sandbox.dummy_respawn_seconds.max(0.05);
         self.cpu.sanitize();
     }
 }
@@ -116,6 +186,30 @@ impl Default for MatchRules {
             item_points: 20,
             item_spawn_interval: 5.0,
             max_items: 3,
+        }
+    }
+}
+
+impl Default for ItemSettings {
+    fn default() -> Self {
+        Self {
+            berserk_seconds: 3.0,
+            berserk_bullet_speed_multiplier: 1.3,
+            larokin_count: 10,
+            larokin_speed: 230.0,
+            larokin_telegraph_seconds: 0.7,
+            larokin_radius: 8.0,
+            larokin_damage: 1,
+            ghost_thief_seconds: 0.9,
+        }
+    }
+}
+
+impl Default for SandboxSettings {
+    fn default() -> Self {
+        Self {
+            item_restock_seconds: 1.0,
+            dummy_respawn_seconds: 1.0,
         }
     }
 }

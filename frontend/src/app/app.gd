@@ -38,7 +38,6 @@ const CRT_PRESETS := {
 var hosting_room := false
 var joined_room := false
 var local_player_id := 0
-var pending_host_settings: Dictionary = {}
 
 
 func _ready() -> void:
@@ -131,10 +130,9 @@ func _url_uses_port(url: String, port: int) -> bool:
 	return authority.ends_with(":%d" % port)
 
 
-func _on_create_requested(player_name: String, port: int, settings: Dictionary) -> void:
+func _on_create_requested(player_name: String, port: int) -> void:
 	hosting_room = true
 	joined_room = false
-	pending_host_settings = settings
 	host_server.start_server(port)
 	NetworkClient.player_name = player_name.strip_edges()
 
@@ -181,8 +179,6 @@ func _on_welcome_received(player_id: int, reconnected: bool) -> void:
 	game_screen.expect_map()
 	menu_screen.set_connecting(false)
 	menu_screen.show_room(hosting_room, NetworkClient.server_url)
-	if hosting_room and not pending_host_settings.is_empty():
-		NetworkClient.update_room_settings(pending_host_settings)
 	if game_screen.visible and reconnected:
 		game_screen.resume_session(player_id)
 
@@ -243,7 +239,6 @@ func _leave_room() -> void:
 	hosting_room = false
 	joined_room = false
 	local_player_id = 0
-	pending_host_settings.clear()
 	_show_menu()
 
 

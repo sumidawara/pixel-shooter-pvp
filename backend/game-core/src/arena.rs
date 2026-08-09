@@ -3,7 +3,7 @@
 use std::{fmt, fs, path::Path};
 
 use bevy::prelude::{Resource, Vec2};
-use pixel_shooter_protocol::{MapDefinition, PLAYER_RADIUS};
+use pixel_shooter_protocol::{MapDefinition, PLAYER_RADIUS, map_limits};
 use serde::Serialize;
 
 use crate::model::MAX_PLAYERS;
@@ -14,10 +14,6 @@ mod navigation;
 pub use generator::RANDOM_MAP_ID;
 
 const CLASSIC_ARENA_JSON: &str = include_str!("../../maps/classic_arena.json");
-const MAX_MAP_WIDTH: usize = 256;
-const MAX_MAP_HEIGHT: usize = 256;
-const MIN_TILE_SIZE: u32 = 8;
-const MAX_TILE_SIZE: u32 = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -97,17 +93,22 @@ impl ArenaMap {
             return Err(MapLoadError::Invalid("revision must not be empty".into()));
         }
         if definition.width == 0
-            || definition.width > MAX_MAP_WIDTH
+            || definition.width > map_limits::MAX_WIDTH
             || definition.height == 0
-            || definition.height > MAX_MAP_HEIGHT
+            || definition.height > map_limits::MAX_HEIGHT
         {
             return Err(MapLoadError::Invalid(format!(
-                "width and height must be within 1..={MAX_MAP_WIDTH} and 1..={MAX_MAP_HEIGHT}"
+                "width and height must be within 1..={} and 1..={}",
+                map_limits::MAX_WIDTH,
+                map_limits::MAX_HEIGHT
             )));
         }
-        if !(MIN_TILE_SIZE..=MAX_TILE_SIZE).contains(&definition.tile_size) {
+        if !(map_limits::MIN_TILE_SIZE..=map_limits::MAX_TILE_SIZE).contains(&definition.tile_size)
+        {
             return Err(MapLoadError::Invalid(format!(
-                "tile_size must be within {MIN_TILE_SIZE}..={MAX_TILE_SIZE}"
+                "tile_size must be within {}..={}",
+                map_limits::MIN_TILE_SIZE,
+                map_limits::MAX_TILE_SIZE
             )));
         }
         if definition.tiles.len() != definition.height {

@@ -16,6 +16,8 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 - `control`: AdminServerだけが利用する内部API、公開URL、Ticket検証
 - `match`: 試合時間、カウントダウン、得点、アイテム生成、再接続猶予
 - `gameplay`: 移動、弾、反動、HP、リロード、無敵時間、ダッシュ、リスポーン
+- `items`: アイテムを使ったときに起きることの数値
+- `sandbox`: 練習場の手触り（アイテムの戻り、的の復活）
 - `cpu`: CPUの強さ。段階ごとの数値を上書きする
 
 `match`の主な項目:
@@ -29,6 +31,20 @@ PIXEL_SHOOTER_CONFIG=server.production.json \
 
 `gameplay`の`reload_seconds`は武器のリロードにかかる秒数です。設定変更後は
 Game Serverを再起動すると反映されます。
+
+## アイテムの効果
+
+`items` にまとめてある。バランス調整でいちばんよく触る類なので、
+組み立て直さずに試せるようにしてある。
+
+- `berserk_seconds` / `berserk_bullet_speed_multiplier`: バーサクの効果時間と弾速の倍率
+- `larokin_count` / `larokin_speed` / `larokin_radius` / `larokin_damage`: ラロキンポッポスの数・速さ・当たり判定・威力
+- `larokin_telegraph_seconds`: 突撃を始めるまでの溜め。避ける余地を作るための間
+- `ghost_thief_seconds`: ゴーストが飛んで戻るまでの時間（見せている時間だけで、
+  奪取そのものは使用したtickで確定している）
+
+`sandbox` は練習場だけに効く。`item_restock_seconds` は取られたアイテムが戻るまで、
+`dummy_respawn_seconds` は的が起き上がるまでの時間。
 
 ## CPUの強さ
 
@@ -88,6 +104,11 @@ GodotのCREATE ROOMは、この設定に従ってサーバーが選んだ番号�
 
 これらはサーバー起動時のルーム初期値になる。Waiting中はルームホストが
 GodotのCreate Room画面から安全な範囲内で上書きできる。
+
+ルーム設定を決めるのはサーバーで、クライアントは受け取った設定を編集して返す。
+クライアントは、届く前には何も送らず、画面に無い項目は受け取った値をそのまま返す。
+この向きが崩れると、`server.json`へ書いた値が黙って効かなくなる
+（`frontend/tests/room_settings_test.gd`が検査する）。
 
 設定値が極端な場合はサーバー側で安全な範囲に補正します。ファイルがない、
 またはJSONとして読めない場合は組み込みの初期値で起動します。

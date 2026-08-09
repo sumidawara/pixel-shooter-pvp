@@ -16,16 +16,6 @@ use super::{
     score::add_points,
 };
 
-const BERSERK_SECONDS: f32 = 3.0;
-const LAROKIN_COUNT: usize = 10;
-const LAROKIN_SPEED: f32 = 230.0;
-const LAROKIN_TELEGRAPH_SECONDS: f32 = 0.7;
-const LAROKIN_RADIUS: f32 = 8.0;
-const LAROKIN_DAMAGE: i32 = 1;
-/// Ghostが対象まで飛んで戻るまでの時間。奪取自体は使用したtickで確定しており、
-/// これは見せている時間だけを表す。
-const GHOST_THIEF_SECONDS: f32 = 0.9;
-
 /// 出現、取得、スロット使用を1tick内で決定的に処理する。
 pub(crate) fn update_items(
     mut commands: Commands,
@@ -49,7 +39,7 @@ pub(crate) fn update_items(
         // 練習場では抽選も個数上限も使わない。全種類が常に置いてある状態を保つ。
         let present: Vec<ItemKind> = items.iter().map(|(_, item)| item.kind).collect();
         sandbox::restock_items(&mut commands, &map, &mut state, &present);
-        state.item_spawn_left = sandbox::ITEM_RESTOCK_SECONDS;
+        state.item_spawn_left = settings.sandbox.item_restock_seconds;
     } else if state.item_spawn_left <= 0.0 {
         if items.iter().len() < state.room_settings.max_items as usize {
             let player_positions: Vec<_> = players
@@ -131,7 +121,7 @@ pub(crate) fn update_items(
                 player.held_item = (held.charges > 0).then_some(held);
             }
             ItemKind::Berserk => {
-                player.berserk_left = BERSERK_SECONDS;
+                player.berserk_left = settings.items.berserk_seconds;
                 player.held_item = None;
             }
             ItemKind::Shield => {
@@ -188,6 +178,7 @@ pub(crate) fn update_items(
             .map(|(_, position, _, _, _)| *position)
             .unwrap_or(from);
         state.next_ghost_thief_id += 1;
+        let life = settings.items.ghost_thief_seconds;
         commands.spawn(GhostThief {
             id: state.next_ghost_thief_id,
             owner_id: user_id,
@@ -195,12 +186,19 @@ pub(crate) fn update_items(
             from,
             to,
             stolen_kind: stolen.kind,
-            life_left: GHOST_THIEF_SECONDS,
-            life_total: GHOST_THIEF_SECONDS,
+            life_left: life,
+            life_total: life,
         });
     }
     for (owner_id, (_, target_position)) in larokin_uses {
-        spawn_larokin_wave(&mut commands, &map, &mut state, owner_id, target_position);
+        spawn_larokin_wave(
+            &mut commands,
+            &map,
+            &mut state,
+            &settings,
+            owner_id,
+            target_position,
+        );
     }
 }
 
@@ -248,9 +246,13 @@ pub(crate) fn update_larokin_poppos(
             if !can_be_hit(&player, attacker.owner_id) {
                 continue;
             }
-            let distance = PLAYER_RADIUS + LAROKIN_RADIUS;
+            let distance = PLAYER_RADIUS + settings.items.larokin_radius;
             if player.position.distance_squared(attacker.position) <= distance * distance {
-                let outcome = apply_damage(&mut player, LAROKIN_DAMAGE, &settings.gameplay);
+                let outcome = apply_damage(
+                    &mut player,
+                    settings.items.larokin_damage,
+                    &settings.gameplay,
+                );
                 if outcome.killed {
                     victim_id = Some(player.id);
                 }
@@ -270,11 +272,12 @@ fn spawn_larokin_wave(
     commands: &mut Commands,
     map: &ArenaMap,
     state: &mut MatchState,
+    settings: &GameSettings,
     owner_id: u64,
     target: Vec2,
 ) {
-    let margin = map.tile_size() + LAROKIN_RADIUS;
-    for index in 0..LAROKIN_COUNT {
+    let margin = map.tile_size() + settings.items.larokin_radius;
+    for index in 0..settings.items.larokin_count {
         let lane = (index / 4) as f32 - 1.0;
         let position = match index % 4 {
             0 => Vec2::new(
@@ -299,8 +302,8 @@ fn spawn_larokin_wave(
             id: state.next_larokin_id,
             owner_id,
             position,
-            velocity: (target - position).normalize_or_zero() * LAROKIN_SPEED,
-            telegraph_left: LAROKIN_TELEGRAPH_SECONDS,
+            velocity: (target - position).normalize_or_zero() * settings.items.larokin_speed,
+            telegraph_left: settings.items.larokin_telegraph_seconds,
             life_left: 4.0,
         });
     }
@@ -355,6 +358,83 @@ mod tests {
         assert_eq!(item_kind_for_id(2), ItemKind::EnergyCell);
         assert_eq!(item_kind_for_id(3), ItemKind::Dash);
         assert_eq!(item_kind_for_id(7), ItemKind::Ghost);
+    }
+
+    /// 設定した数値が、実際に使われること。
+    ///
+    /// 「設定に項目はあるのに読まれていない」という形の不具合は、値を変えても
+    /// 何も起きないだけなので気付きにくい。既定値と違う値を入れて確かめる。
+    #[test]
+    fn the_configured_item_numbers_are_actually_used() {
+        let mut app = test_app(MatchPhase::Running, 60.0);
+        {
+            let mut settings = app.world_mut().resource_mut::<GameSettings>();
+            settings.items.berserk_seconds = 7.5;
+            settings.items.larokin_count = 3;
+            settings.items.ghost_thief_seconds = 2.25;
+        }
+
+        let mut berserker = test_player(1, Some(101));
+        berserker.use_item_requested = true;
+        berserker.held_item = Some(HeldItem {
+            kind: ItemKind::Berserk,
+            charges: 1,
+        });
+        let berserker_entity = app.world_mut().spawn(berserker).id();
+
+        let mut thrower = test_player(2, Some(102));
+        thrower.position = Vec2::new(200.0, 100.0);
+        thrower.use_item_requested = true;
+        thrower.held_item = Some(HeldItem {
+            kind: ItemKind::LarokinPoppos,
+            charges: 1,
+        });
+        app.world_mut().spawn(thrower);
+
+        let mut thief = test_player(3, Some(103));
+        thief.position = Vec2::new(300.0, 100.0);
+        thief.use_item_requested = true;
+        thief.held_item = Some(HeldItem {
+            kind: ItemKind::Ghost,
+            charges: 1,
+        });
+        app.world_mut().spawn(thief);
+
+        let mut victim = test_player(4, Some(104));
+        victim.position = Vec2::new(320.0, 100.0);
+        victim.held_item = Some(HeldItem {
+            kind: ItemKind::Shield,
+            charges: 1,
+        });
+        app.world_mut().spawn(victim);
+
+        advance_one_tick(app.world_mut());
+
+        // 残り時間の減算は使用より前に走るので、使ったtickでは設定値そのまま。
+        let berserk_left = app
+            .world()
+            .get::<Player>(berserker_entity)
+            .expect("berserker")
+            .berserk_left;
+        assert!(
+            (berserk_left - 7.5).abs() < 0.001,
+            "berserk_seconds が使われていない: {berserk_left}"
+        );
+
+        let (larokin_count, ghost_life) = {
+            let world = app.world_mut();
+            let mut attackers = world.query::<&LarokinPoppos>();
+            let count = attackers.iter(world).count();
+            let mut thieves = world.query::<&GhostThief>();
+            let life = thieves.iter(world).next().map(|thief| thief.life_total);
+            (count, life)
+        };
+        assert_eq!(larokin_count, 3, "larokin_count が使われていない");
+        assert_eq!(
+            ghost_life,
+            Some(2.25),
+            "ghost_thief_seconds が使われていない"
+        );
     }
 
     #[test]
@@ -488,6 +568,7 @@ mod tests {
     fn the_ghost_effect_disappears_on_its_own() {
         // 見せ終わったEntityが残り続けると、Snapshotに乗り続けて表示が消えない。
         let mut app = test_app(MatchPhase::Running, 60.0);
+        let ghost_life = GameSettings::default().items.ghost_thief_seconds;
         app.world_mut().spawn(GhostThief {
             id: 1,
             owner_id: 1,
@@ -495,8 +576,8 @@ mod tests {
             from: Vec2::ZERO,
             to: Vec2::new(64.0, 0.0),
             stolen_kind: ItemKind::Shield,
-            life_left: GHOST_THIEF_SECONDS,
-            life_total: GHOST_THIEF_SECONDS,
+            life_left: ghost_life,
+            life_total: ghost_life,
         });
 
         let count = |app: &mut App| {
@@ -504,7 +585,7 @@ mod tests {
             let mut query = world.query::<&GhostThief>();
             query.iter(world).count()
         };
-        let ticks = (GHOST_THIEF_SECONDS * 60.0).ceil() as i32;
+        let ticks = (ghost_life * 60.0).ceil() as i32;
 
         // 途中では消えていない。すぐ消えると演出が見えない。
         for _ in 0..ticks / 2 {
