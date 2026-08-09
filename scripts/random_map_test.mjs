@@ -3,7 +3,11 @@
 // 生成そのものの質（対称性・連結性・遮蔽の量）はRust側の単体試験が種400通りで
 // 見ている。ここで見るのは繋ぎ込み: 一覧に出るか、選んだら届くか、
 // 開始でもう一度作り直されるか。ここが切れると、選べるのに何も起きない。
+
+import { roomSettings } from "./room_settings.mjs";
+
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
+
 const RANDOM_MAP_ID = "random";
 
 const host = {
@@ -96,16 +100,7 @@ const poll = setInterval(() => {
     host.socket.send(
       JSON.stringify({
         type: "update_room_settings",
-        settings: {
-          map_id: RANDOM_MAP_ID,
-          match_seconds: 120.0,
-          kill_points: 100,
-          death_penalty: 25,
-          item_points: 20,
-          item_spawn_interval: 5.0,
-          max_items: 3,
-          sandbox: false,
-        },
+        settings: roomSettings({ map_id: RANDOM_MAP_ID }),
       }),
     );
     return;

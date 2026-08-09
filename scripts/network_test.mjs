@@ -4,8 +4,11 @@
 //   cargo run -p pixel-shooter-server
 // node scripts/network_test.mjs
 
+import { roomSettings } from "./room_settings.mjs";
+
 const TEST_SECONDS = 8;
 const SERVER_URL = process.env.PIXEL_SHOOTER_SERVER_URL ?? "ws://127.0.0.1:9001";
+
 const clients = [];
 let finished = false;
 let lobbyStarted = false;
@@ -103,14 +106,7 @@ const inputTimer = setInterval(() => {
     host.socket.send(
       JSON.stringify({
         type: "update_room_settings",
-        settings: {
-          match_seconds: 30,
-          kill_points: 100,
-          death_penalty: 25,
-          item_points: 20,
-          item_spawn_interval: 5,
-          max_items: 3,
-        },
+        settings: roomSettings({ match_seconds: 30 }),
       }),
     );
     host.socket.send(JSON.stringify({ type: "start_match" }));
