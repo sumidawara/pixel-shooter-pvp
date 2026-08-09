@@ -1,0 +1,38 @@
+{
+  "map": {
+    "max_height": 256,
+    "max_tile_size": 128,
+    "max_width": 256,
+    "min_tile_size": 8
+  },
+  "room_settings": {
+    "cpu_level": {
+      "max": 4,
+      "min": 1
+    },
+    "death_penalty": {
+      "max": 10000,
+      "min": 0
+    },
+    "item_points": {
+      "max": 10000,
+      "min": 0
+    },
+    "item_spawn_interval": {
+      "max": 60.0,
+      "min": 0.5
+    },
+    "kill_points": {
+      "max": 10000,
+      "min": 0
+    },
+    "match_seconds": {
+      "max": 900.0,
+      "min": 30.0
+    },
+    "max_items": {
+      "max": 16,
+      "min": 1
+    }
+  }
+}

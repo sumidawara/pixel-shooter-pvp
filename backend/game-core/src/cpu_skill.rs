@@ -16,6 +16,7 @@
 //! 数値は`server.json`の`cpu.levels`から上書きできる。手触りの調整は
 //! 何度も試すことになるので、その都度ビルドし直さずに済むようにしてある。
 
+use pixel_shooter_protocol::room_settings_bounds::CPU_LEVEL;
 use serde::Deserialize;
 
 /// CPUの強さの段階。ロビーから選ぶ。
@@ -32,7 +33,9 @@ pub enum CpuLevel {
 }
 
 /// 段階の数。ロビーの選択肢や設定配列の長さがこれに揃う。
-pub const CPU_LEVEL_COUNT: usize = 4;
+///
+/// 範囲はプロトコル側が持つ。段階を増やすときは、あちらの`CPU_LEVEL`を変える。
+pub const CPU_LEVEL_COUNT: usize = (CPU_LEVEL.1 - CPU_LEVEL.0 + 1) as usize;
 
 /// どの段階のCPUも、これより遠くは見ない。
 ///
