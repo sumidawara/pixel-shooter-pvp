@@ -11,15 +11,28 @@ const PLAYER_RUN: Texture2D = preload("res://assets/aseprite/actors/player/playe
 @onready var disconnected_label: Label = %DisconnectedLabel
 @onready var respawn_label: Label = %RespawnLabel
 
+## 向きがまだ決まっていないときに向く方角。原本の絵が右向きに描かれている。
+const DEFAULT_FACING := 1.0
+
 var state: Dictionary = {}
 var accent_color := Color.WHITE
 var moving := false
 
+## 1なら右、-1なら左。
+##
+## 止まっている間も直前の向きを保つ。0へ戻すと、手を離すたびに正面（右）へ
+## 戻ってしまい、左を向いて撃ち合っている最中に勝手に反転する。
+var facing := DEFAULT_FACING
 
-func apply_state(next_state: Dictionary, color: Color, is_moving: bool, is_local: bool) -> void:
+
+func apply_state(
+	next_state: Dictionary, color: Color, is_moving: bool, is_local: bool, move_x: float
+) -> void:
 	state = next_state
 	accent_color = color
 	moving = is_moving
+	if not is_zero_approx(move_x):
+		facing = signf(move_x)
 	queue_redraw()
 	disconnected_label.visible = not bool(state.get("connected", true))
 	disconnected_label.modulate = accent_color
@@ -78,6 +91,7 @@ func _update_sprite() -> void:
 		sprite.texture = texture
 		sprite.region_enabled = true
 		sprite.region_rect = region
+		sprite.flip_h = facing < 0.0
 	outline_sprite.modulate = accent_color
 
 

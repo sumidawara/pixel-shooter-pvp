@@ -15,6 +15,14 @@ const INTERPOLATION_SPEED := 14.0
 ## 寄りの好みはここだけ変えれば効く。
 const FOLLOW_ZOOM := 1.2
 const CORRECTION_DECAY := 18.0
+
+## 向きを変えるのに要る横移動の量。
+##
+## これが無いと、真下へ歩いているだけで横成分の揺れを拾い、左右にちらつく。
+## 自機は入力軸(-1〜1)、他プレイヤーは補間の残り幅(px)で見るので単位が違う。
+const FACING_INPUT_DEADZONE := 0.2
+const FACING_DRIFT_DEADZONE := 0.4
+
 const CYAN := Color("#27e5ff")
 const MAGENTA := Color("#ff38c7")
 const YELLOW := Color("#ffe66d")
@@ -499,22 +507,38 @@ func _update_player_views() -> void:
 			continue
 		var player: Dictionary = players_by_id[id]
 		var moving := bool(player.get("dashing", false))
+		# 0なら向きを変えない。止まった瞬間に正面へ戻らないようにするため、
+		# 「どちらでもない」を向きの一種として扱わず、PlayerView側に保たせる。
+		var move_x := 0.0
 		if id == player_id:
+			# 自機は入力から取る。壁に押し当てて進めていなくても、押した方を向く。
+			var axis := Input.get_axis("move_left", "move_right")
 			moving = moving or Input.get_vector(
 				"move_left", "move_right", "move_up", "move_down"
 			).length_squared() > 0.01
+			if absf(axis) > FACING_INPUT_DEADZONE:
+				move_x = signf(axis)
 			player_views[id].position = _local_player_render_position()
 		else:
+			# 他プレイヤーは速度が届かないので、補間の残り幅から進む向きを見る。
+			var drift := 0.0
+			if remote_target_positions.has(id) and remote_render_positions.has(id):
+				drift = (
+					Vector2(remote_target_positions[id]).x
+					- Vector2(remote_render_positions[id]).x
+				)
 			moving = moving or (
 				remote_target_positions.has(id)
 				and remote_render_positions.has(id)
 				and Vector2(remote_target_positions[id]).distance_to(remote_render_positions[id]) > 0.8
 			)
+			if absf(drift) > FACING_DRIFT_DEADZONE:
+				move_x = signf(drift)
 			player_views[id].position = remote_render_positions.get(
 				id,
 				_to_vector(player.get("position", {}))
 			)
-		player_views[id].apply_state(player, _player_color(id), moving, id == player_id)
+		player_views[id].apply_state(player, _player_color(id), moving, id == player_id, move_x)
 
 
 func _capture_snapshot_effects(
