@@ -11,8 +11,17 @@ const PLAYER_RUN: Texture2D = preload("res://assets/aseprite/actors/player/playe
 @onready var disconnected_label: Label = %DisconnectedLabel
 @onready var respawn_label: Label = %RespawnLabel
 
-## 向きがまだ決まっていないときに向く方角。原本の絵が右向きに描かれている。
-const DEFAULT_FACING := 1.0
+## 原本の絵が向いている方角。1なら右、-1なら左。
+##
+## player_stand / player_run は左向きに描かれている。目が頭の中心より左へ
+## 寄せて置かれているのが見分け方。反転するのは、この向きと逆へ進むときだけ。
+##
+## ここを取り違えると両方向とも進行方向と逆を向き、常に後ずさりして見える。
+## 絵を描き直して向きを変えたときは、この値も変える。
+const ART_FACING := -1.0
+
+## 向きがまだ決まっていないときに向く方角。原本のままにしておく。
+const DEFAULT_FACING := ART_FACING
 
 var state: Dictionary = {}
 var accent_color := Color.WHITE
@@ -91,7 +100,7 @@ func _update_sprite() -> void:
 		sprite.texture = texture
 		sprite.region_enabled = true
 		sprite.region_rect = region
-		sprite.flip_h = facing < 0.0
+		sprite.flip_h = facing != ART_FACING
 	outline_sprite.modulate = accent_color
 
 
