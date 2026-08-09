@@ -5,6 +5,7 @@ use pixel_shooter_protocol::MatchPhase;
 
 use crate::{
     arena::ArenaMap,
+    match_log::{MatchEvent, MatchLog},
     model::{Bullet, GhostThief, LarokinPoppos, MatchState, Player, ScoreItem},
     schedule::GameClock,
     settings::GameSettings,
@@ -22,6 +23,7 @@ pub(crate) fn update_match(
     settings: Res<GameSettings>,
     map: Res<ArenaMap>,
     mut state: ResMut<MatchState>,
+    mut log: ResMut<MatchLog>,
     mut players: Query<(Entity, &mut Player)>,
     bullets: Query<Entity, With<Bullet>>,
     items: Query<Entity, With<ScoreItem>>,
@@ -61,7 +63,7 @@ pub(crate) fn update_match(
         clear_arena(&mut commands);
         reset_empty_room(&mut state);
         state.tick += 1;
-        println!("room reset because no human players remain");
+        log.record(MatchEvent::RoomReset);
         return;
     }
 
@@ -89,13 +91,15 @@ pub(crate) fn update_match(
             for (entity, player) in &players {
                 commands.entity(entity).despawn();
                 if expired_ids.contains(&player.id) {
-                    println!("player {} reconnect grace expired", player.id);
+                    log.record(MatchEvent::ReconnectGraceExpired {
+                        player_id: player.id,
+                    });
                 }
             }
             clear_arena(&mut commands);
             reset_empty_room(&mut state);
             state.tick += 1;
-            println!("room reset because no human players remain");
+            log.record(MatchEvent::RoomReset);
             return;
         }
 
@@ -111,7 +115,7 @@ pub(crate) fn update_match(
             || matches!(state.phase, MatchPhase::Countdown | MatchPhase::Running);
         for (entity, player_id) in expired {
             commands.entity(entity).despawn();
-            println!("player {player_id} reconnect grace expired");
+            log.record(MatchEvent::ReconnectGraceExpired { player_id });
         }
         if state
             .host_player_id
@@ -127,9 +131,14 @@ pub(crate) fn update_match(
                 .map(|(_, player)| player.id);
         }
         if match_was_active && remaining_ids.len() < 2 {
-            finish_match(&mut state, remaining_ids.first().copied(), &settings);
+            finish_match(
+                &mut state,
+                remaining_ids.first().copied(),
+                &settings,
+                &mut log,
+            );
             clear_arena(&mut commands);
-            println!("match ended because fewer than two players remain");
+            log.record(MatchEvent::EndedShorthanded);
         } else if state.phase == MatchPhase::Paused {
             state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Waiting);
         }
@@ -160,13 +169,13 @@ pub(crate) fn update_match(
         }
     } else if !has_disconnected_player && state.phase == MatchPhase::Paused {
         state.phase = state.resume_phase.take().unwrap_or(MatchPhase::Countdown);
-        println!("match resumed after reconnect");
+        log.record(MatchEvent::Resumed);
     }
 
     match state.phase {
         MatchPhase::Waiting => {
             if state.start_requested && active_player_count >= 2 {
-                start_new_match(&mut state, &mut players, &settings, &map);
+                start_new_match(&mut state, &mut players, &settings, &map, &mut log);
                 clear_arena(&mut commands);
             }
         }
@@ -175,7 +184,7 @@ pub(crate) fn update_match(
             if state.phase_time_left <= 0.0 {
                 state.phase = MatchPhase::Running;
                 state.phase_time_left = state.room_settings.match_seconds;
-                println!("timed score match started");
+                log.record(MatchEvent::Started);
             }
         }
         MatchPhase::Running => {
@@ -191,7 +200,7 @@ pub(crate) fn update_match(
                 let winner_id = unique_score_winner(
                     players.iter().map(|(_, player)| (player.id, player.score)),
                 );
-                finish_match(&mut state, winner_id, &settings);
+                finish_match(&mut state, winner_id, &settings, &mut log);
                 clear_arena(&mut commands);
             }
         }
@@ -219,6 +228,7 @@ fn start_new_match(
     players: &mut Query<(Entity, &mut Player)>,
     settings: &GameSettings,
     map: &ArenaMap,
+    log: &mut MatchLog,
 ) {
     state.match_winner_id = None;
     state.resume_phase = None;
@@ -230,7 +240,7 @@ fn start_new_match(
         player.score = 0;
         reset_player(&mut player, &settings.gameplay, map);
     }
-    println!("new timed score match is ready");
+    log.record(MatchEvent::Ready);
 }
 
 pub(super) fn unique_score_winner(standings: impl Iterator<Item = (u64, i32)>) -> Option<u64> {
@@ -245,12 +255,17 @@ pub(super) fn unique_score_winner(standings: impl Iterator<Item = (u64, i32)>) -
     }
 }
 
-fn finish_match(state: &mut MatchState, winner_id: Option<u64>, settings: &GameSettings) {
+fn finish_match(
+    state: &mut MatchState,
+    winner_id: Option<u64>,
+    settings: &GameSettings,
+    log: &mut MatchLog,
+) {
     state.phase = MatchPhase::MatchFinished;
     state.phase_time_left = settings.match_rules.match_finished_seconds;
     state.match_winner_id = winner_id;
     state.resume_phase = None;
-    println!("match finished; winner: {winner_id:?}");
+    log.record(MatchEvent::Finished { winner_id });
 }
 
 /// 人間がいなくなったルームを、次の参加者がホストになれる空状態へ戻す。

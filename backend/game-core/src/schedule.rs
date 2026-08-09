@@ -50,6 +50,7 @@ impl Plugin for GameCorePlugin {
             .init_resource::<ArenaMap>()
             .init_resource::<PlayerInputOverrides>()
             .init_resource::<game::CpuMinds>()
+            .init_resource::<crate::match_log::MatchLog>()
             .init_schedule(GameTick)
             .add_systems(
                 GameTick,
