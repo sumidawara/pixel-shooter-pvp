@@ -47,6 +47,14 @@ pub(crate) struct ControlSettings {
     pub(crate) control_url: String,
     pub(crate) server_id: String,
     pub(crate) public_url: String,
+    /// 他の人から見たときのホスト名かIP。ポートは実際に開けた番号を使う。
+    ///
+    /// `public_url` と違い、番号を書かない。CREATE ROOM で起動した側は、
+    /// 空きを探した結果どの番号になるかを起動前に決められないため、
+    /// ホストだけを渡して番号はサーバーに埋めさせる。
+    /// `host:port` の形で渡した場合は、その番号をそのまま使う。
+    #[serde(default)]
+    pub(crate) public_host: String,
     pub(crate) admin_url: String,
     /// ロビー（Matchmaker）のURL。設定するとルーム一覧へ自分の部屋を載せる。
     ///
@@ -212,6 +220,7 @@ impl Default for ControlSettings {
             control_url: "http://127.0.0.1:9101".into(),
             server_id: "local-game-1".into(),
             public_url: "ws://127.0.0.1:9001".into(),
+            public_host: String::new(),
             admin_url: String::new(),
             lobby_url: String::new(),
             require_join_ticket: false,
@@ -245,8 +254,72 @@ fn env_f32(name: &str, default: f32) -> f32 {
         .unwrap_or(default)
 }
 
+/// 一覧へ名乗る接続先を決める。
+///
+/// `public_host` があればそれを使い、番号は実際に開けたものを埋める。空きを探した
+/// 結果ずれることがあり、起動前には決められないため。`host:port` の形で渡された
+/// ときは、その番号をそのまま使う（外向けに別の番号を転送している場合）。
+///
+/// `public_host` が無ければ `public_url` をそのまま使う。server.json に書いた値を
+/// 勝手に組み替えない。
+pub(crate) fn resolve_public_url(control: &ControlSettings, bound_address: &str) -> String {
+    let host = control.public_host.trim();
+    if host.is_empty() {
+        return control.public_url.clone();
+    }
+    if host.contains(':') {
+        return format!("ws://{host}");
+    }
+    let port = bound_address
+        .rsplit_once(':')
+        .map_or("9001", |(_, port)| port);
+    format!("ws://{host}:{port}")
+}
+
 #[cfg(test)]
 mod tests {
+
+    fn control_with(public_url: &str, public_host: &str) -> ControlSettings {
+        ControlSettings {
+            public_url: public_url.into(),
+            public_host: public_host.into(),
+            ..ControlSettings::default()
+        }
+    }
+
+    /// ホストだけ渡されたら、実際に開けた番号を埋めること。
+    ///
+    /// CREATE ROOM で起動した側は、空きを探した結果どの番号になるかを起動前に
+    /// 決められない。番号を固定で書くと、ずれたときに一覧の行が誰も繋がらない
+    /// 案内になる。
+    #[test]
+    fn the_port_comes_from_the_socket_that_actually_opened() {
+        let control = control_with("ws://127.0.0.1:9001", "192.168.1.5");
+        assert_eq!(
+            resolve_public_url(&control, "0.0.0.0:9007"),
+            "ws://192.168.1.5:9007"
+        );
+    }
+
+    /// 番号まで指定されたら、そちらを優先すること。外向けに別の番号を転送している場合。
+    #[test]
+    fn an_explicit_port_wins_over_the_one_that_opened() {
+        let control = control_with("ws://127.0.0.1:9001", "example.test:30000");
+        assert_eq!(
+            resolve_public_url(&control, "0.0.0.0:9007"),
+            "ws://example.test:30000"
+        );
+    }
+
+    /// ホストの指定が無ければ、server.json の値をそのまま使うこと。
+    #[test]
+    fn without_a_public_host_the_configured_url_is_left_alone() {
+        let control = control_with("ws://game.example.test:9001", "");
+        assert_eq!(
+            resolve_public_url(&control, "0.0.0.0:9007"),
+            "ws://game.example.test:9001"
+        );
+    }
     use super::*;
 
     /// 探索範囲は上限で丸める。桁を間違えて書かれても起動が固まらないように。

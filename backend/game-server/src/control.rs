@@ -46,6 +46,18 @@ pub(crate) struct ControlPlane {
     commands: Receiver<ControlCommand>,
     shared_state: Arc<RwLock<ControlState>>,
     snapshot: SharedGameSnapshot,
+    /// 一覧へ名乗る接続先。確定するまでロビーへは名乗らない。
+    public_url: Arc<RwLock<Option<String>>>,
+}
+
+impl ControlPlane {
+    /// 一覧へ名乗る接続先を確定させる。
+    ///
+    /// 待受が開くまで実際のポートが分からないので、`start` の時点では決められない。
+    /// これを呼ぶまでロビーへは名乗らない。
+    pub(crate) fn publish(&self, public_url: String) {
+        *self.public_url.write().expect("public url lock") = Some(public_url);
+    }
 }
 
 impl ControlPlane {
@@ -159,6 +171,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
         input_scenario: None,
     }));
     let snapshot = Arc::new(RwLock::new(None));
+    let public_url = Arc::new(RwLock::new(None));
     start_http_thread(
         settings.control.bind_address.clone(),
         settings.control.port_search_range,
@@ -168,6 +181,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
             public_url: settings.control.public_url.clone(),
             control_url: settings.control.control_url.clone(),
         },
+        public_url.clone(),
         HttpState {
             commands: command_tx,
             shared_state: shared_state.clone(),
@@ -192,6 +206,7 @@ pub(crate) fn start(settings: &ServerSettings) -> ControlPlane {
         commands: command_rx,
         shared_state,
         snapshot,
+        public_url,
     }
 }
 
@@ -200,6 +215,7 @@ fn start_http_thread(
     port_search_range: u32,
     registry: Option<RegistryUrls>,
     registration: GameServerRegistration,
+    public_url: Arc<RwLock<Option<String>>>,
     state: HttpState,
     bind_result: Sender<Result<String, String>>,
 ) {
@@ -210,6 +226,7 @@ fn start_http_thread(
                 tokio::spawn(report_to_registry(
                     registry,
                     registration,
+                    public_url,
                     state.shared_state.clone(),
                 ));
             }
@@ -269,7 +286,8 @@ fn registry_urls(lobby_url: &str, admin_url: &str) -> Option<RegistryUrls> {
 
 async fn report_to_registry(
     registry: RegistryUrls,
-    registration: GameServerRegistration,
+    mut registration: GameServerRegistration,
+    public_url: Arc<RwLock<Option<String>>>,
     shared_state: Arc<RwLock<ControlState>>,
 ) {
     let client = reqwest::Client::new();
@@ -277,6 +295,15 @@ async fn report_to_registry(
     let heartbeat_url = registry.heartbeat;
     let mut registered = false;
     loop {
+        // 実際に開けた番号が分かるまで名乗らない。先に名乗ると、空きを探して
+        // 番号がずれた場合に、一覧へ誰も繋がらない行が出る。
+        // ロックは await をまたがせない。clone してすぐ手放す。
+        let advertised = public_url.read().expect("public url lock").clone();
+        let Some(url) = advertised else {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            continue;
+        };
+        registration.public_url = url;
         if !registered {
             registered = client
                 .post(&register_url)

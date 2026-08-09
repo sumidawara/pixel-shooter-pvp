@@ -67,6 +67,8 @@ const CRT_PRESET_LABELS := ["WEAK", "STANDARD", "STRONG"]
 @onready var join_button: Button = %JoinButton
 @onready var server_input: LineEdit = %ServerUrlInput
 @onready var port_input: SpinBox = %PortInput
+@onready var public_host_input: LineEdit = %PublicHostInput
+@onready var public_host_hint: Label = %PublicHostHint
 @onready var player_name_input: LineEdit = %PlayerNameInput
 @onready var crt_preset_option: OptionButton = %CrtPresetOption
 @onready var volume_slider: HSlider = %VolumeSlider
@@ -611,16 +613,41 @@ func _load_local_settings() -> void:
 		player_name_input.text = str(config.get_value("player", "name", default_name))
 		volume_slider.value = float(config.get_value("audio", "volume", 80.0))
 		crt_preset_id = str(config.get_value("display", "crt_preset", "standard"))
+		public_host_input.text = str(config.get_value("network", "public_host", ""))
 	else:
 		player_name_input.text = default_name
 		volume_slider.value = 80.0
 	_select_crt_preset(crt_preset_id)
+	_update_public_host_hint()
+	public_host_input.text_changed.connect(func(_text: String): _update_public_host_hint())
 	_apply_volume()
 	volume_slider.value_changed.connect(func(_value: float): _apply_volume())
 
 
+## 他の人から見える自分のアドレス。
+##
+## 空なら同じLAN内のアドレスを自動で使う。外から入ってもらう場合だけ、
+## ポート開放したうえでここへ書く。ホスト名だけなら実際に開いたポートが付き、
+## `host:port` と書けばその番号がそのまま使われる。
+func get_public_host() -> String:
+	var typed := public_host_input.text.strip_edges()
+	return typed if not typed.is_empty() else NetworkConfig.local_network_host()
+
+
+## 今どのアドレスで名乗るのかを、設定画面に出す。
+##
+## 「AUTO」とだけ書いてあると、何が使われるのか確かめる手段が無い。
+func _update_public_host_hint() -> void:
+	var host := get_public_host()
+	if host.is_empty():
+		public_host_hint.text = "NO NETWORK ADDRESS FOUND. ONLY THIS PC CAN JOIN."
+	else:
+		public_host_hint.text = "OTHERS WILL CONNECT TO %s" % host
+
+
 func _save_settings_and_return() -> void:
 	var config := ConfigFile.new()
+	config.set_value("network", "public_host", public_host_input.text.strip_edges())
 	config.set_value("player", "name", player_name_input.text)
 	config.set_value("audio", "volume", volume_slider.value)
 	config.set_value("display", "crt_preset", get_crt_preset())

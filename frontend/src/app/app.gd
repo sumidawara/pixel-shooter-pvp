@@ -146,7 +146,7 @@ func _on_create_requested(player_name: String, port: int) -> void:
 	hosting_room = true
 	joined_room = false
 	# 作った部屋をロビーの一覧へ載せる。ロビーの指定が無ければ名乗らない。
-	host_server.start_server(port, menu_screen.lobby_url)
+	host_server.start_server(port, menu_screen.lobby_url, menu_screen.get_public_host())
 	NetworkClient.player_name = player_name.strip_edges()
 
 

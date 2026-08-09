@@ -32,7 +32,7 @@ var _address_path := ""
 var _address_wait_left := 0.0
 
 
-func start_server(port: int, lobby_url: String = "") -> void:
+func start_server(port: int, lobby_url: String = "", public_host: String = "") -> void:
 	stop_server()
 	if OS.has_feature("web"):
 		server_failed.emit("CREATE ROOM IS NOT AVAILABLE IN WEB BUILDS")
@@ -67,6 +67,10 @@ func start_server(port: int, lobby_url: String = "") -> void:
 	var lobby := lobby_url.strip_edges()
 	if not lobby.is_empty():
 		arguments.append_array(["--lobby-url", lobby])
+	# 他の人から見えるアドレス。ポートはサーバーが実際に開いた番号を埋める。
+	var advertised := public_host.strip_edges()
+	if not advertised.is_empty():
+		arguments.append_array(["--public-host", advertised])
 	server_pid = OS.create_process(server_path, arguments, false)
 	if server_pid <= 0:
 		server_pid = -1

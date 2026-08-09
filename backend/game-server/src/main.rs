@@ -50,6 +50,10 @@ fn main() {
     if let Some(lobby_url) = command_line_value("--lobby-url").filter(|url| !url.is_empty()) {
         settings.control.lobby_url = lobby_url;
     }
+    // 他の人から見たときのホスト。ポートは実際に開けた番号を使うので、ここには書かない。
+    if let Some(public_host) = command_line_value("--public-host").filter(|host| !host.is_empty()) {
+        settings.control.public_host = public_host;
+    }
     if let Some(bind_address) = command_line_value("--bind") {
         settings.network.bind_address = bind_address;
     }
@@ -99,6 +103,12 @@ fn main() {
             );
         }
     }
+    // ここまで来て初めて実際のポートが分かる。確定させるまでロビーへは名乗らない。
+    let public_url = config::resolve_public_url(&settings.control, &settings.network.bind_address);
+    if !settings.control.lobby_url.is_empty() || !settings.control.admin_url.is_empty() {
+        println!("advertising this room as {public_url}");
+    }
+    control_plane.publish(public_url);
     if let Some(control_address) = &control_plane.bind_address {
         println!("GameServer control API listening on http://{control_address}");
     }
