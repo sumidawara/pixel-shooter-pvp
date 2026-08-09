@@ -63,6 +63,10 @@ ServerRuntime
 
 GameCoreは、WebSocketの待受ポートやTokioの実行方法を知らない。
 ゲームSystemは実時間の`Time`ではなく、GameCoreが持つ固定`GameClock`を参照する。
+
+**標準出力へも書かない。** 試合の出来事は`MatchLog`へ型として積み、
+ServerRuntimeが取り出して出す。GameCore側でprintすると、出力先や書式の都合が
+ゲーム計算へ混ざるうえ、学習やリプレイで大量に回したときに出力そのものが重くなる。
 テストや将来のデバッグ制御は、実時間ランナーを起動せず
 `advance_one_tick`を必要な回数だけ呼び出せる。
 

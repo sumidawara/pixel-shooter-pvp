@@ -34,6 +34,15 @@ pub enum CpuLevel {
 /// 段階の数。ロビーの選択肢や設定配列の長さがこれに揃う。
 pub const CPU_LEVEL_COUNT: usize = 4;
 
+/// どの段階のCPUも、これより遠くは見ない。
+///
+/// プレイヤーがカメラで見渡せる距離を超えさせないための上限。ただし
+/// 「カメラでどこまで見えるか」を決めるのはクライアントの寄り具合(FOLLOW_ZOOM)で、
+/// こちら側からは分からない。**この値を守っているかは
+/// `frontend/tests/game_view_test.gd` が画面側で検査する。**
+/// 片側だけで数値を持つと、寄り具合を変えたときに前提だけが静かに古くなる。
+pub const MAX_SIGHT_RADIUS: f32 = 250.0;
+
 impl CpuLevel {
     /// 1〜4の数から段階を作る。範囲外は近い方へ寄せる。
     ///
@@ -112,9 +121,9 @@ impl Default for CpuSkill {
 impl CpuSkill {
     /// 段階ごとの組み込みの値。
     ///
-    /// 視界の基準は、プレイヤーがカメラで見える範囲。追従カメラでは横に約±267px
-    /// 見えるので、段階3の200pxは「プレイヤーと同程度、ただし全周」に当たる。
-    /// どの段階もプレイヤーの見える距離を超えないようにしてある。
+    /// 視界の基準は、プレイヤーがカメラで見渡せる範囲。段階3の200pxが
+    /// 「プレイヤーと同程度、ただし全周」に当たる。上限は[`MAX_SIGHT_RADIUS`]で、
+    /// それがプレイヤーの視界に収まっているかは画面側が検査する。
     pub fn preset(level: CpuLevel) -> Self {
         match level {
             CpuLevel::One => Self {
@@ -262,21 +271,29 @@ mod tests {
         }
     }
 
-    /// どの段階も、プレイヤーがカメラで見渡せる距離を超えないこと。
+    /// どの段階も、宣言した上限を超えて見ないこと。
     ///
-    /// 見えない所から撃たれるのは、強さではなく理不尽になる。
+    /// 上限とプレイヤーの視界の関係は、寄り具合を持っている画面側が検査する
+    /// （`frontend/tests/game_view_test.gd`）。こちらは「宣言した値を守る」
+    /// ことだけを見る。画面の定数をこちらへ書き写すと、あちらを変えたときに
+    /// この前提だけが静かに古くなる。
     #[test]
-    fn no_level_sees_further_than_the_player_can() {
-        // 追従カメラの見える範囲の半分（横方向）。frontend の FOLLOW_ZOOM 由来。
-        const PLAYER_SIGHT: f32 = 267.0;
+    fn no_level_sees_further_than_the_declared_limit() {
         for number in 1..=4u8 {
             let skill = CpuSkill::preset(CpuLevel::from_number(number));
             assert!(
-                skill.sight_radius <= PLAYER_SIGHT,
-                "段階{number}の視界がプレイヤーより広い: {}",
+                skill.sight_radius <= MAX_SIGHT_RADIUS,
+                "段階{number}の視界が上限を超えている: {} > {MAX_SIGHT_RADIUS}",
                 skill.sight_radius
             );
         }
+        // 上限そのものが使われずに浮いていないこと。
+        assert!(
+            (1..=4u8).any(|number| {
+                CpuSkill::preset(CpuLevel::from_number(number)).sight_radius == MAX_SIGHT_RADIUS
+            }),
+            "どの段階も上限に届いていない。上限が実態と離れている"
+        );
     }
 
     /// 設定ファイルから来た極端な値を丸めること。
