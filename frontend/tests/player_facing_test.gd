@@ -2,18 +2,41 @@ extends SceneTree
 
 ## プレイヤーの絵が進む向きを向くかの検証。
 ##
-## 原本の絵は右向きにしか描かれていないので、左へ歩いている間も右を向いていた。
-## 撃ち合いの最中にどちらへ逃げたかが絵から読めないのは、見た目の問題ではなく
-## 追う・待ち伏せるの判断に効く。
+## 原本は左向きに描かれているので、右へ進むときだけ左右反転する。ここを
+## 取り違えると両方向とも進行方向と逆を向き、ずっと後ずさりして見える。
+## 実際に一度そうなった。
 ##
-## 止まったときに正面へ戻さないことも合わせて見る。戻すと、手を離すたびに
-## 勝手に反転して「今どちらを向いているのか」が信用できなくなる。
+## どちら向きに描かれているかは PlayerView.ART_FACING が持つ。目が頭の中心より
+## どちらへ寄っているかで決まる造作の話で、自動では判定していない（1〜2画素の
+## 違いを数値で拾おうとすると、絵を少し直しただけで誤判定する）。絵を描き直して
+## 向きを変えたときは、人が ART_FACING を変える必要がある。
+##
+## そのぶん「反転しても絵が変わらない」状態だけは機械で塞いでおく。左右対称な
+## 絵に差し替わると、向きを切り替えても何も起きなくなるため。
 ##
 ##     godot --headless --path frontend --script res://tests/player_facing_test.gd
 
 const PLAYER_VIEW_SCENE := preload("res://src/actors/player/player_view.tscn")
+const PLAYER_VIEW_SCRIPT := preload("res://src/actors/player/player_view.gd")
+const PLAYER_STAND: Texture2D = preload("res://assets/aseprite/actors/player/player_stand.aseprite")
+
+## 原本と反転した絵が、最低このくらいは違っていること。
+##
+## 実測で20%前後ある。半分にしても余裕があり、少し描き直したくらいでは割らない。
+const MIN_MIRROR_DIFFERENCE := 0.10
+
+## 人が向きを見て ART_FACING を決めたときの絵。
+##
+## どちらを向いているかは機械で判定できないので、代わりに「絵が変わったこと」を
+## 検知して人へ差し戻す。絵を描き直したら、向きを目で確かめたうえでここを更新する。
+const VERIFIED_ART := {
+	"player_stand": "dd983a8812fa2190",
+	"player_run": "2ab9525a12d3dbdd",
+}
 
 var _failures: PackedStringArray = PackedStringArray()
+var _art_facing := 0.0
+var _against_art := 0.0
 
 
 func _initialize() -> void:
@@ -21,6 +44,11 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_art_facing = PLAYER_VIEW_SCRIPT.ART_FACING
+	_against_art = -_art_facing
+
+	_check_flipping_actually_changes_the_picture()
+	_check_the_artwork_is_the_one_someone_looked_at()
 	await _check_the_sprite_turns_the_way_it_moves()
 	await _check_standing_still_keeps_the_last_direction()
 	await _check_both_sprites_turn_together()
@@ -34,36 +62,78 @@ func _run() -> void:
 	quit(0)
 
 
-## 右へ動けば右、左へ動けば左を向くこと。
+## 左右反転すると絵が実際に変わること。
+##
+## 対称な絵だと、向きを切り替えても見た目が動かない。コードは正しいのに
+## 直っていない、という一番気付きにくい状態になる。
+func _check_flipping_actually_changes_the_picture() -> void:
+	var img := PLAYER_STAND.get_image()
+	var width := img.get_width()
+	var height := img.get_height()
+	var diff := 0
+	for y in range(height):
+		for x in range(width):
+			if img.get_pixel(x, y) != img.get_pixel(width - 1 - x, y):
+				diff += 1
+	var ratio := float(diff) / float(width * height)
+	if ratio < MIN_MIRROR_DIFFERENCE:
+		_failures.append(
+			"原本が左右対称に近い（違い %.1f%%）。反転しても向きが変わらない" % (ratio * 100.0)
+		)
+
+
+## 絵が、ART_FACING を決めたときのものから変わっていないこと。
+##
+## この検査だけは「間違いを見つける」ためではなく「人に見直させる」ためにある。
+## ART_FACING が絵と合っているかはテストから判定できず、実際に左向きの絵を
+## 右向きだと思い込んで、両方向とも後ずさりして見える状態を作ってしまった。
+func _check_the_artwork_is_the_one_someone_looked_at() -> void:
+	for name in VERIFIED_ART:
+		var tex: Texture2D = load("res://assets/aseprite/actors/player/%s.aseprite" % name)
+		var ctx := HashingContext.new()
+		ctx.start(HashingContext.HASH_SHA256)
+		ctx.update(tex.get_image().get_data())
+		var digest := ctx.finish().hex_encode().substr(0, 16)
+		if digest != VERIFIED_ART[name]:
+			_failures.append(
+				(
+					"%s の絵が変わった（%s → %s）。"
+					+ "どちらを向いているか目で確かめ、PlayerView.ART_FACING が"
+					+ "今も正しいことを確認したうえで VERIFIED_ART を更新すること"
+				) % [name, VERIFIED_ART[name], digest]
+			)
+
+
+## 原本の向きへ進めばそのまま、逆へ進めば反転すること。
 func _check_the_sprite_turns_the_way_it_moves() -> void:
 	var view = await _open_view()
 
-	view.apply_state(_alive_player(), Color.WHITE, true, true, -1.0)
-	if not view.character_sprite.flip_h:
-		_failures.append("左へ動いているのに左を向かない")
-
-	view.apply_state(_alive_player(), Color.WHITE, true, true, 1.0)
+	view.apply_state(_alive_player(), Color.WHITE, true, true, _art_facing)
 	if view.character_sprite.flip_h:
-		_failures.append("右へ動いているのに右を向かない")
+		_failures.append("原本と同じ向きへ進んでいるのに反転している")
+
+	view.apply_state(_alive_player(), Color.WHITE, true, true, _against_art)
+	if not view.character_sprite.flip_h:
+		_failures.append("原本と逆へ進んでいるのに反転していない")
 
 	await _close(view)
 
 
 ## 横へ動いていない間は、直前の向きを保つこと。
 ##
-## 0を「正面」と解釈して右へ戻すと、左へ逃げて止まった相手が右を向く。
+## 0を「正面」と解釈して原本の向きへ戻すと、逆へ逃げて止まった相手が反転する。
 func _check_standing_still_keeps_the_last_direction() -> void:
 	var view = await _open_view()
 
-	view.apply_state(_alive_player(), Color.WHITE, true, true, -1.0)
+	view.apply_state(_alive_player(), Color.WHITE, true, true, _against_art)
 	view.apply_state(_alive_player(), Color.WHITE, false, true, 0.0)
 	if not view.character_sprite.flip_h:
-		_failures.append("左を向いて止まると右へ戻ってしまう")
+		_failures.append("向きを変えて止まると原本の向きへ戻ってしまう")
 
 	# 止まっている間に絵を描き直しても保つこと。
 	view._process(0.016)
 	if not view.character_sprite.flip_h:
-		_failures.append("止まったまま描き直すと右へ戻ってしまう")
+		_failures.append("止まったまま描き直すと原本の向きへ戻ってしまう")
 
 	await _close(view)
 
@@ -75,7 +145,7 @@ func _check_standing_still_keeps_the_last_direction() -> void:
 func _check_both_sprites_turn_together() -> void:
 	var view = await _open_view()
 
-	view.apply_state(_alive_player(), Color.WHITE, true, true, -1.0)
+	view.apply_state(_alive_player(), Color.WHITE, true, true, _against_art)
 	if view.outline_sprite.flip_h != view.character_sprite.flip_h:
 		_failures.append(
 			"縁取りと本体の向きが違う: 縁取り %s / 本体 %s"
@@ -96,25 +166,30 @@ func _check_other_players_turn_too() -> void:
 	game._on_map_definition_received(_map_definition())
 
 	# まず2人を置き、表示位置を落ち着かせる。
-	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(400.0, 176.0))
-	if not await _settle(game, 2, Vector2(400.0, 176.0)):
+	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(330.0, 176.0))
+	if not await _settle(game, 2, Vector2(330.0, 176.0)):
 		_failures.append("相手の表示位置が落ち着かない")
 		await _close_main(main)
 		return
 
-	# 相手を左へ飛ばす。補間で追いかける間、左を向いているはず。
-	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(240.0, 176.0))
+	# 右へ飛ばす。補間で追いかける間、右向きになっているはず。
+	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(430.0, 176.0))
 	await process_frame
-	if not game.player_views[2].character_sprite.flip_h:
-		_failures.append("相手が左へ動いても左を向かない")
-
-	# 右へ戻せば右を向くこと。
-	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(420.0, 176.0))
-	await process_frame
-	if game.player_views[2].character_sprite.flip_h:
+	if not _facing_matches(game.player_views[2], 1.0):
 		_failures.append("相手が右へ動いても右を向かない")
 
+	# 左へ戻せば左を向くこと。
+	await _send_snapshot(game, Vector2(320.0, 176.0), Vector2(230.0, 176.0))
+	await process_frame
+	if not _facing_matches(game.player_views[2], -1.0):
+		_failures.append("相手が左へ動いても左を向かない")
+
 	await _close_main(main)
+
+
+## viewが direction（1で右、-1で左）を向いているか。
+func _facing_matches(view, direction: float) -> bool:
+	return view.character_sprite.flip_h == (direction != _art_facing)
 
 
 ## 表示位置が目標へ届くまで待つ。届いたらtrue。
